@@ -1,4 +1,4 @@
-# MCP Internal Documentation Agent
+# Personal Pipeline (PP)
 
 An intelligent Model Context Protocol (MCP) server that provides automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management.
 
@@ -19,8 +19,8 @@ This MCP server transforms scattered operational knowledge into structured, acti
 
 ```bash
 # Clone the repository
-git clone https://github.com/[username]/mcp-internal-docs-agent.git
-cd mcp-internal-docs-agent
+git clone https://github.com/[username]/personal-pipeline.git
+cd personal-pipeline
 
 # Install dependencies
 npm install

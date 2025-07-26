@@ -1,6 +1,6 @@
-# Contributing to MCP Internal Documentation Agent
+# Contributing to Personal Pipeline (PP)
 
-We welcome contributions to the MCP Internal Documentation Agent! This document provides guidelines for contributing to the project.
+We welcome contributions to Personal Pipeline! This document provides guidelines for contributing to the project.
 
 ## Getting Started
 
@@ -17,8 +17,8 @@ We welcome contributions to the MCP Internal Documentation Agent! This document 
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/mcp-internal-docs-agent.git
-   cd mcp-internal-docs-agent
+   git clone https://github.com/YOUR_USERNAME/personal-pipeline.git
+   cd personal-pipeline
    ```
 
 3. Install dependencies:
@@ -206,7 +206,7 @@ By contributing to this project, you agree that your contributions will be licen
 
 ## Acknowledgments
 
-Thank you for contributing to the MCP Internal Documentation Agent! Your contributions help make operational knowledge more accessible and actionable for AI-driven incident response.
+Thank you for contributing to Personal Pipeline! Your contributions help make operational knowledge more accessible and actionable for AI-driven incident response.
 
 ---
 

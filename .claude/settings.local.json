@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "mcp__sequential-thinking__sequentialthinking",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh repo create:*)"
     ],
     "deny": []
   }
