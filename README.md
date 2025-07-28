@@ -1,5 +1,7 @@
 # Personal Pipeline (PP)
 
+> **🎉 Status**: Milestone 1.1 Complete - Core MCP server implemented and operational! See [docs/MILESTONE-1.1.md](docs/MILESTONE-1.1.md) for details.
+
 An intelligent Model Context Protocol (MCP) server that provides automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management.
 
 ## Overview
@@ -26,11 +28,17 @@ cd personal-pipeline
 npm install
 
 # Configure your documentation sources
-cp config/sources.example.yaml config/sources.yaml
-# Edit config/sources.yaml with your documentation sources
+cp config/config.sample.yaml config/config.yaml
+# Edit config/config.yaml with your documentation sources
+
+# Build the project
+npm run build
 
 # Start the MCP server
 npm start
+
+# Or run in development mode
+npm run dev
 ```
 
 ## Architecture
@@ -76,7 +84,7 @@ LangGraph Agent → MCP Protocol → Core Engine → Source Adapters
 
 ## Configuration
 
-Create a `config/sources.yaml` file to define your documentation sources:
+Create a `config/config.yaml` file to define your documentation sources:
 
 ```yaml
 sources:
@@ -106,14 +114,25 @@ sources:
 # Install development dependencies
 npm install
 
-# Run tests
-npm test
-
-# Run with development logging
+# Run in development mode with hot reload
 npm run dev
 
 # Build for production
 npm run build
+
+# Run tests
+npm test
+npm run test:watch      # Run tests in watch mode
+npm run test:coverage   # Run tests with coverage
+
+# Code quality
+npm run lint            # Run ESLint
+npm run lint:fix        # Fix ESLint issues
+npm run format          # Format code with Prettier
+npm run typecheck       # Run TypeScript compiler checks
+
+# Health check
+npm run health          # Check if server is running
 ```
 
 ## Contributing

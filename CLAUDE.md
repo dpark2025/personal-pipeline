@@ -4,36 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Personal Pipeline (PP) is an intelligent Model Context Protocol (MCP) server designed for automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management. The project is currently in the planning/design phase with comprehensive documentation but no implementation code yet.
+Personal Pipeline (PP) is an intelligent Model Context Protocol (MCP) server designed for automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management. **Milestone 1.1 is complete** with a fully operational TypeScript/Node.js MCP server implementation.
 
 ## Development Commands
 
-Since this project is in early planning stages, the typical development commands will likely be:
+The project is now operational with complete build and development tooling:
 
 ```bash
-# Install dependencies (when package.json exists)
+# Install dependencies
 npm install
 
-# Run the MCP server (when implemented)
-npm start
-
-# Development mode with logging (planned)
+# Run in development mode with hot reload
 npm run dev
 
-# Build for production (planned)
+# Build for production
 npm run build
 
-# Run tests (when implemented)
+# Start the MCP server
+npm start
+
+# Run tests
 npm test
+npm run test:watch      # Run tests in watch mode  
+npm run test:coverage   # Run tests with coverage
 
-# Run tests in watch mode (planned)
-npm run test:watch
+# Code quality and validation
+npm run lint            # Run ESLint
+npm run lint:fix        # Fix ESLint issues automatically
+npm run format          # Format code with Prettier
+npm run format:check    # Check if code is formatted
+npm run typecheck       # Run TypeScript compiler checks
 
-# Run tests with coverage (planned)
-npm run test:coverage
+# Utilities
+npm run clean           # Remove build artifacts
+npm run health          # Check if server is running
 ```
 
 ## Architecture & Structure
+
+### Current Project Structure
+```
+src/
+├── core/           # MCP server implementation
+│   └── server.ts   # PersonalPipelineServer class
+├── adapters/       # Source adapter framework
+│   ├── base.ts     # Abstract SourceAdapter + registry
+│   └── file.ts     # FileSystemAdapter implementation
+├── tools/          # MCP tool implementations
+│   └── index.ts    # PPMCPTools class with 7 tools
+├── types/          # TypeScript type definitions
+│   └── index.ts    # Zod schemas and types
+├── utils/          # Configuration and utilities
+│   ├── config.ts   # ConfigManager class
+│   └── logger.ts   # Winston logging setup
+└── index.ts        # Main entry point
+
+config/
+├── config.yaml         # Live configuration (gitignored)
+└── config.sample.yaml  # Configuration template
+
+docs/
+├── API.md              # MCP tools documentation
+├── MILESTONE-1.1.md    # Completed milestone details
+├── sample-runbook.md   # Example runbook in Markdown
+└── disk-space-runbook.json # Example runbook in JSON
+
+tests/
+└── unit/               # Unit tests
+    ├── core/           # Server tests
+    └── utils/          # Utility tests
+```
 
 ### Core Architecture
 The system follows a modular architecture with pluggable adapters:
@@ -45,17 +85,21 @@ LangGraph Agent → MCP Protocol → Core Engine → Source Adapters
                                       └── Files (Local, GitHub)
 ```
 
-### Technology Stack (Planned)
+### Technology Stack (Implemented)
 - **Core Runtime**: TypeScript/Node.js 18+
-- **MCP SDK**: `@modelcontextprotocol/sdk`
-- **Search**: `@xenova/transformers` (local embeddings), `fuse.js` (fuzzy search)
-- **Content Processing**: `cheerio`, `turndown`, `puppeteer`
-- **Caching**: `node-cache` (in-memory), `ioredis` (Redis)
-- **Configuration**: YAML format
+- **MCP SDK**: `@modelcontextprotocol/sdk` v0.5.0
+- **Web Framework**: Express.js with security middleware (helmet, cors)
+- **Search**: `fuse.js` (fuzzy search), `@xenova/transformers` (planned for Phase 2)
+- **Content Processing**: `cheerio`, `turndown`
+- **Caching**: `node-cache` (in-memory)
+- **Validation**: Zod for runtime type checking and schema validation
+- **Logging**: Winston structured logging
+- **Configuration**: YAML format with environment variable support
+- **Development**: ESLint, Prettier, Jest, tsx for hot reload
 
-### Key Components (Planned Implementation)
+### Key Components (Implemented)
 
-#### MCP Tools
+#### MCP Tools (7 Core Tools)
 - `search_runbooks()` - Context-aware operational runbook retrieval
 - `get_decision_tree()` - Retrieve decision logic for specific scenarios  
 - `get_procedure()` - Detailed execution steps for procedures
@@ -64,14 +108,18 @@ LangGraph Agent → MCP Protocol → Core Engine → Source Adapters
 - `search_knowledge_base()` - General documentation search
 - `record_resolution_feedback()` - Capture outcomes for improvement
 
-#### Source Adapter Framework
-All adapters implement the `SourceAdapter` interface with methods:
-- `search(query, filters?)` - Search documentation
-- `getDocument(id)` - Retrieve specific documents
-- `healthCheck()` - Verify source availability
-- `refreshIndex()` - Update cached content
-- `configure(config)` - Set up source configuration
-- `authenticate(credentials)` - Handle authentication
+#### Source Adapter Framework (Implemented)
+All adapters implement the `SourceAdapter` abstract class with methods:
+- `search(query, filters?)` - Search documentation with confidence scoring
+- `getDocument(id)` - Retrieve specific documents by ID
+- `searchRunbooks(alertType, severity, systems)` - Specialized runbook search
+- `healthCheck()` - Verify source availability and performance
+- `getMetadata()` - Get adapter statistics and information
+- `cleanup()` - Graceful shutdown and resource cleanup
+
+**Current Adapters**:
+- **FileSystemAdapter**: Local file and directory indexing with Markdown/JSON support
+- **Planned**: ConfluenceAdapter, GitHubAdapter, DatabaseAdapter
 
 #### Performance Requirements
 - Critical runbooks: < 200ms response time (cached)
@@ -83,7 +131,7 @@ All adapters implement the `SourceAdapter` interface with methods:
 ## Configuration
 
 ### Documentation Sources
-Configuration will be via `config/sources.yaml` (not tracked in git):
+Configuration is via `config/config.yaml` (not tracked in git, use `config.sample.yaml` as template):
 ```yaml
 sources:
   - name: "ops-confluence"
@@ -146,9 +194,12 @@ All tool responses include:
 
 ## Implementation Phases
 
-1. **Phase 1** (Weeks 1-3): Core MCP server with basic runbook retrieval
+1. **Phase 1** (Weeks 1-3): ✅ **COMPLETE** - Core MCP server with basic runbook retrieval
+   - Milestone 1.1: ✅ Project foundation, 7 MCP tools, FileSystemAdapter
+   - Milestone 1.2: In Progress - Enhanced tools and caching
+   - Milestone 1.3: Planned - Performance optimization and testing
 2. **Phase 2** (Weeks 4-6): Multi-source support and enhanced search
-3. **Phase 3** (Weeks 7-9): LangGraph integration and operational features
+3. **Phase 3** (Weeks 7-9): LangGraph integration and operational features  
 4. **Phase 4** (Weeks 10-12): Scale testing and enterprise enhancements
 
 ## Key Success Metrics
