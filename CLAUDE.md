@@ -38,6 +38,11 @@ npm run typecheck       # Run TypeScript compiler checks
 # Utilities
 npm run clean           # Remove build artifacts
 npm run health          # Check if server is running
+
+# Development Tools (Milestone 1.2)
+npm run generate-sample-data  # Generate realistic test data and runbooks
+npm run validate-config       # Validate YAML config with schema checking
+npm run test-mcp             # Interactive MCP client testing tool
 ```
 
 ## Architecture & Structure
@@ -196,8 +201,8 @@ All tool responses include:
 
 1. **Phase 1** (Weeks 1-3): ✅ **COMPLETE** - Core MCP server with basic runbook retrieval
    - Milestone 1.1: ✅ Project foundation, 7 MCP tools, FileSystemAdapter
-   - Milestone 1.2: In Progress - Enhanced tools and caching
-   - Milestone 1.3: Planned - Performance optimization and testing
+   - Milestone 1.2: ✅ **COMPLETE** - Development tools and testing utilities
+   - Milestone 1.3: In Progress - Performance optimization and caching
 2. **Phase 2** (Weeks 4-6): Multi-source support and enhanced search
 3. **Phase 3** (Weeks 7-9): LangGraph integration and operational features  
 4. **Phase 4** (Weeks 10-12): Scale testing and enterprise enhancements

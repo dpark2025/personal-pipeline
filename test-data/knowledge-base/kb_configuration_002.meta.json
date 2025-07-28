@@ -1,0 +1,15 @@
+{
+  "id": "kb_configuration_002",
+  "title": "Configuration: Cpu High",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "configuration",
+    "cpu_high",
+    "operations"
+  ],
+  "category": "configuration",
+  "last_updated": "2025-07-28T22:46:14.259Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.8328685741900239
+}

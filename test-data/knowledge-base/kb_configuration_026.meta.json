@@ -1,0 +1,15 @@
+{
+  "id": "kb_configuration_026",
+  "title": "Configuration: Ssl Certificate",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "configuration",
+    "ssl_certificate",
+    "operations"
+  ],
+  "category": "configuration",
+  "last_updated": "2025-07-28T22:46:14.264Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.8511784871171573
+}

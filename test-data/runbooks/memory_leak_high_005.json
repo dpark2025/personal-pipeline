@@ -1,0 +1,89 @@
+{
+  "id": "memory_leak_high_005",
+  "title": "Memory Leak - HIGH Alert Response",
+  "version": "1.5",
+  "description": "Runbook for responding to high severity memory leak alerts on python-app systems",
+  "triggers": [
+    "memory_usage_high",
+    "oom_killer",
+    "gc_pressure"
+  ],
+  "severity_mapping": {
+    "critical": "critical",
+    "high": "high",
+    "medium": "medium",
+    "low": "low"
+  },
+  "decision_tree": {
+    "id": "memory_leak_decision_tree",
+    "name": "Memory Leak Decision Tree",
+    "description": "Decision logic for handling memory leak alerts",
+    "branches": [
+      {
+        "id": "standard_response",
+        "condition": "memory_leak_metric > warning_threshold",
+        "description": "Standard response for memory leak issues",
+        "action": "standard_procedure",
+        "next_step": "monitor_improvement",
+        "confidence": 0.85,
+        "rollback_step": "escalate_to_specialist"
+      },
+      {
+        "id": "monitor_only",
+        "condition": "memory_leak_metric <= warning_threshold",
+        "description": "Issue within acceptable range, monitor for trends",
+        "action": "increase_monitoring",
+        "next_step": "scheduled_review",
+        "confidence": 0.75
+      }
+    ],
+    "default_action": "escalate_to_oncall"
+  },
+  "procedures": [
+    {
+      "id": "standard_procedure",
+      "name": "Standard Memory Leak Resolution",
+      "description": "Standard resolution steps for memory leak issues",
+      "command": "kill -USR1 $(pgrep java) && systemctl reload application",
+      "expected_outcome": "Resolve memory leak issue within normal timeframe",
+      "timeout_seconds": 1800,
+      "prerequisites": [
+        "standard_access"
+      ],
+      "rollback_procedure": "revert_changes",
+      "tools_required": [
+        "htop",
+        "iostat",
+        "netstat",
+        "ss"
+      ]
+    },
+    {
+      "id": "diagnostic_procedure",
+      "name": "Memory Leak Diagnostics",
+      "description": "Gather diagnostic information for memory leak analysis",
+      "command": "ps aux --sort=-%mem | head -20 && free -h && cat /proc/meminfo",
+      "expected_outcome": "Collect comprehensive diagnostic data",
+      "timeout_seconds": 600,
+      "prerequisites": [
+        "read_access"
+      ],
+      "tools_required": [
+        "htop",
+        "iostat",
+        "netstat",
+        "ss",
+        "lsof"
+      ]
+    }
+  ],
+  "escalation_path": "sre_oncall",
+  "metadata": {
+    "created_at": "2025-07-28T22:46:14.247Z",
+    "updated_at": "2025-07-28T22:46:14.247Z",
+    "author": "SRE Team",
+    "confidence_score": 0.8503199488401106,
+    "success_rate": 0.9499297076604196,
+    "avg_resolution_time_minutes": 19
+  }
+}

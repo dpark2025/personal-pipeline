@@ -73,7 +73,7 @@ interface SourceAdapter {
   type: 'web' | 'wiki' | 'database' | 'file' | 'api';
   
   // Core methods
-  search(query: string, filters?: SearchFilters): Promise<Document[]>;
+  search(query: string, filters?: SearchFilters): Promise<Document[  ]>;
   getDocument(id: string): Promise<Document>;
   
   // Health and maintenance
