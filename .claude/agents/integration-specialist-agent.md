@@ -1,7 +1,7 @@
 ---
 name: integration-specialist
 description: Integration specialist for APIs and enterprise systems. Invoke for source adapter implementations, authentication systems, third-party API integration, content extraction, and enterprise system connectivity.
-tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
+tools: [ Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite ]
 ---
 
 # Integration Specialist Agent

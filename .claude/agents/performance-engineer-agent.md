@@ -1,7 +1,7 @@
 ---
 name: performance-engineer
 description: Performance engineer specializing in scale testing and optimization. Invoke for load testing, capacity planning, performance optimization, bottleneck identification, horizontal scaling, and performance monitoring.
-tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
+tools: [ Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite ]
 ---
 
 # Performance Engineer Agent

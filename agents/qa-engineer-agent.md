@@ -1,7 +1,7 @@
 ---
 name: qa-engineer
 description: QA/Test engineer specializing in quality assurance and testing. Invoke for test strategy development, automated testing implementation, integration testing, performance testing, and quality metrics.
-tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
+tools: [ Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite ]
 ---
 
 # QA/Test Engineer Agent

@@ -1,7 +1,7 @@
 ---
 name: security-engineer
 description: Security engineer specializing in application security, threat modeling, and compliance. Invoke for security architecture review, vulnerability assessment, credential management, compliance implementation, and security hardening.
-tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
+tools: [ Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite ]
 ---
 
 # Security Engineer Agent

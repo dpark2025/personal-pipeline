@@ -1,7 +1,7 @@
 ---
 name: devops-engineer
 description: DevOps/Infrastructure engineer specializing in deployment, monitoring, and operational excellence. Invoke for production deployment architecture, CI/CD pipelines, monitoring setup, high-availability systems, and infrastructure scaling.
-tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
+tools: [ Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite ]
 ---
 
 # DevOps/Infrastructure Engineer Agent

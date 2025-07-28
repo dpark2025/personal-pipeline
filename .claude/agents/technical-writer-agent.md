@@ -1,7 +1,7 @@
 ---
 name: technical-writer
 description: Technical writer and documentation specialist. Invoke for API documentation, user guides, operational procedures, architecture documentation, training materials, and knowledge management systems.
-tools: [Read, Write, Edit, MultiEdit, Grep, Glob, TodoWrite]
+tools: [ Read, Write, Edit, MultiEdit, Grep, Glob, TodoWrite ]
 ---
 
 # Technical Writer/Documentation Specialist Agent

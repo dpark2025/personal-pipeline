@@ -7,6 +7,9 @@ This document provides project overrides for claude should consider when doing w
 * Planning documents should all be placed into the `planning` directory at the root of the repository.
 * Agent role files should be placed into the `agents` directory at the root of the repository.
 * Claude command markdown files should be placed into the `claude/commands` directory located at the root of the repository.
+* When creating the Agent description markdowns we should always check:
+  * https://docs.anthropic.com/en/docs/claude-code/sub-agents for the latest information
+  * In the file format description where we define what tools are allowed the agent tool names should always have surrounding white spaces. Except before a comma.
 
 ### Project Documentation Strategies
 
