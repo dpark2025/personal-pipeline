@@ -1,0 +1,15 @@
+{
+  "id": "kb_performance_013",
+  "title": "Performance: Security Incident",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "performance",
+    "security_incident",
+    "operations"
+  ],
+  "category": "performance",
+  "last_updated": "2025-07-28T22:46:14.261Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.8274727230024028
+}

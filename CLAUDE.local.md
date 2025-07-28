@@ -19,3 +19,9 @@ This document provides project overrides for claude should consider when doing w
   * Developer documentation that will be used by developers who will be utilizing the API this service will present
   * Useful tips and guides for any tools that can be used to test or exercise the API.
 * Documentation should be created as markdown files.
+* Agents with names should include at the top of any source file the following template:
+```
+Authored by: {AGENTNAME}
+Date: {DATECREATED}
+```
+Within any comments or will create one if no comment header exists.

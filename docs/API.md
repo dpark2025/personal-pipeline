@@ -338,6 +338,28 @@ Record feedback about resolution outcomes for system improvement.
 }
 ```
 
+## Development Tools (Milestone 1.2)
+
+Three convenience scripts are available for development and testing:
+
+### Sample Data Generator (`npm run generate-sample-data`)
+- Generates 15 realistic runbooks across 7 alert scenarios
+- Creates 30 knowledge base articles with metadata  
+- Produces test configuration files
+- Output directory: `test-data/`
+
+### Configuration Validator (`npm run validate-config`)
+- Schema validation with Zod
+- Environment variable checking
+- Source connection testing
+- JSON report output capability
+
+### MCP Client Testing Tool (`npm run test-mcp`)
+- Interactive mode for manual testing
+- Automated test suite with 18 scenarios
+- Tool validation mode for quick checks
+- Specific tool testing capability
+
 ## HTTP Endpoints
 
 The server also provides HTTP endpoints for health checking and monitoring:

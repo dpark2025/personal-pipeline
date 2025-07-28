@@ -1,0 +1,15 @@
+{
+  "id": "kb_security_004",
+  "title": "Security: Network Issues",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "security",
+    "network_issues",
+    "operations"
+  ],
+  "category": "security",
+  "last_updated": "2025-07-28T22:46:14.259Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.8145838591845936
+}

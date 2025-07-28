@@ -11,7 +11,9 @@
       "Bash(npm test:*)",
       "Bash(npm run lint)",
       "Bash(npm run format:check:*)",
-      "Bash(npm run format:*)"
+      "Bash(npm run format:*)",
+      "Bash(chmod:*)",
+      "Bash(npm run test-mcp:*)"
     ],
     "deny": []
   }

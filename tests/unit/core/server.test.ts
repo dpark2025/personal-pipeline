@@ -6,6 +6,24 @@ import { PersonalPipelineServer } from '../../../src/core/server';
 import { ConfigManager } from '../../../src/utils/config';
 import { AppConfig } from '../../../src/types';
 
+// Mock the MCP SDK
+jest.mock('@modelcontextprotocol/sdk/server/index.js', () => ({
+  Server: jest.fn().mockImplementation(() => ({
+    setRequestHandler: jest.fn(),
+    connect: jest.fn(),
+    close: jest.fn(),
+  })),
+}));
+
+jest.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+  StdioServerTransport: jest.fn(),
+}));
+
+jest.mock('@modelcontextprotocol/sdk/types.js', () => ({
+  CallToolRequestSchema: {},
+  ListToolsRequestSchema: {},
+}));
+
 // Mock dependencies
 jest.mock('../../../src/utils/logger', () => ({
   logger: {
@@ -23,14 +41,18 @@ jest.mock('express', () => {
   const mockApp = {
     use: jest.fn(),
     get: jest.fn(),
-    listen: jest.fn((_port, _host, callback) => {
+    listen: jest.fn((_port: any, _host: any, callback: any) => {
       setTimeout(callback, 0);
       return {
         on: jest.fn(),
       };
     }),
   };
-  return jest.fn(() => mockApp);
+  const express: any = jest.fn(() => mockApp);
+  express.json = jest.fn(() => jest.fn());
+  express.urlencoded = jest.fn(() => jest.fn());
+  express.static = jest.fn(() => jest.fn());
+  return express;
 });
 
 describe('PersonalPipelineServer', () => {

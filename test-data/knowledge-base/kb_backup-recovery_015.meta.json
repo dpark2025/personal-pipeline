@@ -1,0 +1,15 @@
+{
+  "id": "kb_backup-recovery_015",
+  "title": "Backup Recovery: Memory Leak",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "backup-recovery",
+    "memory_leak",
+    "operations"
+  ],
+  "category": "backup-recovery",
+  "last_updated": "2025-07-28T22:46:14.262Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.9228254942367007
+}

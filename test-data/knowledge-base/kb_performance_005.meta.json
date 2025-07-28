@@ -1,0 +1,15 @@
+{
+  "id": "kb_performance_005",
+  "title": "Performance: Ssl Certificate",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "performance",
+    "ssl_certificate",
+    "operations"
+  ],
+  "category": "performance",
+  "last_updated": "2025-07-28T22:46:14.260Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.9525298461829028
+}
