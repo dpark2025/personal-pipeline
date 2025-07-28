@@ -1,0 +1,15 @@
+{
+  "id": "kb_backup-recovery_007",
+  "title": "Backup Recovery: Disk Space",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "backup-recovery",
+    "disk_space",
+    "operations"
+  ],
+  "category": "backup-recovery",
+  "last_updated": "2025-07-28T22:46:14.260Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.9840647171187153
+}

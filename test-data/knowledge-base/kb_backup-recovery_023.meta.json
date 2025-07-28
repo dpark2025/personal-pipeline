@@ -1,0 +1,15 @@
+{
+  "id": "kb_backup-recovery_023",
+  "title": "Backup Recovery: Cpu High",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "backup-recovery",
+    "cpu_high",
+    "operations"
+  ],
+  "category": "backup-recovery",
+  "last_updated": "2025-07-28T22:46:14.263Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.8521540588629677
+}

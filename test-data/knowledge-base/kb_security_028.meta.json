@@ -1,0 +1,15 @@
+{
+  "id": "kb_security_028",
+  "title": "Security: Disk Space",
+  "source": "internal-wiki",
+  "source_type": "file",
+  "tags": [
+    "security",
+    "disk_space",
+    "operations"
+  ],
+  "category": "security",
+  "last_updated": "2025-07-28T22:46:14.264Z",
+  "author": "DevOps Team",
+  "confidence_score": 0.9915323900368562
+}

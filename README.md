@@ -1,6 +1,6 @@
 # Personal Pipeline (PP)
 
-> **🎉 Status**: Milestone 1.1 Complete - Core MCP server implemented and operational! See [docs/MILESTONE-1.1.md](docs/MILESTONE-1.1.md) for details.
+> **🎉 Status**: Milestone 1.2 Complete - Enhanced with development tools and testing utilities! See [docs/MILESTONE-1.1.md](docs/MILESTONE-1.1.md) for Phase 1 details.
 
 An intelligent Model Context Protocol (MCP) server that provides automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management.
 
@@ -133,6 +133,11 @@ npm run typecheck       # Run TypeScript compiler checks
 
 # Health check
 npm run health          # Check if server is running
+
+# Development utilities (New in Milestone 1.2)
+npm run generate-sample-data  # Generate realistic test data
+npm run validate-config       # Validate configuration files
+npm run test-mcp             # Interactive MCP tool testing
 ```
 
 ## Contributing
@@ -150,13 +155,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 - **Documentation**: See the [docs/](docs/) directory for detailed guides
+  - [Development Guide](docs/DEVELOPMENT.md) - Complete development setup and workflows
+  - [Development Tools Guide](docs/DEVELOPMENT-TOOLS-GUIDE.md) - Using the new Milestone 1.2 development utilities
+  - [API Documentation](docs/API.md) - MCP tools and HTTP endpoints
+  - [Architecture](docs/ARCHITECTURE.md) - System design and components
 - **Issues**: Report bugs and feature requests via GitHub Issues
 - **Discussions**: Join the community discussions for questions and ideas
 
 ## Roadmap
 
-- **Phase 1**: Core MCP server with basic runbook retrieval
-- **Phase 2**: Multi-source support and advanced search
+- **Phase 1**: ✅ Core MCP server with basic runbook retrieval (Milestones 1.1-1.2 Complete)
+- **Phase 2**: Multi-source support and advanced search (Milestone 1.3 In Progress)
 - **Phase 3**: LangGraph integration and operational features
 - **Phase 4**: Scale testing and enterprise enhancements
 

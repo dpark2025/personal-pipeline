@@ -105,6 +105,131 @@ npm run health
 
 # Manual health check
 curl http://localhost:3000/health
+
+# Development Tools (Milestone 1.2)
+npm run generate-sample-data  # Generate test data and realistic runbooks
+npm run validate-config       # Validate YAML configuration with schema checking
+npm run test-mcp             # Interactive MCP client testing tool
+```
+
+## Development Tools (Milestone 1.2)
+
+The project now includes three powerful development utilities to streamline development and testing:
+
+### Sample Data Generator
+
+Generate realistic test data for development and testing:
+
+```bash
+# Generate sample data with default settings
+npm run generate-sample-data
+
+# Generated content includes:
+# - 15 realistic runbooks across 7 alert scenarios
+# - 30 knowledge base articles with metadata
+# - Test configuration files
+# - JSON and Markdown formats
+```
+
+**Output Structure**:
+```
+test-data/
+├── runbooks/           # JSON runbook files
+├── knowledge-base/     # Markdown articles + metadata
+├── configs/           # Sample configuration files
+└── generation-summary.json
+```
+
+**Usage Examples**:
+```bash
+# Use generated test data
+cp test-data/configs/test-config.yaml config/config.yaml
+npm run dev
+npm run test-mcp
+```
+
+### Configuration Validator
+
+Validate YAML configuration files with comprehensive checking:
+
+```bash
+# Validate default config
+npm run validate-config
+
+# Validate specific config file
+npm run validate-config -- --config path/to/config.yaml
+
+# Save validation report
+npm run validate-config -- --output validation-report.json
+
+# Skip specific checks
+npm run validate-config -- --no-connections --no-environment
+```
+
+**Validation Features**:
+- Schema validation with Zod
+- Environment variable checking
+- Source connection testing
+- System requirements verification
+- Performance recommendations
+
+**Example Output**:
+```
+✅ Passed: 12
+⚠️  Warnings: 2
+❌ Errors: 0
+📋 Total: 14
+
+🎉 Configuration validation passed!
+```
+
+### MCP Client Testing Tool
+
+Interactive tool for testing all 7 MCP tools:
+
+```bash
+# Interactive mode (default)
+npm run test-mcp
+
+# Run automated test suite
+npm run test-mcp -- --test-suite
+
+# Quick validation of all tools
+npm run test-mcp -- --validate
+
+# Test specific tool
+npm run test-mcp -- --tool search_runbooks
+```
+
+**Interactive Mode Features**:
+- Menu-driven tool selection
+- Parameter input with validation
+- Real-time response formatting
+- Performance metrics display
+
+**Test Suite Features**:
+- 18 automated test scenarios
+- Response time monitoring
+- Success rate calculation
+- Detailed error reporting
+
+**Example Usage**:
+```bash
+# Start interactive testing
+npm run test-mcp
+
+# Select tool (1-7)
+Select tool (0-7): 1
+
+# Follow prompts to test search_runbooks
+Enter alert_type: disk_space
+Enter severity: critical
+Enter affected_systems: web-server-01
+
+# View formatted response
+✅ Success!
+⏱️  Response time: 45ms
+📄 Response: { ... }
 ```
 
 ## Configuration
@@ -616,12 +741,43 @@ MAX_CONCURRENT_REQUESTS=100
    - Check for infinite loops
    - Review recursive operations
 
+### Development Tools Issues
+
+1. **Sample data generation fails**
+   ```bash
+   # Check write permissions
+   ls -la test-data/
+   
+   # Clear and regenerate
+   rm -rf test-data/
+   npm run generate-sample-data
+   ```
+
+2. **Configuration validation errors**
+   ```bash
+   # Check YAML syntax
+   npm run validate-config -- --config config/config.yaml
+   
+   # Test with sample config
+   npm run validate-config -- --config test-data/configs/test-config.yaml
+   ```
+
+3. **MCP testing tool connection issues**
+   ```bash
+   # Ensure server is running
+   npm run health
+   
+   # Test with mock mode (no server required)
+   npm run test-mcp -- --validate
+   ```
+
 ### Getting Help
 
 - **Documentation**: Check `/docs` directory
 - **Issues**: GitHub issue tracker
 - **Logs**: Check application logs for error details
 - **Health Checks**: Use `/health` and `/metrics` endpoints
+- **Development Tools**: Use `npm run validate-config` and `npm run test-mcp -- --help` for diagnostics
 
 ## Contributing
 

@@ -1,0 +1,89 @@
+{
+  "id": "disk_space_medium_001",
+  "title": "Disk Space - MEDIUM Alert Response",
+  "version": "1.1",
+  "description": "Runbook for responding to medium severity disk space alerts on web-server systems",
+  "triggers": [
+    "disk_usage_critical",
+    "filesystem_full",
+    "disk_space_warning"
+  ],
+  "severity_mapping": {
+    "critical": "critical",
+    "high": "high",
+    "medium": "medium",
+    "low": "low"
+  },
+  "decision_tree": {
+    "id": "disk_space_decision_tree",
+    "name": "Disk Space Decision Tree",
+    "description": "Decision logic for handling disk space alerts",
+    "branches": [
+      {
+        "id": "standard_response",
+        "condition": "disk_space_metric > warning_threshold",
+        "description": "Standard response for disk space issues",
+        "action": "standard_procedure",
+        "next_step": "monitor_improvement",
+        "confidence": 0.85,
+        "rollback_step": "escalate_to_specialist"
+      },
+      {
+        "id": "monitor_only",
+        "condition": "disk_space_metric <= warning_threshold",
+        "description": "Issue within acceptable range, monitor for trends",
+        "action": "increase_monitoring",
+        "next_step": "scheduled_review",
+        "confidence": 0.75
+      }
+    ],
+    "default_action": "escalate_to_oncall"
+  },
+  "procedures": [
+    {
+      "id": "standard_procedure",
+      "name": "Standard Disk Space Resolution",
+      "description": "Standard resolution steps for disk space issues",
+      "command": "du -sh /var/* | sort -hr | head -10 && find /tmp -type f -atime +7 -delete",
+      "expected_outcome": "Resolve disk space issue within normal timeframe",
+      "timeout_seconds": 1800,
+      "prerequisites": [
+        "standard_access"
+      ],
+      "rollback_procedure": "revert_changes",
+      "tools_required": [
+        "df",
+        "du",
+        "find",
+        "ncdu"
+      ]
+    },
+    {
+      "id": "diagnostic_procedure",
+      "name": "Disk Space Diagnostics",
+      "description": "Gather diagnostic information for disk space analysis",
+      "command": "df -h && du -sh /var/log/* /tmp/* | sort -hr",
+      "expected_outcome": "Collect comprehensive diagnostic data",
+      "timeout_seconds": 600,
+      "prerequisites": [
+        "read_access"
+      ],
+      "tools_required": [
+        "df",
+        "du",
+        "find",
+        "ncdu",
+        "lsblk"
+      ]
+    }
+  ],
+  "escalation_path": "l1_support",
+  "metadata": {
+    "created_at": "2025-07-28T22:46:14.246Z",
+    "updated_at": "2025-07-28T22:46:14.246Z",
+    "author": "SRE Team",
+    "confidence_score": 0.8639445390839662,
+    "success_rate": 0.9975583424223278,
+    "avg_resolution_time_minutes": 122
+  }
+}

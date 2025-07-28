@@ -47,17 +47,23 @@
 
 ### Milestone 1.2: Core Tools Implementation (Week 2)
 **Deliverables:**
-- [ ] `search_runbooks()` tool implementation
-- [ ] `get_procedure()` tool implementation
-- [ ] Runbook schema definition and validation
-- [ ] Basic confidence scoring algorithm
-- [ ] Simple file-based documentation adapter
+- [x] `search_runbooks()` tool implementation ✅
+- [x] `get_procedure()` tool implementation ✅
+- [x] Runbook schema definition and validation ✅
+- [x] Basic confidence scoring algorithm ✅
+- [x] Simple file-based documentation adapter ✅
+- [ ] **NEW**: Sample Data Generator script
+- [ ] **NEW**: Configuration Validator tool
+- [ ] **NEW**: Basic MCP Client Testing Tool
 
 **Success Criteria:**
-- Tools respond to MCP protocol calls
-- Schema validation working correctly
-- Basic runbook retrieval functional
-- Confidence scores calculated (0.0-1.0)
+- ✅ Tools respond to MCP protocol calls
+- ✅ Schema validation working correctly
+- ✅ Basic runbook retrieval functional
+- ✅ Confidence scores calculated (0.0-1.0)
+- [ ] Sample data generation creates realistic test scenarios
+- [ ] Configuration validation catches common errors
+- [ ] MCP client tool enables easy testing
 
 **Dependencies:**
 - Runbook JSON schema from PRD
@@ -77,12 +83,18 @@
 - [ ] Performance benchmarking suite
 - [ ] Basic monitoring and health checks
 - [ ] Unit tests for core functionality
+- [ ] **NEW**: Demo Environment Setup script
+- [ ] **NEW**: Performance Benchmarking tool
+- [ ] **NEW**: Health Check Dashboard prototype
 
 **Success Criteria:**
 - Cache hit rates >70% in testing
 - Response times <500ms for cached content
 - Health endpoints provide meaningful status
 - Test coverage >80% for core modules
+- Demo environment sets up in <5 minutes
+- Performance benchmarks validate <200ms targets
+- Health dashboard shows real-time metrics
 
 **Dependencies:**
 - Redis server setup
@@ -106,12 +118,18 @@
 - [ ] GitHub repository adapter
 - [ ] Configuration system for sources
 - [ ] Source health monitoring
+- [ ] **NEW**: Documentation Indexer tool
+- [ ] **NEW**: MCP Tool Explorer interface
+- [ ] **NEW**: Integration Test Suite
 
 **Success Criteria:**
 - Multiple sources configured simultaneously
 - Authentication working for external APIs
 - Source failover mechanisms operational
 - Configuration validation working
+- Documentation indexer processes multiple source types
+- Tool explorer provides interactive MCP testing
+- Integration tests validate source adapters
 
 **Dependencies:**
 - Confluence/GitHub API access
@@ -214,12 +232,18 @@
 - [ ] Rate limiting and DDoS protection
 - [ ] Monitoring and alerting system
 - [ ] Performance optimization
+- [ ] **NEW**: Alert Simulator for testing
+- [ ] **NEW**: Documentation Quality Checker
+- [ ] **NEW**: Environment Setup automation
 
 **Success Criteria:**
 - Security audit passes
 - Error recovery tested under failure conditions
 - Rate limiting prevents abuse
 - Monitoring provides operational visibility
+- Alert simulator generates realistic test scenarios
+- Quality checker validates runbook completeness
+- Environment setup is fully automated
 
 **Dependencies:**
 - Security best practices
@@ -270,12 +294,18 @@
 - [ ] Database optimization and indexing
 - [ ] Memory and resource optimization
 - [ ] Performance regression testing
+- [ ] **NEW**: Load Test Generator tool
+- [ ] **NEW**: Docker Compose development stack
+- [ ] **NEW**: Backup & Restore utilities
 
 **Success Criteria:**
 - System handles 500+ queries/minute
 - Horizontal scaling maintains performance
 - Database queries optimized for scale
 - Memory usage stable under load
+- Load test generator simulates realistic scenarios
+- Docker stack enables consistent development
+- Backup/restore procedures validated
 
 **Dependencies:**
 - Load testing tools and infrastructure
@@ -338,6 +368,104 @@
 - Compliance complexity
 - Integration challenges
 - Documentation completeness
+
+---
+
+## Developer Tools & Convenience Scripts
+
+### Phase 1 Tools (Essential)
+**Priority**: High | **Target**: Weeks 1-3
+
+1. **MCP Client Testing Tool** (`scripts/test-mcp.js`)
+   - Interactive MCP client for testing all 7 tools
+   - Features: tool discovery, parameter validation, response formatting
+   - **Target**: Milestone 1.2
+
+2. **Sample Data Generator** (`scripts/generate-sample-data.js`)
+   - Creates realistic runbooks, procedures, and documentation
+   - Generates test alerts and scenarios for different severity levels
+   - **Target**: Milestone 1.2
+
+3. **Configuration Validator** (`scripts/validate-config.js`)
+   - Validates YAML config files, tests source connections
+   - Checks credentials, network connectivity, permissions
+   - **Target**: Milestone 1.2
+
+4. **Demo Environment Setup** (`scripts/setup-demo.sh`)
+   - One-command demo environment with sample data
+   - Includes mock Confluence, sample runbooks, test scenarios
+   - **Target**: Milestone 1.3
+
+### Phase 2 Tools (Enhancement)
+**Priority**: Medium | **Target**: Weeks 4-6
+
+5. **Health Check Dashboard** (`scripts/health-dashboard.js`)
+   - Real-time health monitoring with metrics visualization
+   - Source adapter status, cache performance, error rates
+   - **Target**: Milestone 1.3
+
+6. **Performance Benchmarking** (`scripts/benchmark.js`)
+   - Tests response times, concurrent load, cache hit rates
+   - Validates < 200ms runbook retrieval targets
+   - **Target**: Milestone 1.3
+
+7. **Documentation Indexer** (`scripts/index-docs.js`)
+   - Batch index documentation from multiple sources
+   - Progress tracking, error reporting, metadata extraction
+   - **Target**: Milestone 2.1
+
+8. **MCP Tool Explorer** (`scripts/explore-tools.js`)
+   - Interactive CLI for exploring all MCP tools
+   - Auto-completion, help text, example usage
+   - **Target**: Milestone 2.1
+
+9. **Integration Test Suite** (`scripts/integration-tests.js`)
+   - End-to-end testing with real documentation sources
+   - Validates search accuracy, response times, cache behavior
+   - **Target**: Milestone 2.1
+
+### Phase 3 Tools (Advanced)
+**Priority**: Low | **Target**: Weeks 7-9
+
+10. **Alert Simulator** (`scripts/simulate-alerts.js`)
+    - Generates realistic alert scenarios for testing
+    - Different severity levels, system types, escalation paths
+    - **Target**: Milestone 3.2
+
+11. **Documentation Quality Checker** (`scripts/check-docs.js`)
+    - Validates runbook format, completeness, metadata
+    - Checks for missing procedures, broken links, outdated content
+    - **Target**: Milestone 3.2
+
+12. **Environment Setup Script** (`scripts/setup-env.sh`)
+    - Configures development environment, installs dependencies
+    - Sets up git hooks, creates sample configs, validates setup
+    - **Target**: Milestone 3.2
+
+### Phase 4 Tools (Enterprise)
+**Priority**: Low | **Target**: Weeks 10-12
+
+13. **Load Test Generator** (`scripts/load-test.js`)
+    - Simulates high-concurrency scenarios
+    - Tests 50+ concurrent requests, memory usage, error handling
+    - **Target**: Milestone 4.1
+
+14. **Docker Compose Stack** (`docker/docker-compose.dev.yml`)
+    - Complete development environment
+    - Includes Redis, mock services, monitoring tools
+    - **Target**: Milestone 4.1
+
+15. **Backup & Restore Tool** (`scripts/backup-restore.js`)
+    - Backup/restore configurations and indexed data
+    - Migration between environments, disaster recovery
+    - **Target**: Milestone 4.1
+
+### Tool Success Criteria
+- **Developer Experience**: Setup time reduced from hours to minutes
+- **Testing Efficiency**: Manual testing replaced with automated scripts
+- **Quality Assurance**: All tools include comprehensive error handling
+- **Documentation**: Each tool includes usage examples and help text
+- **Integration**: Tools integrate with existing npm scripts and CI/CD
 
 ---
 

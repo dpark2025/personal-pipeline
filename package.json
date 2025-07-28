@@ -2,6 +2,7 @@
   "name": "personal-pipeline-mcp",
   "version": "0.1.0",
   "description": "Personal Pipeline - Intelligent MCP server for documentation retrieval and incident response",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -19,7 +20,10 @@
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\" \"tests/**/*.{ts,js,json}\"",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run clean && npm run build",
-    "health": "curl -s http://localhost:3000/health || echo 'Server not running'"
+    "health": "curl -s http://localhost:3000/health || echo 'Server not running'",
+    "generate-sample-data": "node scripts/generate-sample-data.js",
+    "validate-config": "node scripts/validate-config.js",
+    "test-mcp": "node scripts/test-mcp.js"
   },
   "keywords": [
     "mcp",
@@ -72,28 +76,6 @@
     "typescript": "^5.3.3",
     "supertest": "^6.3.3",
     "@types/supertest": "^6.0.2"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "roots": ["<rootDir>/src", "<rootDir>/tests"],
-    "testMatch": ["**/__tests__/**/*.ts", "**/*.(test|spec).ts"],
-    "collectCoverageFrom": [
-      "src/**/*.ts",
-      "!src/**/*.d.ts",
-      "!src/index.ts"
-    ],
-    "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov", "html"],
-    "extensionsToTreatAsEsm": [".ts"],
-    "globals": {
-      "ts-jest": {
-        "useESM": true
-      }
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!(@modelcontextprotocol)/)"
-    ]
   },
   "repository": {
     "type": "git",
