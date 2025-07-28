@@ -1,6 +1,6 @@
 # Personal Pipeline (PP)
 
-> **🎉 Status**: Milestone 1.1 Complete - Core MCP server implemented and operational! See [docs/MILESTONE-1.1.md](docs/MILESTONE-1.1.md) for details.
+> **🎉 Status**: Milestone 1.1 Complete ✅ | Milestone 1.2 In Progress 🔄 - Core MCP server fully operational with 7 tools! See [docs/MILESTONE-1.1.md](docs/MILESTONE-1.1.md) for details and [planning/project-milestones.md](planning/project-milestones.md) for current progress.
 
 An intelligent Model Context Protocol (MCP) server that provides automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management.
 
