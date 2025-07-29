@@ -94,10 +94,10 @@ export interface TestKnowledgeBase {
 
 export class TestDataGenerator {
   private static instance: TestDataGenerator;
-  private runbookTemplates: Partial<TestRunbook>[];
-  private procedureTemplates: Partial<TestProcedure>[];
-  private decisionTreeTemplates: Partial<TestDecisionTree>[];
-  private knowledgeBaseTemplates: Partial<TestKnowledgeBase>[];
+  private runbookTemplates: Partial<TestRunbook>[] = [];
+  private procedureTemplates: Partial<TestProcedure>[] = [];
+  private decisionTreeTemplates: Partial<TestDecisionTree>[] = [];
+  private knowledgeBaseTemplates: Partial<TestKnowledgeBase>[] = [];
 
   private constructor() {
     this.initializeTemplates();
@@ -122,7 +122,7 @@ export class TestDataGenerator {
           { step: 'Restart database service', timeout: '3m', failure_handling: 'Escalate to DBA team' },
           { step: 'Validate database integrity', timeout: '5m', success_criteria: 'All tables accessible' }
         ],
-        metadata: { confidence_score: 0.95, tags: ['database', 'connectivity', 'critical'], category: 'infrastructure' }
+        metadata: { confidence_score: 0.95, last_updated: new Date().toISOString(), tags: ['database', 'connectivity', 'critical'], category: 'infrastructure' }
       },
       {
         title: 'High Memory Usage Alert Response',
@@ -134,7 +134,7 @@ export class TestDataGenerator {
           { step: 'Determine if memory leak is present', timeout: '10m', success_criteria: 'Memory pattern analyzed' },
           { step: 'Apply memory optimization or restart service', timeout: '3m', failure_handling: 'Escalate to development team' }
         ],
-        metadata: { confidence_score: 0.88, tags: ['memory', 'performance', 'optimization'], category: 'performance' }
+        metadata: { confidence_score: 0.88, last_updated: new Date().toISOString(), tags: ['memory', 'performance', 'optimization'], category: 'performance' }
       },
       {
         title: 'API Response Time Degradation',
@@ -146,7 +146,7 @@ export class TestDataGenerator {
           { step: 'Review application server metrics', timeout: '2m', success_criteria: 'Server metrics collected' },
           { step: 'Implement caching or scale resources', timeout: '10m', failure_handling: 'Escalate to architecture team' }
         ],
-        metadata: { confidence_score: 0.92, tags: ['api', 'performance', 'latency'], category: 'application' }
+        metadata: { confidence_score: 0.92, last_updated: new Date().toISOString(), tags: ['api', 'performance', 'latency'], category: 'application' }
       }
     ];
 
@@ -226,6 +226,7 @@ export class TestDataGenerator {
         ],
         metadata: {
           confidence_score: 0.94,
+          last_validated: new Date().toISOString(),
           applicable_scenarios: ['incidents', 'outages', 'performance_degradation']
         }
       }
@@ -563,7 +564,7 @@ export class TestDataGenerator {
    * Generate cache warmup data for testing
    */
   public generateCacheWarmupData(contentTypes: CacheContentType[] = ['runbooks', 'procedures', 'decision_trees', 'knowledge_base']) {
-    const warmupData = [];
+    const warmupData: any[] = [];
 
     contentTypes.forEach(type => {
       for (let i = 0; i < 5; i++) {

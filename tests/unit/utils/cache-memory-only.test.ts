@@ -2,6 +2,9 @@
  * Memory-only cache tests that don't require Redis
  */
 
+// Unmock the cache module for this test since we want to test the real implementation
+jest.unmock('../../../src/utils/cache');
+
 import { CacheService, createCacheKey } from '../../../src/utils/cache';
 import { CacheConfig } from '../../../src/types';
 
