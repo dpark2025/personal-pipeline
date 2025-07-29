@@ -37,14 +37,108 @@ jest.mock('../../../src/utils/logger', () => ({
   },
 }));
 
+jest.mock('../../../src/utils/cache', () => ({
+  initializeCacheService: jest.fn().mockReturnValue({
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    clear: jest.fn(),
+    getStats: jest.fn().mockReturnValue({ hits: 0, misses: 0 }),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+  }),
+}));
+
+jest.mock('../../../src/utils/performance', () => ({
+  initializePerformanceMonitor: jest.fn().mockResolvedValue({
+    recordResponseTime: jest.fn(),
+    recordCacheHit: jest.fn(),
+    recordCacheMiss: jest.fn(),
+    getMetrics: jest.fn().mockReturnValue({
+      requests: { total: 0, success: 0, errors: 0 },
+      response_times: { avg: 0, p95: 0, p99: 0 },
+      cache: { hits: 0, misses: 0, hit_rate: 0 },
+    }),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+  }),
+}));
+
+jest.mock('../../../src/utils/monitoring', () => ({
+  initializeMonitoringService: jest.fn().mockReturnValue({
+    start: jest.fn(),
+    recordMetric: jest.fn(),
+    checkThresholds: jest.fn(),
+    getStatus: jest.fn().mockReturnValue({ status: 'healthy' }),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+  }),
+  defaultMonitoringConfig: {
+    enabled: true,
+    check_interval_ms: 30000,
+    thresholds: {},
+  },
+}));
+
+jest.mock('../../../src/tools', () => ({
+  PPMCPTools: jest.fn().mockImplementation(() => ({
+    initializeTools: jest.fn(),
+    getToolHandlers: jest.fn().mockReturnValue({}),
+    cleanup: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// Mock middleware modules
+jest.mock('helmet', () => jest.fn(() => jest.fn()));
+jest.mock('cors', () => jest.fn(() => jest.fn()));
+jest.mock('morgan', () => jest.fn(() => jest.fn()));
+
+jest.mock('../../../src/adapters/base', () => ({
+  SourceAdapterRegistry: jest.fn().mockImplementation(() => ({
+    register: jest.fn(),
+    registerFactory: jest.fn(),
+    get: jest.fn(),
+    getAll: jest.fn().mockReturnValue([]),
+    getAllAdapters: jest.fn().mockReturnValue([]),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    cleanup: jest.fn().mockResolvedValue(undefined),
+  })),
+  SourceAdapter: class MockSourceAdapter {
+    constructor() {}
+    async search() { return []; }
+    async getDocument() { return null; }
+    async searchRunbooks() { return []; }
+    async healthCheck() { return { healthy: true }; }
+    async getMetadata() { return {}; }
+    async cleanup() {}
+  },
+}));
+
+jest.mock('../../../src/adapters/file', () => ({
+  FileSystemAdapter: jest.fn().mockImplementation(() => ({
+    search: jest.fn().mockResolvedValue([]),
+    getDocument: jest.fn().mockResolvedValue(null),
+    searchRunbooks: jest.fn().mockResolvedValue([]),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    getMetadata: jest.fn().mockReturnValue({}),
+    cleanup: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 jest.mock('express', () => {
   const mockApp = {
     use: jest.fn(),
     get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
     listen: jest.fn((_port: any, _host: any, callback: any) => {
       setTimeout(callback, 0);
       return {
         on: jest.fn(),
+        close: jest.fn((callback: any) => {
+          setTimeout(callback, 0);
+        }),
       };
     }),
   };

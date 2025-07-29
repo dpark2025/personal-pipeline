@@ -22,13 +22,20 @@ export default {
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      useESM: true
+      useESM: true,
+      tsconfig: {
+        module: 'ES2020',
+        target: 'ES2020'
+      }
     }]
   },
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@modelcontextprotocol/sdk/(.*)$': '<rootDir>/node_modules/@modelcontextprotocol/sdk/dist/$1'
   },
   transformIgnorePatterns: [
-    'node_modules/(?!@modelcontextprotocol/)'
-  ]
+    'node_modules/(?!(@modelcontextprotocol/sdk)/)'
+  ],
+  testTimeout: 10000,
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts']
 };

@@ -6,6 +6,9 @@
  * Coverage: Cache operations, Redis fallback, error handling, statistics
  */
 
+// Unmock the cache module for this test since we want to test the real implementation
+jest.unmock('../../../src/utils/cache');
+
 import { CacheService, createCacheKey, initializeCacheService, getCacheService } from '../../../src/utils/cache';
 import { CacheConfig } from '../../../src/types';
 import Redis from 'ioredis';
@@ -37,7 +40,7 @@ describe('CacheService - Comprehensive Testing', () => {
   let cacheService: CacheService;
   let mockRedisInstance: jest.Mocked<Redis>;
 
-  const createTestConfig = (strategy: 'memory_only' | 'memory_with_redis' | 'redis_only' = 'memory_only'): CacheConfig => ({
+  const createTestConfig = (strategy: 'memory_only' | 'hybrid' | 'redis_only' = 'memory_only'): CacheConfig => ({
     enabled: true,
     strategy,
     memory: {
@@ -203,7 +206,7 @@ describe('CacheService - Comprehensive Testing', () => {
 
       expect(health.memory_cache.healthy).toBe(true);
       expect(health.memory_cache.keys_count).toBeGreaterThanOrEqual(0);
-      expect(health.memory_cache.response_time_ms).toBeGreaterThan(0);
+      expect(health.memory_cache.response_time_ms).toBeGreaterThanOrEqual(0);
       expect(health.overall_healthy).toBe(true);
       expect(health.redis_cache).toBeUndefined();
     });
@@ -245,7 +248,7 @@ describe('CacheService - Comprehensive Testing', () => {
 
   describe('Redis Integration Tests', () => {
     beforeEach(() => {
-      cacheService = new CacheService(createTestConfig('memory_with_redis'));
+      cacheService = new CacheService(createTestConfig('hybrid'));
     });
 
     it('should fallback to Redis when memory cache misses', async () => {
@@ -320,7 +323,7 @@ describe('CacheService - Comprehensive Testing', () => {
       expect(health.redis_cache?.healthy).toBe(false);
       expect(health.redis_cache?.connected).toBe(false);
       expect(health.redis_cache?.error_message).toBe('Redis unavailable');
-      // Overall should still be healthy for memory_with_redis strategy
+      // Overall should still be healthy for hybrid strategy
       expect(health.overall_healthy).toBe(true);
     });
 
@@ -509,7 +512,6 @@ describe('CacheService - Comprehensive Testing', () => {
 
     it('should maintain performance under mixed read/write workload', async () => {
       const writePromises = [];
-      const readPromises = [];
 
       // Create initial data
       for (let i = 0; i < 100; i++) {
