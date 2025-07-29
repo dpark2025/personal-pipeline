@@ -1,8 +1,8 @@
 {
-  "id": "network_issues_critical_012",
-  "title": "Network Issues - CRITICAL Alert Response",
-  "version": "1.5",
-  "description": "Runbook for responding to critical severity network issues alerts on router systems",
+  "id": "network_issues_high_013",
+  "title": "Network Issues - HIGH Alert Response",
+  "version": "1.7",
+  "description": "Runbook for responding to high severity network issues alerts on switch systems",
   "triggers": [
     "packet_loss",
     "latency_high",
@@ -19,15 +19,6 @@
     "name": "Network Issues Decision Tree",
     "description": "Decision logic for handling network issues alerts",
     "branches": [
-      {
-        "id": "immediate_action",
-        "condition": "network_issues_metric > critical_threshold",
-        "description": "Immediate action required for critical network issues",
-        "action": "emergency_procedure",
-        "next_step": "verify_resolution",
-        "confidence": 0.95,
-        "rollback_step": "escalate_immediate"
-      },
       {
         "id": "standard_response",
         "condition": "network_issues_metric > warning_threshold",
@@ -49,24 +40,6 @@
     "default_action": "escalate_to_oncall"
   },
   "procedures": [
-    {
-      "id": "emergency_procedure",
-      "name": "Emergency Network Issues Resolution",
-      "description": "Immediate actions to resolve critical network issues on router",
-      "command": "systemctl restart networking && iptables -F",
-      "expected_outcome": "Restore router to operational state within 5 minutes",
-      "timeout_seconds": 300,
-      "prerequisites": [
-        "admin_access",
-        "maintenance_window_optional"
-      ],
-      "rollback_procedure": "escalate_immediate",
-      "tools_required": [
-        "ping",
-        "traceroute",
-        "curl"
-      ]
-    },
     {
       "id": "standard_procedure",
       "name": "Standard Network Issues Resolution",
@@ -104,13 +77,13 @@
       ]
     }
   ],
-  "escalation_path": "security",
+  "escalation_path": "l1_support",
   "metadata": {
-    "created_at": "2025-07-28T23:57:02.594Z",
-    "updated_at": "2025-07-28T23:57:02.594Z",
+    "created_at": "2025-07-28T23:59:26.365Z",
+    "updated_at": "2025-07-28T23:59:26.365Z",
     "author": "SRE Team",
-    "confidence_score": 0.993595313774907,
-    "success_rate": 0.9589626722103881,
-    "avg_resolution_time_minutes": 112
+    "confidence_score": 0.9856715796577656,
+    "success_rate": 0.8200758533769398,
+    "avg_resolution_time_minutes": 41
   }
 }

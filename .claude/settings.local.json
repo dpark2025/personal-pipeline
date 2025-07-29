@@ -13,7 +13,9 @@
       "Bash(npm run format:check:*)",
       "Bash(npm run format:*)",
       "Bash(chmod:*)",
-      "Bash(npm run test-mcp:*)"
+      "Bash(npm run test-mcp:*)",
+      "Bash(npm run generate-sample-data:*)",
+      "Bash(npm run validate-config:*)"
     ],
     "deny": []
   }

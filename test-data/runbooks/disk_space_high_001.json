@@ -1,8 +1,8 @@
 {
-  "id": "disk_space_medium_001",
-  "title": "Disk Space - MEDIUM Alert Response",
+  "id": "disk_space_high_001",
+  "title": "Disk Space - HIGH Alert Response",
   "version": "1.2",
-  "description": "Runbook for responding to medium severity disk space alerts on db-server systems",
+  "description": "Runbook for responding to high severity disk space alerts on web-server systems",
   "triggers": [
     "disk_usage_critical",
     "filesystem_full",
@@ -79,11 +79,11 @@
   ],
   "escalation_path": "l2_support",
   "metadata": {
-    "created_at": "2025-07-28T23:59:26.362Z",
-    "updated_at": "2025-07-28T23:59:26.362Z",
+    "created_at": "2025-07-28T23:54:10.561Z",
+    "updated_at": "2025-07-28T23:54:10.561Z",
     "author": "SRE Team",
-    "confidence_score": 0.9116554306079586,
-    "success_rate": 0.9628899405305932,
-    "avg_resolution_time_minutes": 93
+    "confidence_score": 0.9874399654750958,
+    "success_rate": 0.9212198583642218,
+    "avg_resolution_time_minutes": 105
   }
 }

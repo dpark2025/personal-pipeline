@@ -1,8 +1,8 @@
 {
-  "id": "disk_space_medium_001",
-  "title": "Disk Space - MEDIUM Alert Response",
-  "version": "1.2",
-  "description": "Runbook for responding to medium severity disk space alerts on db-server systems",
+  "id": "disk_space_critical_001",
+  "title": "Disk Space - CRITICAL Alert Response",
+  "version": "1.4",
+  "description": "Runbook for responding to critical severity disk space alerts on log-server systems",
   "triggers": [
     "disk_usage_critical",
     "filesystem_full",
@@ -19,6 +19,15 @@
     "name": "Disk Space Decision Tree",
     "description": "Decision logic for handling disk space alerts",
     "branches": [
+      {
+        "id": "immediate_action",
+        "condition": "disk_space_metric > critical_threshold",
+        "description": "Immediate action required for critical disk space",
+        "action": "emergency_procedure",
+        "next_step": "verify_resolution",
+        "confidence": 0.95,
+        "rollback_step": "escalate_immediate"
+      },
       {
         "id": "standard_response",
         "condition": "disk_space_metric > warning_threshold",
@@ -40,6 +49,24 @@
     "default_action": "escalate_to_oncall"
   },
   "procedures": [
+    {
+      "id": "emergency_procedure",
+      "name": "Emergency Disk Space Resolution",
+      "description": "Immediate actions to resolve critical disk space on log-server",
+      "command": "find /tmp -type f -atime +1 -delete && find /var/log -name '*.log' -size +100M -exec truncate -s 50M {} \\;",
+      "expected_outcome": "Restore log-server to operational state within 5 minutes",
+      "timeout_seconds": 300,
+      "prerequisites": [
+        "admin_access",
+        "maintenance_window_optional"
+      ],
+      "rollback_procedure": "escalate_immediate",
+      "tools_required": [
+        "df",
+        "du",
+        "find"
+      ]
+    },
     {
       "id": "standard_procedure",
       "name": "Standard Disk Space Resolution",
@@ -77,13 +104,13 @@
       ]
     }
   ],
-  "escalation_path": "l2_support",
+  "escalation_path": "dba",
   "metadata": {
-    "created_at": "2025-07-28T23:59:26.362Z",
-    "updated_at": "2025-07-28T23:59:26.362Z",
+    "created_at": "2025-07-28T23:57:02.592Z",
+    "updated_at": "2025-07-28T23:57:02.592Z",
     "author": "SRE Team",
-    "confidence_score": 0.9116554306079586,
-    "success_rate": 0.9628899405305932,
-    "avg_resolution_time_minutes": 93
+    "confidence_score": 0.925814500512498,
+    "success_rate": 0.8734318959056199,
+    "avg_resolution_time_minutes": 56
   }
 }

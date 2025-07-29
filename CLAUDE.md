@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal Pipeline (PP) is an intelligent Model Context Protocol (MCP) server designed for automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management. **Milestone 1.1 is complete** with a fully operational TypeScript/Node.js MCP server implementation.
 
+The project planning and milestone document is located at: `planning/project-milestones.md`
+
 ## Development Commands
 
 The project is now operational with complete build and development tooling:
