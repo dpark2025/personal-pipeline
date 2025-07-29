@@ -1,7 +1,7 @@
 {
   "id": "database_slow_medium_010",
   "title": "Database Slow - MEDIUM Alert Response",
-  "version": "1.4",
+  "version": "1.2",
   "description": "Runbook for responding to medium severity database slow alerts on redis systems",
   "triggers": [
     "query_timeout",
@@ -77,13 +77,13 @@
       ]
     }
   ],
-  "escalation_path": "l1_support",
+  "escalation_path": "security",
   "metadata": {
-    "created_at": "2025-07-28T23:59:26.364Z",
-    "updated_at": "2025-07-28T23:59:26.364Z",
+    "created_at": "2025-07-29T15:25:34.795Z",
+    "updated_at": "2025-07-29T15:25:34.795Z",
     "author": "SRE Team",
-    "confidence_score": 0.7334969786342624,
-    "success_rate": 0.9738237772784674,
-    "avg_resolution_time_minutes": 99
+    "confidence_score": 0.7917208186418079,
+    "success_rate": 0.9585646557342372,
+    "avg_resolution_time_minutes": 87
   }
 }

@@ -1,8 +1,8 @@
 {
   "id": "cpu_high_medium_007",
   "title": "Cpu High - MEDIUM Alert Response",
-  "version": "1.8",
-  "description": "Runbook for responding to medium severity cpu high alerts on batch-processor systems",
+  "version": "1.2",
+  "description": "Runbook for responding to medium severity cpu high alerts on worker-node systems",
   "triggers": [
     "cpu_usage_high",
     "load_average_high",
@@ -77,13 +77,13 @@
       ]
     }
   ],
-  "escalation_path": "l1_support",
+  "escalation_path": "network",
   "metadata": {
-    "created_at": "2025-07-28T23:59:26.364Z",
-    "updated_at": "2025-07-28T23:59:26.364Z",
+    "created_at": "2025-07-29T15:25:34.795Z",
+    "updated_at": "2025-07-29T15:25:34.795Z",
     "author": "SRE Team",
-    "confidence_score": 0.799807268576048,
-    "success_rate": 0.8038716698856717,
-    "avg_resolution_time_minutes": 51
+    "confidence_score": 0.8210317040640492,
+    "success_rate": 0.8401580439362138,
+    "avg_resolution_time_minutes": 85
   }
 }

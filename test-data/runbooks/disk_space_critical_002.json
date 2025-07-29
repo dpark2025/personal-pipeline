@@ -2,7 +2,7 @@
   "id": "disk_space_critical_002",
   "title": "Disk Space - CRITICAL Alert Response",
   "version": "1.9",
-  "description": "Runbook for responding to critical severity disk space alerts on log-server systems",
+  "description": "Runbook for responding to critical severity disk space alerts on db-server systems",
   "triggers": [
     "disk_usage_critical",
     "filesystem_full",
@@ -52,9 +52,9 @@
     {
       "id": "emergency_procedure",
       "name": "Emergency Disk Space Resolution",
-      "description": "Immediate actions to resolve critical disk space on log-server",
+      "description": "Immediate actions to resolve critical disk space on db-server",
       "command": "find /tmp -type f -atime +1 -delete && find /var/log -name '*.log' -size +100M -exec truncate -s 50M {} \\;",
-      "expected_outcome": "Restore log-server to operational state within 5 minutes",
+      "expected_outcome": "Restore db-server to operational state within 5 minutes",
       "timeout_seconds": 300,
       "prerequisites": [
         "admin_access",
@@ -104,13 +104,13 @@
       ]
     }
   ],
-  "escalation_path": "security",
+  "escalation_path": "l1_support",
   "metadata": {
-    "created_at": "2025-07-28T23:59:26.363Z",
-    "updated_at": "2025-07-28T23:59:26.363Z",
+    "created_at": "2025-07-29T15:25:34.793Z",
+    "updated_at": "2025-07-29T15:25:34.793Z",
     "author": "SRE Team",
-    "confidence_score": 0.7397290700254228,
-    "success_rate": 0.9527304900753946,
-    "avg_resolution_time_minutes": 120
+    "confidence_score": 0.7318702926881044,
+    "success_rate": 0.9353872849897573,
+    "avg_resolution_time_minutes": 77
   }
 }

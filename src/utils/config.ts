@@ -8,8 +8,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { AppConfig, SourceConfig, ServerConfig } from '../types';
-import { logger } from './logger';
+import { AppConfig, SourceConfig, ServerConfig } from '../types/index.js';
+import { logger } from './logger.js';
 
 export class ConfigManager {
   private config: AppConfig | null = null;
@@ -188,6 +188,42 @@ export class ConfigManager {
           max_retries: 2,
         },
       ],
+      cache: {
+        enabled: process.env.CACHE_ENABLED !== 'false',
+        strategy: (process.env.CACHE_STRATEGY as any) || 'hybrid',
+        memory: {
+          max_keys: parseInt(process.env.CACHE_MEMORY_MAX_KEYS || '1000'),
+          ttl_seconds: parseInt(process.env.CACHE_MEMORY_TTL_SECONDS || '3600'),
+          check_period_seconds: parseInt(process.env.CACHE_MEMORY_CHECK_PERIOD_SECONDS || '600'),
+        },
+        redis: {
+          enabled: process.env.REDIS_ENABLED !== 'false',
+          url: process.env.REDIS_URL || 'redis://localhost:6379',
+          ttl_seconds: parseInt(process.env.CACHE_REDIS_TTL_SECONDS || '7200'),
+          key_prefix: process.env.CACHE_REDIS_KEY_PREFIX || 'pp:cache:',
+          connection_timeout_ms: parseInt(process.env.REDIS_CONNECTION_TIMEOUT_MS || '5000'),
+          retry_attempts: parseInt(process.env.REDIS_RETRY_ATTEMPTS || '3'),
+          retry_delay_ms: parseInt(process.env.REDIS_RETRY_DELAY_MS || '1000'),
+        },
+        content_types: {
+          runbooks: {
+            ttl_seconds: parseInt(process.env.CACHE_RUNBOOKS_TTL_SECONDS || '3600'),
+            warmup: process.env.CACHE_RUNBOOKS_WARMUP !== 'false',
+          },
+          procedures: {
+            ttl_seconds: parseInt(process.env.CACHE_PROCEDURES_TTL_SECONDS || '1800'),
+            warmup: process.env.CACHE_PROCEDURES_WARMUP === 'true',
+          },
+          decision_trees: {
+            ttl_seconds: parseInt(process.env.CACHE_DECISION_TREES_TTL_SECONDS || '2400'),
+            warmup: process.env.CACHE_DECISION_TREES_WARMUP !== 'false',
+          },
+          knowledge_base: {
+            ttl_seconds: parseInt(process.env.CACHE_KNOWLEDGE_BASE_TTL_SECONDS || '900'),
+            warmup: process.env.CACHE_KNOWLEDGE_BASE_WARMUP === 'true',
+          },
+        },
+      },
       embedding: {
         enabled: process.env.ENABLE_EMBEDDINGS !== 'false',
         model: process.env.EMBEDDING_MODEL || 'sentence-transformers/all-MiniLM-L6-v2',
@@ -346,6 +382,42 @@ export async function createSampleConfig(
         max_retries: 1,
       },
     ],
+    cache: {
+      enabled: true,
+      strategy: 'hybrid',
+      memory: {
+        max_keys: 1000,
+        ttl_seconds: 3600,
+        check_period_seconds: 600,
+      },
+      redis: {
+        enabled: true,
+        url: 'redis://localhost:6379',
+        ttl_seconds: 7200,
+        key_prefix: 'pp:cache:',
+        connection_timeout_ms: 5000,
+        retry_attempts: 3,
+        retry_delay_ms: 1000,
+      },
+      content_types: {
+        runbooks: {
+          ttl_seconds: 3600,
+          warmup: true,
+        },
+        procedures: {
+          ttl_seconds: 1800,
+          warmup: false,
+        },
+        decision_trees: {
+          ttl_seconds: 2400,
+          warmup: true,
+        },
+        knowledge_base: {
+          ttl_seconds: 900,
+          warmup: false,
+        },
+      },
+    },
     embedding: {
       enabled: true,
       model: 'sentence-transformers/all-MiniLM-L6-v2',

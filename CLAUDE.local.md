@@ -2,7 +2,7 @@
 
 This document provides project overrides for claude should consider when doing work in this repository. It should supercede and directives at the user or system level.
 
-### Project Planning Strategies
+## Project Planning Strategies
 
 * Planning documents should all be placed into the `planning` directory at the root of the repository.
 * Agent role files should be placed into the `agents` directory at the root of the repository.
@@ -11,7 +11,7 @@ This document provides project overrides for claude should consider when doing w
   * https://docs.anthropic.com/en/docs/claude-code/sub-agents for the latest information
   * In the file format description where we define what tools are allowed the agent tool names should always have surrounding white spaces. Except before a comma.
 
-### Project Documentation Strategies
+## Project Documentation Strategies
 
 * All documentation for the project and related artifacts should reside in a directory called `docs` at the root of the repository. Create one if it does not exist.
 * The documentation we should maintain are:
@@ -24,4 +24,6 @@ This document provides project overrides for claude should consider when doing w
 Authored by: {AGENTNAME}
 Date: {DATECREATED}
 ```
-Within any comments or will create one if no comment header exists.
+Add this to any existing comments or add a comment section at the top of the file with this information.
+## Task Strategies
+* Try to only do a few changes at a time. If you come up with ideas on more things you would like to do, write out a file or add a TODO section to the top of the file you are working on with the additional changes. Try to only implement a few things at once.

@@ -1,7 +1,7 @@
 {
   "id": "memory_leak_critical_004",
   "title": "Memory Leak - CRITICAL Alert Response",
-  "version": "1.9",
+  "version": "1.2",
   "description": "Runbook for responding to critical severity memory leak alerts on java-app systems",
   "triggers": [
     "memory_usage_high",
@@ -104,13 +104,13 @@
       ]
     }
   ],
-  "escalation_path": "security",
+  "escalation_path": "dba",
   "metadata": {
-    "created_at": "2025-07-28T23:59:26.363Z",
-    "updated_at": "2025-07-28T23:59:26.363Z",
+    "created_at": "2025-07-29T15:25:34.794Z",
+    "updated_at": "2025-07-29T15:25:34.794Z",
     "author": "SRE Team",
-    "confidence_score": 0.8717815347234089,
-    "success_rate": 0.929813333785983,
-    "avg_resolution_time_minutes": 33
+    "confidence_score": 0.8667823833943112,
+    "success_rate": 0.9921868872552538,
+    "avg_resolution_time_minutes": 67
   }
 }

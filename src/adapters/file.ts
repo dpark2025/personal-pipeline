@@ -9,7 +9,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createHash } from 'crypto';
 import Fuse from 'fuse.js';
-import { SourceAdapter } from './base';
+import { SourceAdapter } from './base.js';
 import {
   SourceConfig,
   SearchResult,
@@ -17,7 +17,7 @@ import {
   HealthCheck,
   Runbook,
   ConfidenceScore,
-} from '../types';
+} from '../types/index.js';
 
 interface FileDocument {
   id: string;

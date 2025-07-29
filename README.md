@@ -1,6 +1,6 @@
 # Personal Pipeline (PP)
 
-> **🎉 Status**: Milestone 1.2 Complete - Enhanced with development tools and testing utilities! See [docs/MILESTONE-1.2.md](docs/MILESTONE-1.2.md) for Phase 2 details.
+> **🎉 Status**: Milestone 1.3 Complete - Performance optimization with caching, monitoring, and comprehensive demo environment! See [docs/DEMO-GUIDE.md](docs/DEMO-GUIDE.md) for the complete demo walkthrough.
 
 An intelligent Model Context Protocol (MCP) server that provides automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management.
 
@@ -10,6 +10,7 @@ This MCP server transforms scattered operational knowledge into structured, acti
 
 ## Key Features
 
+### Core Capabilities
 - **Sub-second runbook retrieval** for critical operational scenarios
 - **Context-aware search** with semantic matching capabilities
 - **Confidence-scored recommendations** for automated decision making
@@ -17,7 +18,36 @@ This MCP server transforms scattered operational knowledge into structured, acti
 - **Structured decision trees** for progressive incident resolution
 - **Escalation management** with business hours and on-call awareness
 
+### Milestone 1.3: Performance & Monitoring
+- **Hybrid Caching System** - Redis + in-memory caching with <200ms cached response times
+- **Real-time Performance Monitoring** - Comprehensive metrics with percentile analysis  
+- **Health Monitoring & Alerting** - System health checks with intelligent alerting
+- **Circuit Breaker Protection** - Prevents cascade failures during service outages
+- **Load Testing & Validation** - Stress testing with automated performance validation
+- **Observability** - Rich metrics, structured logging, and monitoring dashboards
+
 ## Quick Start
+
+### Demo Environment (Recommended)
+Experience all milestone 1.3 features with our comprehensive demo environment:
+
+```bash
+# One-command demo setup with sample data, caching, and monitoring
+npm run demo:setup
+
+# Interactive walkthrough of all features
+npm run demo:walkthrough
+
+# Validate performance targets and system health
+npm run demo:validate
+
+# Stop demo environment
+npm run demo:stop
+```
+
+See [docs/DEMO-GUIDE.md](docs/DEMO-GUIDE.md) for the complete demo documentation.
+
+### Production Setup
 
 ```bash
 # Clone the repository

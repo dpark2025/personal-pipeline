@@ -20,15 +20,19 @@ import {
   SearchResult,
   HealthCheck,
   BaseResponse,
-} from '../types';
-import { SourceAdapterRegistry } from '../adapters/base';
-import { logger } from '../utils/logger';
+} from '../types/index.js';
+import { SourceAdapterRegistry } from '../adapters/base.js';
+import { logger } from '../utils/logger.js';
+import { CacheService, createCacheKey, CacheContentType } from '../utils/cache.js';
+import { getPerformanceMonitor, PerformanceTimer } from '../utils/performance.js';
 
 export class PPMCPTools {
   private sourceRegistry: SourceAdapterRegistry;
+  private cacheService: CacheService | null;
 
-  constructor(sourceRegistry: SourceAdapterRegistry) {
+  constructor(sourceRegistry: SourceAdapterRegistry, cacheService?: CacheService) {
     this.sourceRegistry = sourceRegistry;
+    this.cacheService = cacheService || null;
   }
 
   /**
@@ -47,10 +51,44 @@ export class PPMCPTools {
   }
 
   /**
-   * Handle MCP tool calls
+   * Get cache statistics if cache service is available
+   */
+  getCacheStats() {
+    return this.cacheService?.getStats() || null;
+  }
+
+  /**
+   * Get cache health check if cache service is available
+   */
+  async getCacheHealth() {
+    return this.cacheService?.healthCheck() || null;
+  }
+
+  /**
+   * Warm cache with critical data if cache service is available
+   */
+  async warmCache(criticalData: Array<{ key: any; data: any }>) {
+    if (this.cacheService) {
+      await this.cacheService.warmCache(criticalData);
+    }
+  }
+
+  /**
+   * Clear cache by content type if cache service is available
+   */
+  async clearCacheByType(contentType: CacheContentType) {
+    if (this.cacheService) {
+      await this.cacheService.clearByType(contentType);
+    }
+  }
+
+  /**
+   * Handle MCP tool calls with performance monitoring
    */
   async handleToolCall(request: CallToolRequest): Promise<CallToolResult> {
-    const startTime = Date.now();
+    const timer = new PerformanceTimer();
+    const performanceMonitor = getPerformanceMonitor();
+    let isError = false;
 
     try {
       logger.info(`Handling tool call: ${request.params.name}`, {
@@ -86,7 +124,7 @@ export class PPMCPTools {
           throw new Error(`Unknown tool: ${request.params.name}`);
       }
 
-      const executionTime = Date.now() - startTime;
+      const executionTime = timer.elapsed();
 
       logger.info(`Tool call completed: ${request.params.name}`, {
         tool: request.params.name,
@@ -101,7 +139,7 @@ export class PPMCPTools {
             text: JSON.stringify(
               {
                 ...result,
-                retrieval_time_ms: executionTime,
+                retrieval_time_ms: Math.round(executionTime),
                 timestamp: new Date().toISOString(),
               },
               null,
@@ -111,7 +149,8 @@ export class PPMCPTools {
         ],
       };
     } catch (error) {
-      const executionTime = Date.now() - startTime;
+      isError = true;
+      const executionTime = timer.elapsed();
 
       logger.error(`Tool call failed: ${request.params.name}`, {
         tool: request.params.name,
@@ -127,7 +166,7 @@ export class PPMCPTools {
               {
                 success: false,
                 message: error instanceof Error ? error.message : 'Unknown error',
-                retrieval_time_ms: executionTime,
+                retrieval_time_ms: Math.round(executionTime),
                 timestamp: new Date().toISOString(),
               },
               null,
@@ -137,7 +176,23 @@ export class PPMCPTools {
         ],
         isError: true,
       };
+    } finally {
+      // Record performance metrics
+      const executionTime = timer.elapsed();
+      performanceMonitor.recordToolExecution(request.params.name, executionTime, isError);
     }
+  }
+
+  /**
+   * Get performance metrics for all tools
+   */
+  getPerformanceMetrics() {
+    const performanceMonitor = getPerformanceMonitor();
+    return {
+      overall: performanceMonitor.getMetrics(),
+      by_tool: Object.fromEntries(performanceMonitor.getToolMetrics()),
+      report: performanceMonitor.generateReport(),
+    };
   }
 
   // ========================================================================
@@ -341,6 +396,29 @@ export class PPMCPTools {
   private async searchRunbooks(args: any): Promise<RunbookSearchResponse> {
     const { alert_type, severity, affected_systems, context } = args;
 
+    // Create cache key based on search parameters
+    const cacheKey = createCacheKey(
+      'runbooks',
+      JSON.stringify({ alert_type, severity, affected_systems, context })
+    );
+
+    // Try to get from cache first
+    if (this.cacheService) {
+      const cachedResult = await this.cacheService.get<RunbookSearchResponse>(cacheKey);
+      if (cachedResult) {
+        logger.debug('Cache hit for runbook search', {
+          alert_type,
+          severity,
+          cache_key: cacheKey.identifier.substring(0, 50) + '...',
+        });
+        return {
+          ...cachedResult,
+          retrieval_time_ms: 0, // Will be updated by caller
+          timestamp: new Date().toISOString(),
+        };
+      }
+    }
+
     const adapters = this.sourceRegistry.getAllAdapters();
     const allRunbooks: any[] = [];
 
@@ -364,7 +442,7 @@ export class PPMCPTools {
       (a, b) => (b.metadata?.confidence_score || 0) - (a.metadata?.confidence_score || 0)
     );
 
-    return {
+    const result: RunbookSearchResponse = {
       success: true,
       runbooks: allRunbooks,
       total_results: allRunbooks.length,
@@ -372,16 +450,51 @@ export class PPMCPTools {
       retrieval_time_ms: 0, // Will be set by caller
       timestamp: new Date().toISOString(),
     };
+
+    // Cache the result if cache service is available
+    if (this.cacheService && allRunbooks.length > 0) {
+      await this.cacheService.set(cacheKey, result);
+      logger.debug('Cached runbook search result', {
+        alert_type,
+        severity,
+        results_count: allRunbooks.length,
+        cache_key: cacheKey.identifier.substring(0, 50) + '...',
+      });
+    }
+
+    return result;
   }
 
   private async getDecisionTree(args: any): Promise<DecisionTreeResponse> {
-    const { current_agent_state } = args;
+    const { alert_context, current_agent_state } = args;
+
+    // Create cache key based on alert context
+    const cacheKey = createCacheKey(
+      'decision_trees',
+      JSON.stringify({ alert_context, has_agent_state: !!current_agent_state })
+    );
+
+    // Try to get from cache first
+    if (this.cacheService) {
+      const cachedResult = await this.cacheService.get<DecisionTreeResponse>(cacheKey);
+      if (cachedResult) {
+        logger.debug('Cache hit for decision tree', {
+          alert_context: alert_context?.alert_type || 'unknown',
+          cache_key: cacheKey.identifier.substring(0, 50) + '...',
+        });
+        return {
+          ...cachedResult,
+          retrieval_time_ms: 0, // Will be updated by caller
+          timestamp: new Date().toISOString(),
+        };
+      }
+    }
 
     // For now, return a simple decision tree
     // In a full implementation, this would search for relevant decision trees
     // based on the alert context
 
-    return {
+    const result: DecisionTreeResponse = {
       success: true,
       decision_tree: {
         id: 'default_dt',
@@ -412,15 +525,49 @@ export class PPMCPTools {
       retrieval_time_ms: 0,
       timestamp: new Date().toISOString(),
     };
+
+    // Cache the result if cache service is available
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result);
+      logger.debug('Cached decision tree result', {
+        alert_context: alert_context?.alert_type || 'unknown',
+        cache_key: cacheKey.identifier.substring(0, 50) + '...',
+      });
+    }
+
+    return result;
   }
 
   private async getProcedure(args: any): Promise<ProcedureResponse> {
     const { runbook_id, step_name } = args;
 
+    // Create cache key based on runbook and step
+    const cacheKey = createCacheKey(
+      'procedures',
+      JSON.stringify({ runbook_id, step_name })
+    );
+
+    // Try to get from cache first
+    if (this.cacheService) {
+      const cachedResult = await this.cacheService.get<ProcedureResponse>(cacheKey);
+      if (cachedResult) {
+        logger.debug('Cache hit for procedure', {
+          runbook_id,
+          step_name,
+          cache_key: cacheKey.identifier,
+        });
+        return {
+          ...cachedResult,
+          retrieval_time_ms: 0, // Will be updated by caller
+          timestamp: new Date().toISOString(),
+        };
+      }
+    }
+
     // Search for the specific procedure
     // This is a simplified implementation
 
-    return {
+    const result: ProcedureResponse = {
       success: true,
       procedure: {
         id: `${runbook_id}_${step_name}`,
@@ -436,6 +583,18 @@ export class PPMCPTools {
       retrieval_time_ms: 0,
       timestamp: new Date().toISOString(),
     };
+
+    // Cache the result if cache service is available
+    if (this.cacheService) {
+      await this.cacheService.set(cacheKey, result);
+      logger.debug('Cached procedure result', {
+        runbook_id,
+        step_name,
+        cache_key: cacheKey.identifier,
+      });
+    }
+
+    return result;
   }
 
   private async getEscalationPath(args: any): Promise<EscalationResponse> {
@@ -536,6 +695,29 @@ export class PPMCPTools {
   }> {
     const { query, categories, max_age_days, max_results = 10 } = args;
 
+    // Create cache key based on search parameters
+    const cacheKey = createCacheKey(
+      'knowledge_base',
+      JSON.stringify({ query, categories, max_age_days, max_results })
+    );
+
+    // Try to get from cache first
+    if (this.cacheService) {
+      const cachedResult = await this.cacheService.get<{
+        success: boolean;
+        results: SearchResult[];
+        total_results: number;
+      }>(cacheKey);
+      if (cachedResult) {
+        logger.debug('Cache hit for knowledge base search', {
+          query: query.substring(0, 50) + (query.length > 50 ? '...' : ''),
+          categories,
+          cache_key: cacheKey.identifier.substring(0, 50) + '...',
+        });
+        return cachedResult;
+      }
+    }
+
     const adapters = this.sourceRegistry.getAllAdapters();
     const allResults: SearchResult[] = [];
 
@@ -556,11 +738,23 @@ export class PPMCPTools {
     allResults.sort((a, b) => b.confidence_score - a.confidence_score);
     const limitedResults = allResults.slice(0, max_results);
 
-    return {
+    const result = {
       success: true,
       results: limitedResults,
       total_results: allResults.length,
     };
+
+    // Cache the result if cache service is available and we have results
+    if (this.cacheService && limitedResults.length > 0) {
+      await this.cacheService.set(cacheKey, result);
+      logger.debug('Cached knowledge base search result', {
+        query: query.substring(0, 50) + (query.length > 50 ? '...' : ''),
+        results_count: limitedResults.length,
+        cache_key: cacheKey.identifier.substring(0, 50) + '...',
+      });
+    }
+
+    return result;
   }
 
   private async recordResolutionFeedback(args: any): Promise<BaseResponse> {
