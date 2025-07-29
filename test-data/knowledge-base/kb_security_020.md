@@ -44,5 +44,5 @@ This document provides security guidance for security incident issues in our inf
 For escalation: sre-oncall@company.com
 
 ---
-*Last updated: 7/28/2025*
+*Last updated: 7/29/2025*
 *Maintained by: DevOps Team*

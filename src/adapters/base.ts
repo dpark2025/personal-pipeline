@@ -5,7 +5,7 @@
  * consistent access to documentation sources.
  */
 
-import { SourceConfig, SearchResult, SearchFilters, HealthCheck, Runbook } from '../types';
+import { SourceConfig, SearchResult, SearchFilters, HealthCheck, Runbook } from '../types/index.js';
 
 /**
  * Abstract base class for all source adapters

@@ -245,6 +245,86 @@ export type EscalationResponse = z.infer<typeof EscalationResponse>;
 // ============================================================================
 
 /**
+ * Cache configuration
+ */
+export const CacheConfig = z.object({
+  enabled: z.boolean().default(true),
+  strategy: z.enum(['memory_only', 'redis_only', 'hybrid']).default('hybrid'),
+  memory: z.object({
+    max_keys: z.number().default(1000),
+    ttl_seconds: z.number().default(3600),
+    check_period_seconds: z.number().default(600),
+  }),
+  redis: z.object({
+    enabled: z.boolean().default(true),
+    url: z.string().default('redis://localhost:6379'),
+    ttl_seconds: z.number().default(7200),
+    key_prefix: z.string().default('pp:cache:'),
+    connection_timeout_ms: z.number().default(5000),
+    retry_attempts: z.number().default(3),
+    retry_delay_ms: z.number().default(1000),
+  }),
+  content_types: z.object({
+    runbooks: z.object({
+      ttl_seconds: z.number().default(3600),
+      warmup: z.boolean().default(true),
+    }),
+    procedures: z.object({
+      ttl_seconds: z.number().default(1800),
+      warmup: z.boolean().default(false),
+    }),
+    decision_trees: z.object({
+      ttl_seconds: z.number().default(2400),
+      warmup: z.boolean().default(true),
+    }),
+    knowledge_base: z.object({
+      ttl_seconds: z.number().default(900),
+      warmup: z.boolean().default(false),
+    }),
+  }),
+});
+export type CacheConfig = z.infer<typeof CacheConfig>;
+
+/**
+ * Cache statistics and metrics
+ */
+export const CacheStats = z.object({
+  hits: z.number(),
+  misses: z.number(),
+  hit_rate: z.number(),
+  total_operations: z.number(),
+  memory_usage_bytes: z.number().optional(),
+  redis_connected: z.boolean().optional(),
+  last_reset: z.string(),
+  by_content_type: z.record(z.object({
+    hits: z.number(),
+    misses: z.number(),
+    hit_rate: z.number(),
+  })).optional(),
+});
+export type CacheStats = z.infer<typeof CacheStats>;
+
+/**
+ * Cache health check
+ */
+export const CacheHealthCheck = z.object({
+  memory_cache: z.object({
+    healthy: z.boolean(),
+    keys_count: z.number(),
+    memory_usage_mb: z.number(),
+    response_time_ms: z.number(),
+  }),
+  redis_cache: z.object({
+    healthy: z.boolean(),
+    connected: z.boolean(),
+    response_time_ms: z.number(),
+    error_message: z.string().optional(),
+  }).optional(),
+  overall_healthy: z.boolean(),
+});
+export type CacheHealthCheck = z.infer<typeof CacheHealthCheck>;
+
+/**
  * Server configuration
  */
 export const ServerConfig = z.object({
@@ -264,6 +344,7 @@ export type ServerConfig = z.infer<typeof ServerConfig>;
 export const AppConfig = z.object({
   server: ServerConfig,
   sources: z.array(SourceConfig),
+  cache: CacheConfig.optional(),
   embedding: z
     .object({
       enabled: z.boolean().default(true),

@@ -7,9 +7,9 @@
  */
 
 import 'dotenv/config';
-import { personalPipelineServer } from './core/server';
-import { logger } from './utils/logger';
-import { createSampleConfig } from './utils/config';
+import { personalPipelineServer } from './core/server.js';
+import { logger } from './utils/logger.js';
+import { createSampleConfig } from './utils/config.js';
 
 /**
  * Main server startup function
@@ -94,7 +94,7 @@ function setupGracefulShutdown(): void {
 }
 
 // Start the server if this file is run directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
     console.error('Fatal error during startup:', error);
     process.exit(1);
@@ -103,7 +103,7 @@ if (require.main === module) {
 
 // Export server instance for testing
 export { personalPipelineServer };
-export * from './types';
-export * from './adapters/base';
-export * from './utils/config';
-export * from './utils/logger';
+export * from './types/index.js';
+export * from './adapters/base.js';
+export * from './utils/config.js';
+export * from './utils/logger.js';

@@ -2,7 +2,7 @@
   "id": "database_slow_critical_009",
   "title": "Database Slow - CRITICAL Alert Response",
   "version": "1.7",
-  "description": "Runbook for responding to critical severity database slow alerts on mongodb systems",
+  "description": "Runbook for responding to critical severity database slow alerts on postgres systems",
   "triggers": [
     "query_timeout",
     "connection_pool_full",
@@ -52,9 +52,9 @@
     {
       "id": "emergency_procedure",
       "name": "Emergency Database Slow Resolution",
-      "description": "Immediate actions to resolve critical database slow on mongodb",
+      "description": "Immediate actions to resolve critical database slow on postgres",
       "command": "mysqladmin processlist && mysqladmin kill slow-query-ids",
-      "expected_outcome": "Restore mongodb to operational state within 5 minutes",
+      "expected_outcome": "Restore postgres to operational state within 5 minutes",
       "timeout_seconds": 300,
       "prerequisites": [
         "admin_access",
@@ -104,13 +104,13 @@
       ]
     }
   ],
-  "escalation_path": "l2_support",
+  "escalation_path": "l1_support",
   "metadata": {
-    "created_at": "2025-07-28T22:46:14.247Z",
-    "updated_at": "2025-07-28T22:46:14.247Z",
+    "created_at": "2025-07-29T15:25:34.795Z",
+    "updated_at": "2025-07-29T15:25:34.795Z",
     "author": "SRE Team",
-    "confidence_score": 0.7635255021777175,
-    "success_rate": 0.8830293162429746,
-    "avg_resolution_time_minutes": 14
+    "confidence_score": 0.7307243363862509,
+    "success_rate": 0.8255308758964188,
+    "avg_resolution_time_minutes": 81
   }
 }

@@ -1,8 +1,8 @@
 {
   "id": "cpu_high_low_008",
   "title": "Cpu High - LOW Alert Response",
-  "version": "1.8",
-  "description": "Runbook for responding to low severity cpu high alerts on worker-node systems",
+  "version": "1.5",
+  "description": "Runbook for responding to low severity cpu high alerts on batch-processor systems",
   "triggers": [
     "cpu_usage_high",
     "load_average_high",
@@ -77,13 +77,13 @@
       ]
     }
   ],
-  "escalation_path": "dba",
+  "escalation_path": "l1_support",
   "metadata": {
-    "created_at": "2025-07-28T22:46:14.247Z",
-    "updated_at": "2025-07-28T22:46:14.247Z",
+    "created_at": "2025-07-29T15:25:34.795Z",
+    "updated_at": "2025-07-29T15:25:34.795Z",
     "author": "SRE Team",
-    "confidence_score": 0.7360693833463359,
-    "success_rate": 0.9592884309950857,
-    "avg_resolution_time_minutes": 37
+    "confidence_score": 0.8739915749402922,
+    "success_rate": 0.8991733413337184,
+    "avg_resolution_time_minutes": 23
   }
 }
