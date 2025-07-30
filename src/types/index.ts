@@ -263,6 +263,10 @@ export const CacheConfig = z.object({
     connection_timeout_ms: z.number().default(5000),
     retry_attempts: z.number().default(3),
     retry_delay_ms: z.number().default(1000),
+    // Exponential backoff settings
+    max_retry_delay_ms: z.number().default(30000), // Max 30 seconds
+    backoff_multiplier: z.number().default(2), // Double delay each retry
+    connection_retry_limit: z.number().default(5), // Max connection attempts
   }),
   content_types: z.object({
     runbooks: z.object({

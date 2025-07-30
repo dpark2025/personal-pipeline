@@ -6,10 +6,10 @@
  */
 
 import NodeCache from 'node-cache';
-import Redis from 'ioredis';
 import { logger } from './logger.js';
 import { CacheConfig, CacheStats, CacheHealthCheck } from '../types/index.js';
 import { CircuitBreakerFactory } from './circuit-breaker.js';
+import { RedisConnectionManager } from './redis-connection-manager.js';
 
 export type CacheContentType = 'runbooks' | 'procedures' | 'decision_trees' | 'knowledge_base';
 
@@ -30,7 +30,7 @@ export interface CacheEntry<T = any> {
  */
 export class CacheService {
   private memoryCache: NodeCache;
-  private redisClient: Redis | null = null;
+  private redisManager: RedisConnectionManager | null = null;
   private config: CacheConfig;
   private stats: CacheStats;
   private enabled: boolean;
@@ -102,7 +102,7 @@ export class CacheService {
       }
 
       // Fallback to Redis if available
-      if (this.redisClient && this.config.strategy !== 'memory_only') {
+      if (this.redisManager && this.config.strategy !== 'memory_only') {
         try {
           const redisResult = await this.redisCircuitBreaker.execute(() => 
             this.getFromRedis<T>(cacheKey)
@@ -119,7 +119,7 @@ export class CacheService {
             return redisResult.data;
           }
         } catch (error) {
-          logger.warn('Redis cache access failed, using memory cache only', {
+          logger.debug('Redis cache access failed, using memory cache only', {
             key: cacheKey,
             error: error instanceof Error ? error.message : String(error),
           });
@@ -167,13 +167,13 @@ export class CacheService {
       this.memoryCache.set(cacheKey, entry, ttl);
 
       // Set in Redis if available and strategy allows
-      if (this.redisClient && this.config.strategy !== 'memory_only') {
+      if (this.redisManager && this.config.strategy !== 'memory_only') {
         try {
           await this.redisCircuitBreaker.execute(() => 
             this.setInRedis(cacheKey, entry, ttl)
           );
         } catch (error) {
-          logger.warn('Redis cache write failed, data stored in memory cache only', {
+          logger.debug('Redis cache write failed, data stored in memory cache only', {
             key: cacheKey,
             error: error instanceof Error ? error.message : String(error),
           });
@@ -209,8 +209,8 @@ export class CacheService {
       this.memoryCache.del(cacheKey);
 
       // Delete from Redis if available
-      if (this.redisClient && this.config.strategy !== 'memory_only') {
-        await this.redisClient.del(cacheKey);
+      if (this.redisManager && this.config.strategy !== 'memory_only') {
+        await this.redisManager.executeOperation(redis => redis.del(cacheKey));
       }
 
       logger.debug('Cache DELETE', { key: cacheKey, type: key.type });
@@ -239,12 +239,14 @@ export class CacheService {
       this.memoryCache.del(keysToDelete);
 
       // Clear from Redis if available
-      if (this.redisClient && this.config.strategy !== 'memory_only') {
-        const redisPattern = `${this.config.redis.key_prefix}${typePrefix}*`;
-        const redisKeys = await this.redisClient.keys(redisPattern);
-        if (redisKeys.length > 0) {
-          await this.redisClient.del(...redisKeys);
-        }
+      if (this.redisManager && this.config.strategy !== 'memory_only') {
+        await this.redisManager.executeOperation(async (redis) => {
+          const redisPattern = `${this.config.redis.key_prefix}${typePrefix}*`;
+          const redisKeys = await redis.keys(redisPattern);
+          if (redisKeys.length > 0) {
+            await redis.del(...redisKeys);
+          }
+        });
       }
 
       logger.info('Cache cleared by type', {
@@ -273,12 +275,14 @@ export class CacheService {
       this.memoryCache.flushAll();
 
       // Clear Redis if available
-      if (this.redisClient && this.config.strategy !== 'memory_only') {
-        const pattern = `${this.config.redis.key_prefix}*`;
-        const keys = await this.redisClient.keys(pattern);
-        if (keys.length > 0) {
-          await this.redisClient.del(...keys);
-        }
+      if (this.redisManager && this.config.strategy !== 'memory_only') {
+        await this.redisManager.executeOperation(async (redis) => {
+          const pattern = `${this.config.redis.key_prefix}*`;
+          const keys = await redis.keys(pattern);
+          if (keys.length > 0) {
+            await redis.del(...keys);
+          }
+        });
       }
 
       // Reset statistics
@@ -306,7 +310,7 @@ export class CacheService {
     this.stats.memory_usage_bytes = keys.length * 1024; // Rough estimate
 
     // Check Redis connection status
-    this.stats.redis_connected = this.redisClient?.status === 'ready';
+    this.stats.redis_connected = this.redisManager?.isAvailable() || false;
 
     return { ...this.stats };
   }
@@ -339,26 +343,31 @@ export class CacheService {
     };
 
     // Test Redis if available
-    if (this.redisClient && this.config.strategy !== 'memory_only') {
+    if (this.redisManager && this.config.strategy !== 'memory_only') {
       const redisStartTime = Date.now();
       try {
-        await this.redisClient.ping();
+        const pingResult = await this.redisManager.executeOperation(redis => redis.ping());
         const redisResponseTime = Date.now() - redisStartTime;
         
-        result.redis_cache = {
-          healthy: true,
-          connected: this.redisClient.status === 'ready',
-          response_time_ms: redisResponseTime,
-        };
-        
-        result.overall_healthy = result.overall_healthy && result.redis_cache.healthy;
+        if (pingResult === 'PONG') {
+          result.redis_cache = {
+            healthy: true,
+            connected: this.redisManager.isAvailable(),
+            response_time_ms: redisResponseTime,
+          };
+          
+          result.overall_healthy = result.overall_healthy && result.redis_cache.healthy;
+        } else {
+          throw new Error('Redis ping failed');
+        }
         
       } catch (error) {
+        const stats = this.redisManager.getStats();
         result.redis_cache = {
           healthy: false,
           connected: false,
           response_time_ms: Date.now() - redisStartTime,
-          error_message: error instanceof Error ? error.message : String(error),
+          error_message: error instanceof Error ? error.message : `Redis ${stats.state}`,
         };
         
         // Don't fail overall health if Redis is down but memory cache works
@@ -407,9 +416,9 @@ export class CacheService {
       this.memoryCache.close();
 
       // Close Redis connection
-      if (this.redisClient) {
-        await this.redisClient.quit();
-        this.redisClient = null;
+      if (this.redisManager) {
+        await this.redisManager.disconnect();
+        this.redisManager = null;
       }
 
       logger.info('Cache service shutdown completed');
@@ -424,69 +433,70 @@ export class CacheService {
 
   private initializeRedis(): void {
     try {
-      this.redisClient = new Redis(this.config.redis.url, {
-        connectTimeout: this.config.redis.connection_timeout_ms,
-        maxRetriesPerRequest: this.config.redis.retry_attempts,
-        lazyConnect: true,
+      this.redisManager = new RedisConnectionManager(this.config.redis);
+
+      // Set up event listeners for Redis connection events
+      this.redisManager.on('connected', () => {
+        logger.info('Redis cache connected successfully');
       });
 
-      this.redisClient.on('connect', () => {
-        logger.info('Redis cache connected');
-      });
-
-      this.redisClient.on('error', (error) => {
-        logger.error('Redis cache error', {
+      this.redisManager.on('connectionFailed', (error: Error) => {
+        logger.debug('Redis connection attempt failed', {
           error: error.message,
         });
       });
 
-      this.redisClient.on('close', () => {
-        logger.warn('Redis cache connection closed');
+      this.redisManager.on('circuitOpened', () => {
+        logger.warn('Redis connection circuit breaker opened - too many failures');
+      });
+
+      this.redisManager.on('stateChanged', ({ oldState, newState }) => {
+        logger.debug('Redis connection state changed', {
+          oldState,
+          newState,
+        });
+      });
+
+      // Attempt initial connection
+      this.redisManager.connect().catch(error => {
+        logger.debug('Initial Redis connection failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       });
 
     } catch (error) {
       logger.error('Redis initialization failed', {
         error: error instanceof Error ? error.message : String(error),
       });
-      this.redisClient = null;
+      this.redisManager = null;
     }
   }
 
   private async getFromRedis<T>(key: string): Promise<CacheEntry<T> | null> {
-    if (!this.redisClient) {
+    if (!this.redisManager) {
       return null;
     }
 
-    try {
-      const data = await this.redisClient.get(key);
+    const result = await this.redisManager.executeOperation(async (redis) => {
+      const data = await redis.get(key);
       if (!data) {
         return null;
       }
-
       return JSON.parse(data) as CacheEntry<T>;
-    } catch (error) {
-      logger.error('Redis GET error', {
-        key,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return null;
-    }
+    });
+
+    return result;
   }
 
   private async setInRedis<T>(key: string, entry: CacheEntry<T>, ttl: number): Promise<void> {
-    if (!this.redisClient) {
+    if (!this.redisManager) {
       return;
     }
 
-    try {
+    await this.redisManager.executeOperation(async (redis) => {
       const serialized = JSON.stringify(entry);
-      await this.redisClient.setex(key, ttl, serialized);
-    } catch (error) {
-      logger.error('Redis SET error', {
-        key,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+      await redis.setex(key, ttl, serialized);
+    });
   }
 
   private buildCacheKey(key: CacheKey): string {

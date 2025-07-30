@@ -204,6 +204,9 @@ export class ConfigManager {
           connection_timeout_ms: parseInt(process.env.REDIS_CONNECTION_TIMEOUT_MS || '5000'),
           retry_attempts: parseInt(process.env.REDIS_RETRY_ATTEMPTS || '3'),
           retry_delay_ms: parseInt(process.env.REDIS_RETRY_DELAY_MS || '1000'),
+          max_retry_delay_ms: parseInt(process.env.REDIS_MAX_RETRY_DELAY_MS || '30000'),
+          backoff_multiplier: parseFloat(process.env.REDIS_BACKOFF_MULTIPLIER || '2'),
+          connection_retry_limit: parseInt(process.env.REDIS_CONNECTION_RETRY_LIMIT || '5'),
         },
         content_types: {
           runbooks: {
@@ -398,6 +401,9 @@ export async function createSampleConfig(
         connection_timeout_ms: 5000,
         retry_attempts: 3,
         retry_delay_ms: 1000,
+        max_retry_delay_ms: 30000,
+        backoff_multiplier: 2,
+        connection_retry_limit: 5,
       },
       content_types: {
         runbooks: {

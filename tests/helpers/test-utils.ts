@@ -117,7 +117,10 @@ export async function createTestEnvironment(options: TestEnvironmentOptions = {}
         key_prefix: `pp:test:${testId}:`,
         connection_timeout_ms: 5000,
         retry_attempts: 3,
-        retry_delay_ms: 1000
+        retry_delay_ms: 1000,
+        max_retry_delay_ms: 30000,
+        backoff_multiplier: 2,
+        connection_retry_limit: 5
       },
       content_types: {
         runbooks: { ttl_seconds: 300, warmup: true },
