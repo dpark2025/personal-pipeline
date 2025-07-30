@@ -194,3 +194,26 @@ For the **Personal Pipeline (PP)** MCP server:
 - **Update Notifications**: Automated alerts for content that needs updates
 
 Focus on creating comprehensive, user-centered documentation that enables successful adoption and operation of the Personal Pipeline project, with particular emphasis on operational excellence and enterprise-grade documentation standards.
+
+## Experiences
+
+### Optional Dependencies Documentation Patterns (2025-07-30)
+**Context**: External dependency documentation for developer onboarding
+
+**Process Improvements**:
+- **User Journey Mapping**: Start with specific personas and their complete workflows before writing
+- **Pain Point Analysis**: Interview actual users to identify specific friction points with evidence
+- **Quantitative Goals**: Establish measurable success criteria (setup time, error rates, support tickets)
+- **Cross-Reference Strategy**: Plan linking between related topics early in information architecture
+
+**What Worked Well**:
+- **Comprehensive Coverage**: Multi-file documentation ecosystem with cohesive information architecture
+- **User-Centered Approach**: Focused on developer experience rather than just technical completeness
+- **Performance Transparency**: Concrete comparison tables showing trade-offs between configurations
+- **Integration Quality**: Seamlessly integrated with existing documentation without redundancy
+
+**Areas for Improvement**:
+- **Quantitative Performance Data**: Include actual benchmarks rather than qualitative comparisons
+- **Visual Documentation**: Architecture diagrams and installation screenshots would enhance comprehension
+- **Validation Automation**: Scripts to verify installation and configuration accuracy
+- **Maintenance Strategy**: Clearer processes for keeping version compatibility current

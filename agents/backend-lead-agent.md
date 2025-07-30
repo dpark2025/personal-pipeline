@@ -94,3 +94,25 @@ You're working on the **Personal Pipeline (PP)** MCP server project:
 - **Integration**: LangGraph agents for operational automation
 
 Focus on building production-ready, scalable backend systems that support the project's operational excellence goals.
+
+## Experiences
+
+### External Service Integration Patterns (2025-07-30)
+**Context**: Redis connection reliability and error handling improvements
+
+**Process Improvements**:
+- **Infrastructure Testing**: Include connection failure scenarios in integration testing
+- **Configuration Review**: Separate dev/prod configurations with appropriate timeouts
+- **Monitoring Strategy**: Track connection state transitions, circuit breaker activation, and failure rates
+- **Alert Tuning**: Prevent alert fatigue from expected degraded states
+
+**What Worked Well**:
+- Systematic problem analysis with clear issue documentation
+- Comprehensive solution design with dedicated connection management classes
+- Production-ready implementation with configurable retry behavior
+- Maintained backward compatibility and system functionality
+
+**Areas for Improvement**:
+- Earlier detection through better integration testing
+- Proactive production-hardened configuration from start
+- More comprehensive monitoring for connection patterns
