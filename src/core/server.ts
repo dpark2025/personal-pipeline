@@ -35,6 +35,7 @@ import {
   requestSizeLimiter, 
   globalErrorHandler 
 } from '../api/middleware.js';
+import { intelligentCaching, warmCriticalCache } from '../api/caching-middleware.js';
 
 export class PersonalPipelineServer {
   private mcpServer: Server;
@@ -105,6 +106,18 @@ export class PersonalPipelineServer {
 
       // Setup REST API routes (after all components are initialized)
       this.setupAPIRoutes();
+
+      // Warm critical cache if cache service is available
+      if (this.cacheService && this.mcpTools) {
+        setTimeout(() => {
+          warmCriticalCache(this.cacheService, this.mcpTools)
+            .catch(error => {
+              logger.warn('Cache warming failed during startup', {
+                error: error instanceof Error ? error.message : String(error)
+              });
+            });
+        }, 5000); // Wait 5 seconds after startup to warm cache
+      }
 
       // Start Express server for health checks
       await this.startExpressServer();
@@ -228,6 +241,9 @@ export class PersonalPipelineServer {
 
     // Performance monitoring middleware
     this.expressApp.use(performanceMonitoring());
+
+    // Intelligent caching middleware
+    this.expressApp.use(intelligentCaching(this.cacheService));
 
     // Request logging
     if (process.env.NODE_ENV !== 'test') {

@@ -398,35 +398,81 @@ export function createErrorResponse(
 // ============================================================================
 
 /**
- * Middleware to monitor API performance and log metrics
+ * Enhanced middleware to monitor API performance with intelligent optimization
  */
 export function performanceMonitoring() {
   return (req: Request, res: Response, next: NextFunction): void => {
     const startTime = performance.now();
     const requestId = req.headers['x-request-id'] as string || generateRequestId();
     
-    // Override res.json to capture response details
+    // Track request characteristics for optimization
+    const requestMetrics = {
+      method: req.method,
+      path: req.path,
+      contentLength: parseInt(req.get('Content-Length') || '0'),
+      userAgent: req.get('User-Agent'),
+      acceptsCompression: req.acceptsEncodings(['gzip', 'deflate']),
+      queryComplexity: analyzeRequestComplexity(req)
+    };
+    
+    // Override res.json to capture response details and add performance headers
     const originalJson = res.json;
     res.json = function(body: any) {
       const executionTime = performance.now() - startTime;
       const performanceMonitor = getPerformanceMonitor();
+      const responseSize = JSON.stringify(body).length;
       
-      // Record performance metrics
+      // Add performance headers
+      res.setHeader('X-Response-Time', `${Math.round(executionTime)}ms`);
+      res.setHeader('X-Performance-Tier', getPerformanceTier(executionTime, req.path));
+      res.setHeader('X-Request-ID', requestId);
+      
+      // Add caching hints based on performance
+      if (executionTime > 1000) {
+        res.setHeader('X-Cache-Hint', 'recommended');
+      }
+      
+      // Compression recommendations
+      if (responseSize > 10000 && requestMetrics.acceptsCompression) {
+        res.setHeader('X-Compression-Recommended', 'true');
+      }
+      
+      // Record enhanced performance metrics
       performanceMonitor.recordToolExecution(
         `REST_${req.method}_${req.path}`,
         executionTime,
         res.statusCode >= 400
       );
 
-      // Log performance metrics
-      logger.info('REST API performance', {
-        method: req.method,
-        path: req.path,
+      // Enhanced performance logging with optimization hints
+      const performanceData = {
+        ...requestMetrics,
         request_id: requestId,
         status_code: res.statusCode,
         execution_time_ms: Math.round(executionTime),
-        response_size_bytes: JSON.stringify(body).length
-      });
+        response_size_bytes: responseSize,
+        performance_tier: getPerformanceTier(executionTime, requestMetrics.path),
+        optimization_opportunities: identifyOptimizationOpportunities(
+          executionTime, 
+          responseSize, 
+          requestMetrics
+        )
+      };
+      
+      logger.info('REST API performance analysis', performanceData);
+      
+      // Add performance metadata to response body if it's a success response
+      if (body && typeof body === 'object' && body.metadata) {
+        body.metadata = {
+          ...body.metadata,
+          performance_analysis: {
+            execution_time_ms: Math.round(executionTime),
+            performance_tier: performanceData.performance_tier,
+            response_size_bytes: responseSize,
+            optimization_score: calculateOptimizationScore(performanceData)
+          }
+        };
+      }
 
       return originalJson.call(this, body);
     };
@@ -499,6 +545,261 @@ export function requestSizeLimiter(maxSizeMB: number = 10) {
  */
 function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+}
+
+/**
+ * Analyze request complexity for performance optimization
+ */
+function analyzeRequestComplexity(req: Request): {
+  score: number;
+  factors: string[];
+  estimated_time_ms: number;
+} {
+  const factors = [];
+  let score = 0;
+  
+  // URL complexity
+  if (req.path.includes('/search')) {
+    score += 0.3;
+    factors.push('search_operation');
+  }
+  
+  if (req.path.includes('/runbooks')) {
+    score += 0.2;
+    factors.push('runbook_lookup');
+  }
+  
+  // Body complexity
+  if (req.body) {
+    const bodySize = JSON.stringify(req.body).length;
+    if (bodySize > 1000) {
+      score += 0.2;
+      factors.push('large_request_body');
+    }
+    
+    // Search query complexity
+    if (req.body.query && req.body.query.length > 50) {
+      score += 0.2;
+      factors.push('complex_query');
+    }
+    
+    // Array parameters
+    if (req.body.affected_systems && req.body.affected_systems.length > 5) {
+      score += 0.1;
+      factors.push('multiple_systems');
+    }
+  }
+  
+  // Query parameters
+  const queryKeys = Object.keys(req.query || {});
+  if (queryKeys.length > 3) {
+    score += 0.1;
+    factors.push('multiple_query_params');
+  }
+  
+  const estimatedTime = Math.min(score * 2000, 5000); // Cap at 5 seconds
+  
+  return {
+    score: Math.min(score, 1),
+    factors,
+    estimated_time_ms: estimatedTime
+  };
+}
+
+/**
+ * Get performance tier based on execution time with endpoint-specific thresholds
+ */
+function getPerformanceTier(executionTime: number, path?: string): string {
+  // Define endpoint-specific performance thresholds
+  const thresholds = getEndpointThresholds(path);
+  
+  if (executionTime < thresholds.excellent) return 'excellent';
+  if (executionTime < thresholds.good) return 'good';
+  if (executionTime < thresholds.acceptable) return 'acceptable';
+  if (executionTime < thresholds.slow) return 'slow';
+  return 'critical';
+}
+
+/**
+ * Get endpoint-specific performance thresholds
+ */
+function getEndpointThresholds(path?: string): {
+  excellent: number;
+  good: number;
+  acceptable: number;
+  slow: number;
+} {
+  // Critical incident response endpoints have stricter thresholds
+  if (path?.includes('/runbooks') || path?.includes('/escalation')) {
+    return {
+      excellent: 150,  // 150ms for critical operations
+      good: 300,      // 300ms
+      acceptable: 500, // 500ms
+      slow: 1000      // 1000ms
+    };
+  }
+  
+  // Search endpoints
+  if (path?.includes('/search')) {
+    return {
+      excellent: 200,
+      good: 500,
+      acceptable: 1000,
+      slow: 2000
+    };
+  }
+  
+  // Decision tree and procedure endpoints
+  if (path?.includes('/decision-tree') || path?.includes('/procedures')) {
+    return {
+      excellent: 250,
+      good: 600,
+      acceptable: 1200,
+      slow: 2500
+    };
+  }
+  
+  // Administrative endpoints (sources, health, performance)
+  if (path?.includes('/sources') || path?.includes('/health') || path?.includes('/performance')) {
+    return {
+      excellent: 100,
+      good: 250,
+      acceptable: 500,
+      slow: 1000
+    };
+  }
+  
+  // Default thresholds
+  return {
+    excellent: 200,
+    good: 500,
+    acceptable: 1000,
+    slow: 2000
+  };
+}
+
+/**
+ * Identify optimization opportunities based on performance metrics with endpoint-specific analysis
+ */
+function identifyOptimizationOpportunities(
+  executionTime: number,
+  responseSize: number,
+  requestMetrics: any
+): string[] {
+  const opportunities = [];
+  const path = requestMetrics.path;
+  const method = requestMetrics.method;
+  
+  // General performance optimizations
+  if (executionTime > 1000) {
+    opportunities.push('enable_caching');
+  }
+  
+  if (responseSize > 50000) {
+    opportunities.push('implement_compression');
+    if (responseSize > 100000) {
+      opportunities.push('consider_pagination');
+    }
+  }
+  
+  // Endpoint-specific optimizations
+  if (path.includes('/runbooks')) {
+    if (executionTime > 300) {
+      opportunities.push('critical_endpoint_slow_response');
+      opportunities.push('implement_runbook_indexing');
+    }
+    if (responseSize > 20000) {
+      opportunities.push('optimize_runbook_payload_size');
+    }
+  }
+  
+  if (path.includes('/search')) {
+    if (executionTime > 500) {
+      opportunities.push('implement_search_indexing');
+      opportunities.push('optimize_search_algorithm');
+    }
+    if (requestMetrics.queryComplexity?.score > 0.7) {
+      opportunities.push('optimize_query_complexity');
+      opportunities.push('implement_query_preprocessing');
+    }
+  }
+  
+  if (path.includes('/escalation')) {
+    if (executionTime > 200) {
+      opportunities.push('critical_escalation_path_slow');
+      opportunities.push('cache_escalation_contacts');
+    }
+  }
+  
+  if (path.includes('/decision-tree')) {
+    if (executionTime > 400) {
+      opportunities.push('optimize_decision_logic');
+      opportunities.push('precompute_decision_paths');
+    }
+  }
+  
+  // Request size optimizations
+  if (requestMetrics.contentLength > 10000) {
+    opportunities.push('validate_request_size');
+    if (requestMetrics.contentLength > 50000) {
+      opportunities.push('implement_request_streaming');
+    }
+  }
+  
+  // Method-specific optimizations
+  if (method === 'POST' && executionTime > 800) {
+    opportunities.push('optimize_post_processing');
+  }
+  
+  if (method === 'GET' && executionTime > 300) {
+    opportunities.push('implement_get_caching');
+  }
+  
+  // User agent specific optimizations
+  if (requestMetrics.userAgent && requestMetrics.userAgent.includes('Mobile')) {
+    if (responseSize > 25000) {
+      opportunities.push('optimize_mobile_payload');
+    }
+    if (executionTime > 800) {
+      opportunities.push('implement_mobile_specific_caching');
+    }
+  }
+  
+  // Concurrent request optimization
+  if (requestMetrics.queryComplexity?.factors?.includes('multiple_query_params')) {
+    opportunities.push('batch_parameter_processing');
+  }
+  
+  return opportunities;
+}
+
+/**
+ * Calculate optimization score (0-100)
+ */
+function calculateOptimizationScore(performanceData: any): number {
+  let score = 100;
+  
+  // Deduct points for slow response times
+  if (performanceData.execution_time_ms > 200) {
+    score -= Math.min(30, (performanceData.execution_time_ms - 200) / 50);
+  }
+  
+  // Deduct points for large responses without compression
+  if (performanceData.response_size_bytes > 10000 && !performanceData.acceptsCompression) {
+    score -= 20;
+  }
+  
+  // Deduct points for complex queries without optimization
+  if (performanceData.queryComplexity?.score > 0.7) {
+    score -= 15;
+  }
+  
+  // Bonus points for good practices
+  if (performanceData.execution_time_ms < 200) {
+    score += 5;
+  }
+  
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 /**

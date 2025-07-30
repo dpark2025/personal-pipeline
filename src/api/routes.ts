@@ -25,6 +25,327 @@ export interface APIRouteOptions {
   cacheService?: CacheService | undefined;
 }
 
+// ============================================================================
+// Advanced Error Handling
+// ============================================================================
+
+interface ToolErrorDetails {
+  code: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  httpStatus: number;
+  recoveryActions: string[];
+  retryRecommended: boolean;
+  escalationRequired?: boolean;
+  businessImpact?: 'low' | 'medium' | 'high' | 'critical';
+}
+
+/**
+ * Handle tool-specific errors with intelligent classification and recovery suggestions
+ */
+function handleToolSpecificError(
+  error: any, 
+  toolName: string, 
+  context: { 
+    requestId?: string; 
+    executionTime?: number; 
+    [key: string]: any; 
+  }
+): ToolErrorDetails {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const isTimeoutError = errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT');
+  const isValidationError = errorMessage.includes('validation') || errorMessage.includes('required');
+  // const isNetworkError = errorMessage.includes('network') || errorMessage.includes('connection');
+  // const isSourceError = errorMessage.includes('source') || errorMessage.includes('adapter');
+  
+  // Base error details
+  let errorDetails: ToolErrorDetails = {
+    code: 'UNKNOWN_ERROR',
+    message: 'An unexpected error occurred',
+    severity: 'medium',
+    httpStatus: 500,
+    recoveryActions: ['Retry the request', 'Contact support if problem persists'],
+    retryRecommended: true
+  };
+
+  // Tool-specific error handling
+  switch (toolName) {
+    case 'search_knowledge_base':
+      errorDetails = handleSearchKnowledgeBaseError(error, errorMessage, context);
+      break;
+    case 'search_runbooks':
+      errorDetails = handleSearchRunbooksError(error, errorMessage, context);
+      break;
+    case 'get_escalation_path':
+      errorDetails = handleEscalationPathError(error, errorMessage, context);
+      break;
+    case 'get_decision_tree':
+      errorDetails = handleDecisionTreeError(error, errorMessage, context);
+      break;
+    case 'get_procedure':
+      errorDetails = handleProcedureError(error, errorMessage, context);
+      break;
+    default:
+      // Generic error handling with context-aware improvements
+      if (isValidationError) {
+        errorDetails = {
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed',
+          severity: 'low',
+          httpStatus: 400,
+          recoveryActions: ['Check request format and required fields', 'Verify data types'],
+          retryRecommended: false
+        };
+      } else if (isTimeoutError) {
+        errorDetails = {
+          code: 'TIMEOUT_ERROR',
+          message: 'Request timed out',
+          severity: 'medium',
+          httpStatus: 504,
+          recoveryActions: ['Retry with simplified parameters', 'Check system load'],
+          retryRecommended: true
+        };
+      }
+      break;
+  }
+
+  // Add execution time context if available
+  if (context.executionTime && context.executionTime > 10000) {
+    errorDetails.recoveryActions.unshift('Consider simplifying the request for better performance');
+  }
+
+  return errorDetails;
+}
+
+/**
+ * Handle search knowledge base specific errors
+ */
+function handleSearchKnowledgeBaseError(
+  _error: any, 
+  errorMessage: string, 
+  _context: any
+): ToolErrorDetails {
+  if (errorMessage.includes('Query must be at least')) {
+    return {
+      code: 'INVALID_QUERY',
+      message: 'Search query is too short or invalid',
+      severity: 'low',
+      httpStatus: 400,
+      recoveryActions: [
+        'Provide a query with at least 2 meaningful characters',
+        'Remove special characters if present',
+        'Use descriptive search terms'
+      ],
+      retryRecommended: false
+    };
+  }
+
+  if (errorMessage.includes('Query too long')) {
+    return {
+      code: 'QUERY_TOO_LONG',
+      message: 'Search query exceeds maximum length',
+      severity: 'low',
+      httpStatus: 400,
+      recoveryActions: [
+        'Shorten the search query to under 500 characters',
+        'Focus on key terms',
+        'Remove unnecessary words'
+      ],
+      retryRecommended: false
+    };
+  }
+
+  if (errorMessage.includes('No results found') || errorMessage.includes('empty')) {
+    return {
+      code: 'NO_RESULTS',
+      message: 'No matching documents found',
+      severity: 'low',
+      httpStatus: 404,
+      recoveryActions: [
+        'Try broader search terms',
+        'Check spelling and terminology',
+        'Remove category filters if applied'
+      ],
+      retryRecommended: false
+    };
+  }
+
+  // Default knowledge base error
+  return {
+    code: 'KNOWLEDGE_BASE_ERROR',
+    message: 'Knowledge base search failed',
+    severity: 'medium',
+    httpStatus: 500,
+    recoveryActions: [
+      'Retry with simpler search terms',
+      'Check if knowledge base sources are available',
+      'Try searching in specific categories'
+    ],
+    retryRecommended: true
+  };
+}
+
+/**
+ * Handle search runbooks specific errors - critical for incident response
+ */
+function handleSearchRunbooksError(
+  _error: any, 
+  errorMessage: string, 
+  context: any
+): ToolErrorDetails {
+  const severity = context.severity || 'unknown';
+  const isCriticalIncident = severity === 'critical';
+  
+  if (errorMessage.includes('Missing required fields')) {
+    return {
+      code: 'MISSING_RUNBOOK_FIELDS',
+      message: 'Required runbook search parameters missing',
+      severity: 'medium',
+      httpStatus: 400,
+      recoveryActions: [
+        'Provide alert_type, severity, and affected_systems',
+        'Ensure severity is one of: critical, high, medium, low, info',
+        'Verify affected_systems is a non-empty array'
+      ],
+      retryRecommended: false,
+      businessImpact: isCriticalIncident ? 'high' : 'medium'
+    };
+  }
+
+  if (errorMessage.includes('No runbooks found')) {
+    return {
+      code: 'NO_RUNBOOKS_FOUND',
+      message: 'No matching runbooks available for this scenario',
+      severity: isCriticalIncident ? 'high' : 'medium',
+      httpStatus: 404,
+      recoveryActions: [
+        'Try with broader affected systems',
+        'Check if alert_type is spelled correctly',
+        'Use general escalation procedures',
+        'Contact on-call engineer if critical'
+      ],
+      retryRecommended: false,
+      escalationRequired: isCriticalIncident,
+      businessImpact: isCriticalIncident ? 'critical' : 'medium'
+    };
+  }
+
+  if (errorMessage.includes('Invalid severity level')) {
+    return {
+      code: 'INVALID_SEVERITY',
+      message: 'Invalid severity level specified',
+      severity: 'low',
+      httpStatus: 400,
+      recoveryActions: [
+        'Use one of: critical, high, medium, low, info',
+        'Check severity spelling and capitalization'
+      ],
+      retryRecommended: false
+    };
+  }
+
+  // Default runbook error - always high severity due to incident response nature
+  return {
+    code: 'RUNBOOK_SEARCH_FAILED',
+    message: 'Runbook search operation failed',
+    severity: isCriticalIncident ? 'critical' : 'high',
+    httpStatus: 500,
+    recoveryActions: [
+      'Retry the search immediately',
+      'Check runbook source availability',
+      'Use manual escalation procedures',
+      'Contact incident commander if critical'
+    ],
+    retryRecommended: true,
+    escalationRequired: isCriticalIncident,
+    businessImpact: isCriticalIncident ? 'critical' : 'high'
+  };
+}
+
+/**
+ * Handle escalation path specific errors - critical for incident management
+ */
+function handleEscalationPathError(
+  _error: any, 
+  _errorMessage: string, 
+  _context: any
+): ToolErrorDetails {
+  return {
+    code: 'ESCALATION_PATH_ERROR',
+    message: 'Failed to retrieve escalation procedures',
+    severity: 'critical', // Always critical - escalation is essential
+    httpStatus: 500,
+    recoveryActions: [
+      'Use default escalation contacts immediately',
+      'Contact on-call manager directly',
+      'Follow emergency escalation procedures',
+      'Document the escalation path failure'
+    ],
+    retryRecommended: true,
+    escalationRequired: true,
+    businessImpact: 'high'
+  };
+}
+
+/**
+ * Handle decision tree specific errors
+ */
+function handleDecisionTreeError(
+  _error: any, 
+  _errorMessage: string, 
+  _context: any
+): ToolErrorDetails {
+  return {
+    code: 'DECISION_TREE_ERROR',
+    message: 'Failed to retrieve decision logic',
+    severity: 'medium',
+    httpStatus: 500,
+    recoveryActions: [
+      'Retry with simplified alert context',
+      'Use manual decision making process',
+      'Consult team lead for guidance'
+    ],
+    retryRecommended: true
+  };
+}
+
+/**
+ * Handle procedure specific errors
+ */
+function handleProcedureError(
+  _error: any, 
+  errorMessage: string, 
+  _context: any
+): ToolErrorDetails {
+  if (errorMessage.includes('not found') || errorMessage.includes('invalid')) {
+    return {
+      code: 'PROCEDURE_NOT_FOUND',
+      message: 'Requested procedure not found',
+      severity: 'medium',
+      httpStatus: 404,
+      recoveryActions: [
+        'Check procedure ID format (runbook_id_step_name)',
+        'Verify the runbook exists',
+        'Use related procedures if available'
+      ],
+      retryRecommended: false
+    };
+  }
+
+  return {
+    code: 'PROCEDURE_ERROR',
+    message: 'Failed to retrieve procedure details',
+    severity: 'medium',
+    httpStatus: 500,
+    recoveryActions: [
+      'Retry the procedure lookup',
+      'Check runbook source availability',
+      'Use manual procedure execution'
+    ],
+    retryRecommended: true
+  };
+}
+
 /**
  * Create and configure all REST API routes
  */
@@ -60,20 +381,82 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
       const startTime = performance.now();
       
       try {
-        // Transform REST request to MCP format
-        const mcpRequest = transformRestRequest('search_knowledge_base', req.body);
-        
-        // Call MCP tool
-        const mcpResult = await mcpTools.handleToolCall({
-          method: 'tools/call',
-          params: {
-            name: 'search_knowledge_base',
-            arguments: mcpRequest
-          }
+        // Transform REST request to MCP format with enhanced context
+        const requestId = req.headers['x-request-id'] as string;
+        const userAgent = req.get('User-Agent');
+        const mcpRequest = transformRestRequest('search_knowledge_base', req.body, {
+          ...(requestId && { requestId }),
+          ...(userAgent && { userAgent }),
+          cacheHint: req.query.cache !== 'false',
+          endpoint: req.path
         });
+        
+        // Intelligent caching check
+        const cacheKey = cacheService ? 
+          `kb_search:${JSON.stringify(mcpRequest).substring(0, 100)}` : null;
+        
+        let cachedResult = null;
+        if (cacheService && cacheKey) {
+          try {
+            cachedResult = await cacheService.get(cacheKey as any);
+            if (cachedResult) {
+              logger.info('Cache hit for knowledge base search', {
+                requestId: req.headers['x-request-id'],
+                cacheKey: cacheKey.substring(0, 50)
+              });
+            }
+          } catch (cacheError) {
+            logger.warn('Cache lookup failed, proceeding without cache', {
+              error: cacheError instanceof Error ? cacheError.message : String(cacheError)
+            });
+          }
+        }
 
-        // Transform MCP response to REST format
-        const restResponse = transformMCPResponse(mcpResult);
+        let restResponse;
+        if (cachedResult) {
+          restResponse = {
+            ...cachedResult,
+            metadata: {
+              ...cachedResult.metadata,
+              cached: true,
+              cache_hit_time: new Date().toISOString()
+            }
+          };
+        } else {
+          // Call MCP tool
+          const mcpResult = await mcpTools.handleToolCall({
+            method: 'tools/call',
+            params: {
+              name: 'search_knowledge_base',
+              arguments: mcpRequest
+            }
+          });
+
+          // Transform MCP response to REST format with enhanced context
+          const requestId = req.headers['x-request-id'] as string;
+          const context = {
+            toolName: 'search_knowledge_base',
+            ...(requestId && { requestId }),
+            startTime
+          };
+          restResponse = transformMCPResponse(mcpResult, context);
+
+          // Cache successful responses
+          if (cacheService && cacheKey && restResponse.success && restResponse.data) {
+            try {
+              await cacheService.set(cacheKey as any, restResponse);
+              logger.debug('Cached knowledge base search result', {
+                cacheKey: cacheKey.substring(0, 50),
+                strategy: restResponse.metadata?.cache_strategy
+              });
+            } catch (cacheError) {
+              logger.warn('Failed to cache result', {
+                error: cacheError instanceof Error ? cacheError.message : String(cacheError)
+              });
+            }
+          }
+        }
+        
         const executionTime = performance.now() - startTime;
 
         logger.info('REST API search completed', {
@@ -89,16 +472,31 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
 
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        logger.error('REST API search failed', {
+        const requestId = req.headers['x-request-id'] as string;
+        const errorDetails = handleToolSpecificError(error, 'search_knowledge_base', {
           query: req.body.query,
-          error: error instanceof Error ? error.message : String(error),
-          execution_time_ms: Math.round(executionTime)
+          requestId,
+          executionTime
+        });
+        
+        logger.error('REST API search failed', {
+          query: req.body.query?.substring(0, 100),
+          error: errorDetails.message,
+          error_code: errorDetails.code,
+          severity: errorDetails.severity,
+          execution_time_ms: Math.round(executionTime),
+          request_id: requestId
         });
 
-        res.status(500).json(createErrorResponse(
-          'SEARCH_FAILED',
-          'Search operation failed',
-          { execution_time_ms: Math.round(executionTime) }
+        res.status(errorDetails.httpStatus).json(createErrorResponse(
+          errorDetails.code,
+          errorDetails.message,
+          { 
+            execution_time_ms: Math.round(executionTime),
+            request_id: requestId,
+            recovery_actions: errorDetails.recoveryActions,
+            retry_recommended: errorDetails.retryRecommended
+          }
         ));
       }
     })
@@ -139,20 +537,87 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
       const startTime = performance.now();
       
       try {
-        // Transform REST request to MCP format
-        const mcpRequest = transformRestRequest('search_runbooks', req.body);
-        
-        // Call MCP tool
-        const mcpResult = await mcpTools.handleToolCall({
-          method: 'tools/call',
-          params: {
-            name: 'search_runbooks',
-            arguments: mcpRequest
-          }
+        // Transform REST request to MCP format with enhanced context for critical runbook operations
+        const requestId = req.headers['x-request-id'] as string;
+        const userAgent = req.get('User-Agent');
+        const mcpRequest = transformRestRequest('search_runbooks', req.body, {
+          ...(requestId && { requestId }),
+          ...(userAgent && { userAgent }),
+          cacheHint: true, // Always prefer cache for runbooks due to criticality
+          endpoint: req.path
         });
+        
+        // High-priority caching for runbooks (critical for incident response)
+        const cacheKey = cacheService ? 
+          `runbooks:${req.body.alert_type}:${req.body.severity}:${JSON.stringify(req.body.affected_systems)}` : null;
+        
+        let cachedResult = null;
+        if (cacheService && cacheKey) {
+          try {
+            cachedResult = await cacheService.get(cacheKey as any);
+            if (cachedResult) {
+              logger.info('High-priority cache hit for runbook search', {
+                alertType: req.body.alert_type,
+                severity: req.body.severity,
+                requestId: req.headers['x-request-id']
+              });
+            }
+          } catch (cacheError) {
+            logger.error('Critical cache lookup failed for runbooks', {
+              error: cacheError instanceof Error ? cacheError.message : String(cacheError),
+              alertType: req.body.alert_type,
+              severity: req.body.severity
+            });
+          }
+        }
 
-        // Transform MCP response to REST format
-        const restResponse = transformMCPResponse(mcpResult);
+        let restResponse;
+        if (cachedResult) {
+          restResponse = {
+            ...cachedResult,
+            metadata: {
+              ...cachedResult.metadata,
+              cached: true,
+              cache_priority: 'critical',
+              cache_hit_time: new Date().toISOString()
+            }
+          };
+        } else {
+          // Call MCP tool with performance monitoring
+          const mcpResult = await mcpTools.handleToolCall({
+            method: 'tools/call',
+            params: {
+              name: 'search_runbooks',
+              arguments: mcpRequest
+            }
+          });
+
+          // Transform MCP response to REST format
+          const requestId = req.headers['x-request-id'] as string;
+          const context = {
+            toolName: 'search_runbooks',
+            ...(requestId && { requestId }),
+            startTime
+          };
+          restResponse = transformMCPResponse(mcpResult, context);
+
+          // Aggressive caching for runbooks (extend TTL based on severity)
+          if (cacheService && cacheKey && restResponse.success && restResponse.data) {
+            try {
+              await cacheService.set(cacheKey as any, restResponse);
+              logger.info('Cached runbook search result with high priority', {
+                alertType: req.body.alert_type,
+                severity: req.body.severity,
+                resultsCount: restResponse.data?.runbooks?.length || 0
+              });
+            } catch (cacheError) {
+              logger.error('Failed to cache critical runbook result', {
+                error: cacheError instanceof Error ? cacheError.message : String(cacheError)
+              });
+            }
+          }
+        }
+        
         const executionTime = performance.now() - startTime;
 
         logger.info('REST API runbook search completed', {
@@ -168,16 +633,40 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
 
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        logger.error('REST API runbook search failed', {
+        const requestId = req.headers['x-request-id'] as string;
+        const errorDetails = handleToolSpecificError(error, 'search_runbooks', {
+          alertType: req.body.alert_type,
+          severity: req.body.severity,
+          affectedSystems: req.body.affected_systems,
+          requestId,
+          executionTime
+        });
+        
+        // Critical error handling for runbook searches - these are high-priority
+        logger.error('REST API runbook search failed - HIGH PRIORITY', {
           alert_type: req.body.alert_type,
-          error: error instanceof Error ? error.message : String(error),
-          execution_time_ms: Math.round(executionTime)
+          severity: req.body.severity,
+          affected_systems: req.body.affected_systems,
+          error: errorDetails.message,
+          error_code: errorDetails.code,
+          error_severity: errorDetails.severity,
+          execution_time_ms: Math.round(executionTime),
+          request_id: requestId,
+          business_impact: errorDetails.businessImpact
         });
 
-        res.status(500).json(createErrorResponse(
-          'RUNBOOK_SEARCH_FAILED',
-          'Runbook search operation failed',
-          { execution_time_ms: Math.round(executionTime) }
+        // Use appropriate HTTP status based on error type
+        res.status(errorDetails.httpStatus).json(createErrorResponse(
+          errorDetails.code,
+          errorDetails.message,
+          { 
+            execution_time_ms: Math.round(executionTime),
+            request_id: requestId,
+            recovery_actions: errorDetails.recoveryActions,
+            retry_recommended: errorDetails.retryRecommended,
+            escalation_required: errorDetails.escalationRequired,
+            business_impact: errorDetails.businessImpact
+          }
         ));
       }
     })
