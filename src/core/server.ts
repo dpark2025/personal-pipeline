@@ -28,6 +28,13 @@ import { performance } from 'perf_hooks';
 import { initializePerformanceMonitor, getPerformanceMonitor } from '../utils/performance.js';
 import { initializeMonitoringService, getMonitoringService, defaultMonitoringConfig } from '../utils/monitoring.js';
 import { CircuitBreakerFactory } from '../utils/circuit-breaker.js';
+import { createAPIRoutes } from '../api/routes.js';
+import { 
+  securityHeaders, 
+  performanceMonitoring, 
+  requestSizeLimiter, 
+  globalErrorHandler 
+} from '../api/middleware.js';
 
 export class PersonalPipelineServer {
   private mcpServer: Server;
@@ -95,6 +102,9 @@ export class PersonalPipelineServer {
 
       // Initialize source adapters
       await this.initializeSourceAdapters();
+
+      // Setup REST API routes (after all components are initialized)
+      this.setupAPIRoutes();
 
       // Start Express server for health checks
       await this.startExpressServer();
@@ -203,16 +213,21 @@ export class PersonalPipelineServer {
   }
 
   /**
-   * Setup Express server for health checks and metrics
+   * Setup Express server for health checks, metrics, and REST API
    */
   private setupExpress(): void {
     // Security middleware
     this.expressApp.use(helmet());
     this.expressApp.use(cors());
+    this.expressApp.use(securityHeaders());
 
-    // Request parsing
+    // Request parsing with size limits
     this.expressApp.use(express.json({ limit: '10mb' }));
     this.expressApp.use(express.urlencoded({ extended: true }));
+    this.expressApp.use(requestSizeLimiter(10)); // 10MB limit
+
+    // Performance monitoring middleware
+    this.expressApp.use(performanceMonitoring());
 
     // Request logging
     if (process.env.NODE_ENV !== 'test') {
@@ -693,15 +708,6 @@ export class PersonalPipelineServer {
       }
     });
 
-    // 404 handler
-    this.expressApp.use('*', (_req, res) => {
-      res.status(404).json({
-        error: 'Not Found',
-        message: 'The requested endpoint does not exist',
-        timestamp: new Date().toISOString(),
-      });
-    });
-
     // Error handler
     this.expressApp.use(
       (error: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -719,6 +725,70 @@ export class PersonalPipelineServer {
         });
       }
     );
+  }
+
+  /**
+   * Setup REST API routes
+   * This method is called after all components (MCP tools, source registry, cache) are initialized
+   */
+  private setupAPIRoutes(): void {
+    if (!this.mcpTools) {
+      logger.error('Cannot setup API routes: MCP tools not initialized');
+      throw new Error('MCP tools must be initialized before setting up API routes');
+    }
+
+    try {
+      // Create API routes with all required dependencies
+      const apiRoutes = createAPIRoutes({
+        mcpTools: this.mcpTools,
+        sourceRegistry: this.sourceRegistry,
+        ...(this.cacheService && { cacheService: this.cacheService })
+      });
+
+      // Mount API routes at /api prefix
+      this.expressApp.use('/api', apiRoutes);
+
+      logger.info('REST API routes initialized successfully', {
+        prefix: '/api',
+        total_routes: this.countRoutes(apiRoutes),
+        components: {
+          mcp_tools: !!this.mcpTools,
+          source_registry: !!this.sourceRegistry,
+          cache_service: !!this.cacheService
+        }
+      });
+
+      // Add 404 handler for unmatched routes (must be after all other routes)
+      this.expressApp.use('*', (_req, res) => {
+        res.status(404).json({
+          error: 'Not Found',
+          message: 'The requested endpoint does not exist',
+          timestamp: new Date().toISOString(),
+        });
+      });
+
+      // Global error handler for API (must be last)
+      this.expressApp.use(globalErrorHandler());
+
+    } catch (error) {
+      logger.error('Failed to setup API routes', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Count the number of routes in a router (for logging purposes)
+   */
+  private countRoutes(router: any): number {
+    try {
+      // Access the internal router stack to count routes
+      return router.stack ? router.stack.length : 0;
+    } catch (error) {
+      // If we can't count routes, that's fine - just return 0
+      return 0;
+    }
   }
 
   /**

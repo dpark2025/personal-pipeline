@@ -152,3 +152,4 @@ docs/build/
 # Test outputs
 test-results/
 playwright-report/
+validation-report.json
