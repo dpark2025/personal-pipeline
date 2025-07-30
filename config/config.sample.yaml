@@ -37,38 +37,54 @@ sources:
     enabled: true
     timeout_ms: 5000
     max_retries: 1
+# Caching Configuration
+# Personal Pipeline supports flexible caching strategies with automatic fallback
 cache:
-  enabled: true
-  strategy: hybrid
+  enabled: true                    # Enable/disable caching entirely
+  strategy: hybrid                 # Options: hybrid, memory_only
+                                  # - hybrid: Memory + Redis (recommended)
+                                  # - memory_only: Memory cache only
+  
+  # In-Memory Cache Settings (always enabled)
   memory:
-    max_keys: 1000
-    ttl_seconds: 3600
-    check_period_seconds: 600
+    max_keys: 1000                 # Maximum number of cached items
+    ttl_seconds: 3600              # Default TTL (1 hour)
+    check_period_seconds: 600      # Cleanup interval (10 minutes)
+  
+  # Redis Cache Settings (optional external dependency)
+  # System automatically falls back to memory-only if Redis unavailable
   redis:
-    enabled: true
-    url: redis://localhost:6379
-    ttl_seconds: 7200
-    key_prefix: 'pp:cache:'
-    connection_timeout_ms: 5000
-    retry_attempts: 3
-    retry_delay_ms: 2000       # Start with 2 second delay
-    # Exponential backoff settings - improved for production
-    max_retry_delay_ms: 120000  # Max 2 minutes between retries (increased from 30s)
-    backoff_multiplier: 2.5     # Slower exponential backoff (increased from 2)
-    connection_retry_limit: 5   # Max connection attempts before circuit breaker
+    enabled: true                  # Enable Redis caching (auto-detected)
+    url: redis://localhost:6379    # Redis connection URL
+                                  # Supports: redis://host:port, rediss://host:port (SSL)
+                                  # With auth: redis://user:pass@host:port
+    ttl_seconds: 7200              # Redis TTL (2 hours, longer than memory)
+    key_prefix: 'pp:cache:'        # Namespace for Personal Pipeline keys
+    
+    # Connection Management
+    connection_timeout_ms: 5000    # Initial connection timeout
+    retry_attempts: 3              # Number of retry attempts
+    retry_delay_ms: 2000           # Start with 2 second delay
+    
+    # Exponential backoff settings for production resilience
+    max_retry_delay_ms: 120000     # Max 2 minutes between retries
+    backoff_multiplier: 2.5        # Exponential backoff factor
+    connection_retry_limit: 5      # Max attempts before circuit breaker activation
+  # Content-Specific Cache Settings
+  # Different content types can have different TTL and warmup strategies
   content_types:
-    runbooks:
-      ttl_seconds: 3600
-      warmup: true
-    procedures:
-      ttl_seconds: 1800
-      warmup: false
-    decision_trees:
-      ttl_seconds: 2400
-      warmup: true
-    knowledge_base:
-      ttl_seconds: 900
-      warmup: false
+    runbooks:                      # Critical operational runbooks
+      ttl_seconds: 3600            # Cache for 1 hour (frequently accessed)
+      warmup: true                 # Pre-load into cache on startup
+    procedures:                    # Step-by-step procedures
+      ttl_seconds: 1800            # Cache for 30 minutes (moderate access)
+      warmup: false                # Load on-demand
+    decision_trees:                # Decision logic trees
+      ttl_seconds: 2400            # Cache for 40 minutes (important but stable)
+      warmup: true                 # Pre-load for faster incident response
+    knowledge_base:                # General knowledge articles
+      ttl_seconds: 900             # Cache for 15 minutes (less critical)
+      warmup: false                # Load on-demand to save memory
 embedding:
   enabled: true
   model: sentence-transformers/all-MiniLM-L6-v2

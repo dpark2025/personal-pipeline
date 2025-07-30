@@ -26,6 +26,26 @@ This MCP server transforms scattered operational knowledge into structured, acti
 - **Load Testing & Validation** - Stress testing with automated performance validation
 - **Observability** - Rich metrics, structured logging, and monitoring dashboards
 
+## Prerequisites
+
+### Required Dependencies
+- **Node.js** >= 18.0.0
+- **npm** >= 8.0.0
+
+### Optional Dependencies (Recommended for Production)
+- **Redis** >= 6.0.0 - Persistent caching layer for enhanced performance
+  - **Without Redis**: System works in memory-only mode with automatic fallback
+  - **With Redis**: Provides persistent caching across restarts, improved performance, and better resource utilization
+  - **Installation Guide**: See [Redis Setup Documentation](docs/REDIS-SETUP.md) for detailed installation instructions
+
+### Performance Impact
+| Mode | Cache Persistence | Startup Time | Memory Usage | Production Ready |
+|------|------------------|--------------|--------------|------------------|
+| Memory-Only | ❌ No | Fast | Higher | ✅ Yes |
+| Hybrid (Redis) | ✅ Yes | Medium | Lower | ✅ Recommended |
+
+**Note**: The system automatically detects Redis availability and gracefully falls back to memory-only mode if Redis is unavailable. No configuration changes required.
+
 ## Quick Start
 
 ### Demo Environment (Recommended)
@@ -186,6 +206,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: See the [docs/](docs/) directory for detailed guides
   - [Development Guide](docs/DEVELOPMENT.md) - Complete development setup and workflows
+  - [Redis Setup Guide](docs/REDIS-SETUP.md) - Comprehensive Redis installation and configuration
+  - [Caching Strategies](docs/CACHING-STRATEGIES.md) - Caching configuration and performance optimization
   - [Development Tools Guide](docs/DEVELOPMENT-TOOLS-GUIDE.md) - Using the new Milestone 1.2 development utilities
   - [API Documentation](docs/API.md) - MCP tools and HTTP endpoints
   - [Architecture](docs/ARCHITECTURE.md) - System design and components

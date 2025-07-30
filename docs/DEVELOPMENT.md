@@ -2,10 +2,47 @@
 
 ## Prerequisites
 
+### Required Dependencies
 - **Node.js**: >= 18.0.0
 - **npm**: >= 8.0.0  
 - **TypeScript**: >= 5.3.3 (installed via devDependencies)
 - **Git**: For version control
+
+### External Dependencies (Optional)
+
+#### Redis (Recommended for Enhanced Performance)
+- **Version**: >= 6.0.0
+- **Purpose**: Persistent caching layer for improved performance and memory efficiency
+- **Status**: Optional - system automatically falls back to memory-only mode if unavailable
+- **Installation**: See [Redis Setup Guide](REDIS-SETUP.md) for detailed instructions
+
+**Performance Impact**:
+- **With Redis**: Persistent cache across restarts, lower memory usage, shared cache for multiple instances
+- **Without Redis**: Memory-only caching, higher memory usage, cold cache on restart
+- **Both modes**: Fully supported for development and production
+
+**Quick Redis Setup**:
+```bash
+# macOS (Homebrew)
+brew install redis && brew services start redis
+
+# Ubuntu/Debian
+sudo apt install redis-server && sudo systemctl start redis-server
+
+# Docker
+docker run -d --name redis-pp -p 6379:6379 redis:7-alpine
+
+# Verify installation
+redis-cli ping  # Expected: PONG
+```
+
+**Development without Redis**:
+```bash
+# The system works perfectly without Redis
+npm install
+npm run dev
+# System automatically uses memory-only caching
+```
 
 ## Quick Setup
 
@@ -770,6 +807,50 @@ MAX_CONCURRENT_REQUESTS=100
    # Test with mock mode (no server required)
    npm run test-mcp -- --validate
    ```
+
+### Redis and Caching Issues
+
+4. **Redis connection failures**
+   ```bash
+   # Check if Redis is running
+   redis-cli ping
+   # Expected: PONG
+   
+   # Check cache health
+   npm run health:cache
+   
+   # Check system logs for Redis warnings
+   tail -f logs/app.log | grep -i redis
+   ```
+
+5. **Cache performance issues**
+   ```bash
+   # Monitor cache hit rates
+   npm run performance:monitor
+   
+   # Check cache statistics
+   curl http://localhost:3000/health/cache | jq '.cache.stats'
+   
+   # Clear cache if needed
+   curl -X DELETE http://localhost:3000/cache/all
+   ```
+
+6. **Memory-only fallback behavior**
+   ```bash
+   # System automatically falls back to memory-only when Redis unavailable
+   # Check fallback status
+   npm run health:cache | jq '.cache.redis_connected'
+   
+   # Force memory-only mode for testing
+   # Set in config/config.yaml:
+   # redis:
+   #   enabled: false
+   ```
+
+**Redis Setup Resources**:
+- **Installation Guide**: [Redis Setup Documentation](REDIS-SETUP.md)
+- **Configuration Guide**: [Caching Strategies Documentation](CACHING-STRATEGIES.md)
+- **Performance Tuning**: See caching documentation for optimization tips
 
 ### Getting Help
 
