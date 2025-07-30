@@ -48,6 +48,40 @@ sources:
   #   timeout_ms: 15000
   #   max_retries: 2
 
+# Cache configuration for improved performance
+cache:
+  enabled: true
+  strategy: hybrid  # hybrid, memory_only, redis_only
+  memory:
+    max_keys: 1000
+    ttl_seconds: 3600
+    check_period_seconds: 600
+  redis:
+    enabled: true
+    url: redis://localhost:6379
+    ttl_seconds: 7200
+    key_prefix: 'pp:cache:'
+    connection_timeout_ms: 5000
+    retry_attempts: 3
+    retry_delay_ms: 2000       # Start with 2 second delay
+    # Exponential backoff settings - improved for production
+    max_retry_delay_ms: 120000  # Max 2 minutes between retries (increased from 30s)
+    backoff_multiplier: 2.5     # Slower exponential backoff (increased from 2)
+    connection_retry_limit: 5   # Max connection attempts before circuit breaker
+  content_types:
+    runbooks:
+      ttl_seconds: 3600
+      warmup: true
+    procedures:
+      ttl_seconds: 1800
+      warmup: false
+    decision_trees:
+      ttl_seconds: 2400
+      warmup: true
+    knowledge_base:
+      ttl_seconds: 900
+      warmup: false
+
 # Embedding configuration for semantic search
 embedding:
   enabled: true

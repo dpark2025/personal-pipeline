@@ -51,7 +51,11 @@ cache:
     key_prefix: 'pp:cache:'
     connection_timeout_ms: 5000
     retry_attempts: 3
-    retry_delay_ms: 1000
+    retry_delay_ms: 2000       # Start with 2 second delay
+    # Exponential backoff settings - improved for production
+    max_retry_delay_ms: 120000  # Max 2 minutes between retries (increased from 30s)
+    backoff_multiplier: 2.5     # Slower exponential backoff (increased from 2)
+    connection_retry_limit: 5   # Max connection attempts before circuit breaker
   content_types:
     runbooks:
       ttl_seconds: 3600
