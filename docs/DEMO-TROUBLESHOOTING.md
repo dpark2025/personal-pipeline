@@ -66,7 +66,7 @@ lsof -i :3000
 kill $(lsof -ti:3000)
 
 # Or use a different port
-npm run demo:setup -- --port 3001
+npm run demo:start -- --port 3001
 ```
 
 #### Issue: "Server process died during startup"
@@ -120,7 +120,7 @@ redis-server --port 6379 --daemonize yes
 redis-cli ping  # Should return PONG
 
 # Alternative: Use memory-only mode
-npm run demo:setup:memory-only
+npm run demo:start:memory-only
 ```
 
 #### Issue: "Redis connection refused"
@@ -144,7 +144,7 @@ redis-cli config get port
 redis-server --port 6379 --flushall --daemonize yes
 
 # Use alternative port if 6379 is occupied
-npm run demo:setup -- --redis-port 6380
+npm run demo:start -- --redis-port 6380
 ```
 
 ### 4. Sample Data Issues
@@ -197,7 +197,7 @@ grep -i error server-demo.log
 # Regenerate and restart
 npm run generate-sample-data
 npm run demo:stop
-npm run demo:setup
+npm run demo:start
 ```
 
 ### 5. Performance & Health Check Issues
@@ -303,7 +303,7 @@ curl http://localhost:3000/circuit-breakers | jq
 # (This would require server restart)
 npm run demo:stop
 sleep 5
-npm run demo:setup --no-benchmarks
+npm run demo:start --no-benchmarks
 
 # Check underlying service health
 curl http://localhost:3000/health/detailed | jq
@@ -451,7 +451,7 @@ npm --version
 #### Issue: "Redis not available on Windows"
 ```bash
 # Use memory-only mode
-npm run demo:setup:memory-only
+npm run demo:start:memory-only
 
 # Or install Redis on WSL
 sudo apt update
@@ -524,7 +524,7 @@ pkill -f "personal-pipeline\|pp-server\|redis-server\|health.*dashboard"
 rm -rf node_modules test-data config/demo-config.yaml
 rm -f *.log *.pid
 npm install
-npm run demo:setup
+npm run demo:start
 ```
 
 ## Contact & Support

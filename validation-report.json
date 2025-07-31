@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-07-31T14:26:08.685Z",
+  "timestamp": "2025-07-31T22:13:25.420Z",
   "summary": {
-    "totalTests": 8,
-    "passedTests": 7,
-    "failedTests": 1,
-    "warnings": 7,
-    "passRate": 87.5
+    "totalTests": 15,
+    "passedTests": 15,
+    "failedTests": 0,
+    "warnings": 3,
+    "passRate": 100
   },
   "targets": {
     "cachedResponseTime": 200,
@@ -25,119 +25,224 @@
       "passed": true,
       "message": "Server is healthy",
       "details": {
-        "responseTime": 20,
+        "responseTime": 22,
         "health": {
           "status": "healthy",
-          "timestamp": "2025-07-31T14:26:04.958Z",
+          "timestamp": "2025-07-31T22:13:21.881Z",
           "version": "0.1.0",
           "sources": [
             {
-              "source_name": "local-docs",
+              "source_name": "demo-docs",
               "healthy": true,
               "response_time_ms": 0,
-              "last_check": "2025-07-31T14:26:04.957Z",
+              "last_check": "2025-07-31T22:13:21.880Z",
               "metadata": {
-                "document_count": 24,
+                "document_count": 20,
                 "directory_exists": true,
-                "last_modified": "2025-07-31T03:46:06.639Z"
+                "last_modified": "2025-07-31T22:05:16.937Z"
+              }
+            },
+            {
+              "source_name": "demo-runbooks",
+              "healthy": true,
+              "response_time_ms": 0,
+              "last_check": "2025-07-31T22:13:21.880Z",
+              "metadata": {
+                "document_count": 32,
+                "directory_exists": true,
+                "last_modified": "2025-07-29T15:25:34.796Z"
+              }
+            },
+            {
+              "source_name": "demo-knowledge-base",
+              "healthy": true,
+              "response_time_ms": 0,
+              "last_check": "2025-07-31T22:13:21.880Z",
+              "metadata": {
+                "document_count": 60,
+                "directory_exists": true,
+                "last_modified": "2025-07-31T22:03:45.710Z"
               }
             }
           ],
           "cache": {
             "memory_cache": {
               "healthy": true,
-              "keys_count": 4,
+              "keys_count": 5,
               "memory_usage_mb": 0,
-              "response_time_ms": 1
+              "response_time_ms": 0
             },
             "overall_healthy": true,
             "redis_cache": {
               "healthy": true,
               "connected": true,
-              "response_time_ms": 0
+              "response_time_ms": 1
             }
           },
-          "uptime": 298.883744
+          "uptime": 144.790155334
         }
       },
-      "timestamp": "2025-07-31T14:26:04.961Z"
+      "timestamp": "2025-07-31T22:13:21.884Z"
     },
     {
       "name": "Health Check Response Time",
       "passed": true,
-      "message": "Health check responded in 20ms (target: <30000ms)",
+      "message": "Health check responded in 22ms (target: <30000ms)",
       "details": {
-        "responseTime": 20
+        "responseTime": 22
       },
-      "timestamp": "2025-07-31T14:26:04.961Z"
+      "timestamp": "2025-07-31T22:13:21.884Z"
     },
     {
       "name": "Cold Response Time",
       "passed": true,
-      "message": "Average cold response time: 0ms (target: ≤500ms)",
+      "message": "Average cold response time: 8ms (target: ≤500ms)",
       "details": {
-        "avgColdTime": 0,
+        "avgColdTime": 8,
         "target": 500
       },
-      "timestamp": "2025-07-31T14:26:07.533Z"
+      "timestamp": "2025-07-31T22:13:24.551Z"
     },
     {
       "name": "Cached Response Time",
       "passed": true,
-      "message": "Average cached response time: 0ms (target: ≤200ms)",
+      "message": "Average cached response time: 5ms (target: ≤200ms)",
       "details": {
-        "avgCachedTime": 0,
+        "avgCachedTime": 5,
         "target": 200
       },
-      "timestamp": "2025-07-31T14:26:07.533Z"
+      "timestamp": "2025-07-31T22:13:24.551Z"
     },
     {
-      "name": "Cache Statistics",
-      "passed": null,
-      "message": "Cache statistics not available or invalid format",
-      "details": {},
-      "warning": true,
-      "timestamp": "2025-07-31T14:26:07.535Z"
+      "name": "Cache Health",
+      "passed": true,
+      "message": "Cache overall health: healthy",
+      "details": {
+        "overallHealthy": true,
+        "memoryHealthy": true,
+        "redisHealthy": true
+      },
+      "timestamp": "2025-07-31T22:13:24.553Z"
     },
     {
-      "name": "server Health",
-      "passed": null,
-      "message": "No health data available for server",
-      "details": {},
-      "warning": true,
-      "timestamp": "2025-07-31T14:26:07.545Z"
+      "name": "Memory Cache Health",
+      "passed": true,
+      "message": "Memory cache healthy: true",
+      "details": {
+        "memoryCache": {
+          "healthy": true,
+          "keys_count": 39,
+          "memory_usage_mb": 0.01,
+          "response_time_ms": 0
+        },
+        "redisCache": {
+          "healthy": true,
+          "connected": true,
+          "response_time_ms": 0
+        }
+      },
+      "timestamp": "2025-07-31T22:13:24.553Z"
     },
     {
-      "name": "cache Health",
+      "name": "Cache Hit Rate",
       "passed": null,
-      "message": "No health data available for cache",
+      "message": "Hit rate statistics require performance endpoint - will be checked in performance metrics",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-31T14:26:07.545Z"
+      "timestamp": "2025-07-31T22:13:24.553Z"
     },
     {
-      "name": "sources Health",
-      "passed": null,
-      "message": "No health data available for sources",
-      "details": {},
-      "warning": true,
-      "timestamp": "2025-07-31T14:26:07.545Z"
+      "name": "Server Health",
+      "passed": true,
+      "message": "server health status: healthy",
+      "details": {
+        "status": "healthy",
+        "uptime_seconds": 147.463718667,
+        "version": "0.1.0"
+      },
+      "timestamp": "2025-07-31T22:13:24.560Z"
+    },
+    {
+      "name": "Cache Health",
+      "passed": true,
+      "message": "cache health status: healthy",
+      "details": {
+        "status": "healthy",
+        "memory_cache": {
+          "healthy": true,
+          "keys_count": 39,
+          "memory_usage_mb": 0.01,
+          "response_time_ms": 0
+        },
+        "redis_cache": {
+          "healthy": true,
+          "connected": true,
+          "response_time_ms": 0
+        }
+      },
+      "timestamp": "2025-07-31T22:13:24.560Z"
+    },
+    {
+      "name": "Sources Health",
+      "passed": true,
+      "message": "sources health status: healthy",
+      "details": {
+        "status": "healthy",
+        "total_sources": 3,
+        "healthy_sources": 3,
+        "sources": [
+          {
+            "source_name": "demo-docs",
+            "healthy": true,
+            "response_time_ms": 1,
+            "last_check": "2025-07-31T22:13:24.555Z",
+            "metadata": {
+              "document_count": 20,
+              "directory_exists": true,
+              "last_modified": "2025-07-31T22:05:16.937Z"
+            }
+          },
+          {
+            "source_name": "demo-runbooks",
+            "healthy": true,
+            "response_time_ms": 1,
+            "last_check": "2025-07-31T22:13:24.555Z",
+            "metadata": {
+              "document_count": 32,
+              "directory_exists": true,
+              "last_modified": "2025-07-29T15:25:34.796Z"
+            }
+          },
+          {
+            "source_name": "demo-knowledge-base",
+            "healthy": true,
+            "response_time_ms": 1,
+            "last_check": "2025-07-31T22:13:24.555Z",
+            "metadata": {
+              "document_count": 60,
+              "directory_exists": true,
+              "last_modified": "2025-07-31T22:03:45.710Z"
+            }
+          }
+        ]
+      },
+      "timestamp": "2025-07-31T22:13:24.560Z"
     },
     {
       "name": "performance Health",
       "passed": null,
-      "message": "No health data available for performance",
+      "message": "No health data available for performance (looking for tools)",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-31T14:26:07.545Z"
+      "timestamp": "2025-07-31T22:13:24.560Z"
     },
     {
       "name": "monitoring Health",
       "passed": null,
-      "message": "No health data available for monitoring",
+      "message": "No health data available for monitoring (looking for monitoring_system)",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-31T14:26:07.545Z"
+      "timestamp": "2025-07-31T22:13:24.560Z"
     },
     {
       "name": "Monitoring System",
@@ -149,48 +254,61 @@
         "rules": 9,
         "activeAlerts": 0,
         "totalAlerts": 2,
-        "lastCheck": "2025-07-31T14:26:07.545Z"
+        "lastCheck": "2025-07-31T22:13:24.560Z"
       },
-      "timestamp": "2025-07-31T14:26:07.545Z"
+      "timestamp": "2025-07-31T22:13:24.561Z"
     },
     {
-      "name": "Circuit Breakers",
-      "passed": null,
-      "message": "Circuit breaker information not available",
-      "details": {},
-      "warning": true,
-      "timestamp": "2025-07-31T14:26:07.552Z"
+      "name": "Circuit Breakers Available",
+      "passed": true,
+      "message": "Found 1 circuit breakers",
+      "details": {
+        "count": 1
+      },
+      "timestamp": "2025-07-31T22:13:24.567Z"
+    },
+    {
+      "name": "Circuit Breaker Health Summary",
+      "passed": true,
+      "message": "Circuit breaker health: 1 healthy, 0 degraded, 0 failed",
+      "details": {
+        "healthy": 1,
+        "degraded": 0,
+        "failed": 0,
+        "total": 1
+      },
+      "timestamp": "2025-07-31T22:13:24.567Z"
     },
     {
       "name": "Load Test Success Rate",
-      "passed": false,
-      "message": "Error rate under load: 100.0% (target: ≤5%)",
+      "passed": true,
+      "message": "Error rate under load: 0.0% (target: ≤5%)",
       "details": {
-        "errorRate": 1,
-        "successful": 0,
-        "failed": 25
+        "errorRate": 0,
+        "successful": 25,
+        "failed": 0
       },
-      "timestamp": "2025-07-31T14:26:08.685Z"
+      "timestamp": "2025-07-31T22:13:25.420Z"
     },
     {
       "name": "Load Test Response Time",
       "passed": true,
-      "message": "Average response time under load: 0ms (target: ≤1000ms)",
+      "message": "Average response time under load: 4ms (target: ≤1000ms)",
       "details": {
-        "avgResponseTime": 0,
+        "avgResponseTime": 3.56,
         "target": 1000
       },
-      "timestamp": "2025-07-31T14:26:08.685Z"
+      "timestamp": "2025-07-31T22:13:25.420Z"
     },
     {
       "name": "Load Test Throughput",
       "passed": true,
-      "message": "Throughput under load: 22.1 req/s (target: ≥10 req/s)",
+      "message": "Throughput under load: 29.3 req/s (target: ≥10 req/s)",
       "details": {
-        "throughput": 22.070821292780703,
+        "throughput": 29.30540473870904,
         "target": 10
       },
-      "timestamp": "2025-07-31T14:26:08.685Z"
+      "timestamp": "2025-07-31T22:13:25.420Z"
     }
   ],
   "environment": {

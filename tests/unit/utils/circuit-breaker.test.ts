@@ -1,17 +1,17 @@
 /**
  * Comprehensive Circuit Breaker Tests
  * Tests for circuit breaker pattern implementation and factory
- * 
+ *
  * QA Engineer: Testing circuit breaker resilience for milestone 1.3
  * Coverage: Circuit states, failure handling, recovery, factory patterns
  */
 
-import { 
-  CircuitBreaker, 
-  CircuitBreakerFactory, 
-  CircuitState, 
+import {
+  CircuitBreaker,
+  CircuitBreakerFactory,
+  CircuitState,
   CircuitBreakerConfig,
-  withCircuitBreaker
+  withCircuitBreaker,
 } from '../../../src/utils/circuit-breaker';
 
 // Mock logger to prevent console output during tests
@@ -21,7 +21,7 @@ jest.mock('../../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 describe('CircuitBreaker - Comprehensive Testing', () => {
@@ -30,7 +30,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockConfig = {
       failureThreshold: 3,
       recoveryTimeout: 1000, // 1 second for faster testing
@@ -87,10 +87,10 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         ...mockConfig,
         recoveryTimeout: 100, // 100ms
       };
-      
+
       const shortTimeoutBreaker = new CircuitBreaker(shortTimeoutConfig);
       shortTimeoutBreaker.trip();
-      
+
       expect(shortTimeoutBreaker.getState()).toBe(CircuitState.OPEN);
 
       // Wait for recovery timeout
@@ -140,7 +140,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
 
       // Now fail - should go back to OPEN
       const failFunction = jest.fn().mockRejectedValue(new Error('Failed again'));
-      
+
       try {
         await breaker.execute(failFunction);
       } catch (error) {
@@ -163,8 +163,8 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
     });
 
     it('should handle function timeouts', async () => {
-      const slowFunction = jest.fn(() => 
-        new Promise(resolve => setTimeout(() => resolve('slow result'), 1000))
+      const slowFunction = jest.fn(
+        () => new Promise(resolve => setTimeout(() => resolve('slow result'), 1000))
       );
 
       try {
@@ -296,7 +296,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
       // Execute mixed operations
       await circuitBreaker.execute(successFunction);
       await circuitBreaker.execute(successFunction);
-      
+
       try {
         await circuitBreaker.execute(failFunction);
       } catch (error) {
@@ -312,7 +312,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
       expect(stats.totalRequests).toBe(3);
       expect(stats.totalSuccesses).toBe(2);
       expect(stats.totalFailures).toBe(1);
-      expect(stats.uptime).toBe((2/3) * 100);
+      expect(stats.uptime).toBe((2 / 3) * 100);
       expect(stats.lastSuccess).toBeInstanceOf(Date);
       expect(stats.lastFailure).toBeInstanceOf(Date);
     });
@@ -451,7 +451,8 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
     });
 
     it('should handle concurrent executions safely', async () => {
-      const mockFunction = jest.fn()
+      const mockFunction = jest
+        .fn()
         .mockResolvedValueOnce('result1')
         .mockResolvedValueOnce('result2')
         .mockResolvedValueOnce('result3');
@@ -503,7 +504,7 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
       };
 
       const breaker = CircuitBreakerFactory.forExternalService('custom-service', customConfig);
-      
+
       // Test that custom config is applied by checking behavior
       expect(breaker).toBeInstanceOf(CircuitBreaker);
     });
@@ -663,7 +664,7 @@ describe('Utility Functions', () => {
       const multiArgFunction = jest.fn(async (a: string, b: number, c: boolean) => {
         return { a, b, c };
       });
-      
+
       const wrappedFunction = withCircuitBreaker(multiArgFunction, circuitBreaker);
       const result = await wrappedFunction('test', 42, true);
 
@@ -736,8 +737,7 @@ describe('Performance and Load Testing', () => {
       if (i % 10 === 0) {
         // 10% failures
         promises.push(
-          circuitBreaker.execute(() => Promise.reject(new Error('Failure')))
-            .catch(() => 'handled')
+          circuitBreaker.execute(() => Promise.reject(new Error('Failure'))).catch(() => 'handled')
         );
       } else {
         // 90% successes
@@ -749,7 +749,7 @@ describe('Performance and Load Testing', () => {
     const endTime = Date.now();
 
     expect(endTime - startTime).toBeLessThan(3000); // Should complete within 3 seconds
-    
+
     const stats = circuitBreaker.getStats();
     expect(stats.totalRequests).toBe(500);
     expect(stats.totalFailures).toBe(50); // 10% of 500

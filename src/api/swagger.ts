@@ -1,6 +1,6 @@
 /**
  * Swagger UI Configuration for Personal Pipeline REST API
- * 
+ *
  * Sets up interactive API documentation with comprehensive examples
  * and integrated correlation ID support for testing.
  */
@@ -15,7 +15,7 @@ import { logger } from '../utils/logger.js';
  */
 export function createSwaggerRouter(): express.Router {
   const router = express.Router();
-  
+
   // Custom CSS for improved styling
   const customCss = `
     .swagger-ui .topbar { display: none; }
@@ -51,15 +51,15 @@ export function createSwaggerRouter(): express.Router {
           const correlationId = `docs_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
           request.headers['X-Correlation-ID'] = correlationId;
         }
-        
+
         // Log API testing activity
         logger.info('Swagger UI API test initiated', {
           method: request.method,
           url: request.url,
           correlation_id: request.headers['X-Correlation-ID'],
-          source: 'swagger-ui'
+          source: 'swagger-ui',
         });
-        
+
         return request;
       },
       responseInterceptor: (response: any) => {
@@ -69,12 +69,12 @@ export function createSwaggerRouter(): express.Router {
           statusText: response.statusText,
           correlation_id: response.headers['x-correlation-id'],
           response_time: response.headers['x-response-time'],
-          source: 'swagger-ui'
+          source: 'swagger-ui',
         });
-        
+
         return response;
-      }
-    }
+      },
+    },
   };
 
   // Custom header HTML for testing instructions (used in Swagger options)
@@ -82,7 +82,7 @@ export function createSwaggerRouter(): express.Router {
   //   <div style="background: #e0f2fe; border-left: 4px solid #0288d1; padding: 15px; margin: 20px 0; border-radius: 4px;">
   //     <h4 style="margin: 0 0 10px 0; color: #01579b;">🧪 Testing with Correlation IDs</h4>
   //     <p style="margin: 0; color: #0277bd;">
-  //       All API requests automatically include correlation IDs for tracking. 
+  //       All API requests automatically include correlation IDs for tracking.
   //       Check the response headers for <code>X-Correlation-ID</code> to trace your requests.
   //       For production integration, include <code>X-Correlation-ID</code> in your request headers.
   //     </p>
@@ -98,20 +98,20 @@ export function createSwaggerRouter(): express.Router {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Correlation-ID');
-    
+
     logger.info('OpenAPI specification requested', {
       user_agent: req.get('User-Agent'),
       referer: req.get('Referer'),
-      ip: req.ip
+      ip: req.ip,
     });
-    
+
     res.json(openAPISpec);
   });
 
   // Health check for documentation service
   router.get('/health', (req, res) => {
     const correlationId = req.get('X-Correlation-ID') || `health_${Date.now()}`;
-    
+
     res.setHeader('X-Correlation-ID', correlationId);
     res.json({
       service: 'swagger-documentation',
@@ -121,37 +121,45 @@ export function createSwaggerRouter(): express.Router {
       endpoints: {
         interactive_docs: '/api/docs/',
         openapi_spec: '/api/docs/openapi.json',
-        health_check: '/api/docs/health'
-      }
+        health_check: '/api/docs/health',
+      },
     });
   });
 
   // Add testing utilities endpoint
   router.get('/test-utils', (req, res) => {
     const correlationId = req.get('X-Correlation-ID') || `utils_${Date.now()}`;
-    
+
     res.setHeader('X-Correlation-ID', correlationId);
     res.json({
       correlation_id_format: 'req_YYYYMMDD_HHMMSS_<random>',
-      sample_correlation_id: `req_${new Date().toISOString().replace(/[-T:.Z]/g, '').substring(0, 15)}_${Math.random().toString(36).substring(2, 9)}`,
+      sample_correlation_id: `req_${new Date()
+        .toISOString()
+        .replace(/[-T:.Z]/g, '')
+        .substring(0, 15)}_${Math.random().toString(36).substring(2, 9)}`,
       testing_tips: [
         'Include X-Correlation-ID header for request tracking',
         'Check X-Response-Time header for performance metrics',
         'Use /api/health for service status checks',
         'All errors include correlation IDs for support',
-        'Rate limiting applies to all endpoints'
+        'Rate limiting applies to all endpoints',
       ],
       example_headers: {
         'X-Correlation-ID': 'your-unique-tracking-id',
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
   });
 
   logger.info('Swagger UI router configured successfully', {
     endpoints: ['/api/docs/', '/api/docs/openapi.json', '/api/docs/health', '/api/docs/test-utils'],
-    features: ['correlation_id_tracking', 'request_interceptor', 'response_logging', 'custom_styling']
+    features: [
+      'correlation_id_tracking',
+      'request_interceptor',
+      'response_logging',
+      'custom_styling',
+    ],
   });
 
   return router;
@@ -161,7 +169,8 @@ export function createSwaggerRouter(): express.Router {
  * Generate example correlation ID for documentation
  */
 export function generateExampleCorrelationId(): string {
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date()
+    .toISOString()
     .replace(/[-T:.Z]/g, '')
     .substring(0, 15);
   const random = Math.random().toString(36).substring(2, 9);
@@ -173,33 +182,33 @@ export function generateExampleCorrelationId(): string {
  */
 export function validateOpenAPISpec(): { valid: boolean; errors?: string[] } {
   const errors: string[] = [];
-  
+
   try {
     // Basic validation checks
     if (!openAPISpec.openapi) {
       errors.push('Missing OpenAPI version');
     }
-    
+
     if (!openAPISpec.info || !openAPISpec.info.title) {
       errors.push('Missing API info or title');
     }
-    
+
     if (!openAPISpec.paths || Object.keys(openAPISpec.paths).length === 0) {
       errors.push('No API paths defined');
     }
-    
+
     // Check for required components
     if (!openAPISpec.components || !openAPISpec.components.schemas) {
       errors.push('Missing schema components');
     }
-    
+
     // Validate path operations
     for (const [path, methods] of Object.entries(openAPISpec.paths)) {
       if (!methods || typeof methods !== 'object') {
         errors.push(`Invalid path definition: ${path}`);
         continue;
       }
-      
+
       for (const [method, operation] of Object.entries(methods)) {
         if (typeof operation === 'object' && operation !== null && !Array.isArray(operation)) {
           const op = operation as any;
@@ -209,16 +218,15 @@ export function validateOpenAPISpec(): { valid: boolean; errors?: string[] } {
         }
       }
     }
-    
+
     return {
       valid: errors.length === 0,
-      ...(errors.length > 0 && { errors })
+      ...(errors.length > 0 && { errors }),
     };
-    
   } catch (error) {
     return {
       valid: false,
-      errors: [`Validation error: ${error instanceof Error ? error.message : String(error)}`]
+      errors: [`Validation error: ${error instanceof Error ? error.message : String(error)}`],
     };
   }
 }
@@ -227,11 +235,11 @@ export function validateOpenAPISpec(): { valid: boolean; errors?: string[] } {
 const validation = validateOpenAPISpec();
 if (!validation.valid) {
   logger.error('OpenAPI specification validation failed', {
-    errors: validation.errors
+    errors: validation.errors,
   });
 } else {
   logger.info('OpenAPI specification validated successfully', {
     paths_count: Object.keys(openAPISpec.paths).length,
-    schemas_count: Object.keys(openAPISpec.components?.schemas || {}).length
+    schemas_count: Object.keys(openAPISpec.components?.schemas || {}).length,
   });
 }

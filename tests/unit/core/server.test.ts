@@ -213,8 +213,8 @@ jest.mock('../../../src/adapters/base', () => ({
     getAllAdapters: jest.fn().mockReturnValue([
       {
         getConfig: jest.fn().mockReturnValue({ name: 'test-adapter', type: 'file' }),
-        getMetadata: jest.fn().mockResolvedValue({ 
-          name: 'test-adapter', 
+        getMetadata: jest.fn().mockResolvedValue({
+          name: 'test-adapter',
           type: 'file',
           documents_count: 100,
           last_updated: new Date().toISOString(),
@@ -222,18 +222,28 @@ jest.mock('../../../src/adapters/base', () => ({
       },
     ]),
     healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
-    healthCheckAll: jest.fn().mockResolvedValue([
-      { name: 'test-adapter', healthy: true, response_time_ms: 50 },
-    ]),
+    healthCheckAll: jest
+      .fn()
+      .mockResolvedValue([{ name: 'test-adapter', healthy: true, response_time_ms: 50 }]),
     cleanup: jest.fn().mockResolvedValue(undefined),
   })),
   SourceAdapter: class MockSourceAdapter {
     constructor() {}
-    async search() { return []; }
-    async getDocument() { return null; }
-    async searchRunbooks() { return []; }
-    async healthCheck() { return { healthy: true }; }
-    async getMetadata() { return {}; }
+    async search() {
+      return [];
+    }
+    async getDocument() {
+      return null;
+    }
+    async searchRunbooks() {
+      return [];
+    }
+    async healthCheck() {
+      return { healthy: true };
+    }
+    async getMetadata() {
+      return {};
+    }
     async cleanup() {}
   },
 }));
@@ -289,7 +299,7 @@ describe('PersonalPipelineServer', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     defaultConfig = {
       server: {
         port: 3000,
@@ -466,9 +476,11 @@ describe('PersonalPipelineServer', () => {
         healthCheck: jest.fn().mockRejectedValue(new Error('Cache error')),
         shutdown: jest.fn().mockResolvedValue(undefined),
       };
-      
-      jest.mocked(require('../../../src/utils/cache').initializeCacheService).mockReturnValue(mockCacheService);
-      
+
+      jest
+        .mocked(require('../../../src/utils/cache').initializeCacheService)
+        .mockReturnValue(mockCacheService);
+
       await server.start();
       const health = await server.getHealthStatus();
 
@@ -486,7 +498,7 @@ describe('PersonalPipelineServer', () => {
       expect(health).toHaveProperty('components');
       expect(health).toHaveProperty('summary');
       expect(health).toHaveProperty('timestamp');
-      
+
       expect(health.components).toHaveProperty('mcp_server');
       expect(health.components).toHaveProperty('cache_service');
       expect(health.components).toHaveProperty('source_adapters');
@@ -509,13 +521,15 @@ describe('PersonalPipelineServer', () => {
       const mockPerformanceMonitor = {
         getMetrics: jest.fn().mockReturnValue({
           response_times: { p95_ms: 3000 }, // High response time
-          error_tracking: { error_rate: 0.15 }, // High error rate 
+          error_tracking: { error_rate: 0.15 }, // High error rate
           resource_usage: { memory_mb: 3000 }, // High memory usage
         }),
       };
-      
-      jest.mocked(require('../../../src/utils/performance').getPerformanceMonitor).mockReturnValue(mockPerformanceMonitor);
-      
+
+      jest
+        .mocked(require('../../../src/utils/performance').getPerformanceMonitor)
+        .mockReturnValue(mockPerformanceMonitor);
+
       // Mock some source adapters as unhealthy
       const mockSourceRegistry = {
         getAllAdapters: jest.fn().mockReturnValue([]),
@@ -541,15 +555,19 @@ describe('PersonalPipelineServer', () => {
 
   describe('cache service initialization', () => {
     it('should initialize cache service when enabled in config', async () => {
-      const initializeCacheService = jest.mocked(require('../../../src/utils/cache').initializeCacheService);
-      
+      const initializeCacheService = jest.mocked(
+        require('../../../src/utils/cache').initializeCacheService
+      );
+
       await server.start();
 
       expect(initializeCacheService).toHaveBeenCalledWith(defaultConfig.cache);
     });
 
     it('should handle cache service initialization failure', async () => {
-      const initializeCacheService = jest.mocked(require('../../../src/utils/cache').initializeCacheService);
+      const initializeCacheService = jest.mocked(
+        require('../../../src/utils/cache').initializeCacheService
+      );
       initializeCacheService.mockImplementation(() => {
         throw new Error('Cache initialization failed');
       });
@@ -561,16 +579,16 @@ describe('PersonalPipelineServer', () => {
     it('should skip cache service when disabled', async () => {
       const configWithoutCache = {
         ...defaultConfig,
-        cache: { 
-          ...defaultConfig.cache!, 
-          enabled: false 
+        cache: {
+          ...defaultConfig.cache!,
+          enabled: false,
         },
       };
-      
+
       mockConfigManager.loadConfig.mockResolvedValue(configWithoutCache);
-      
+
       await server.start();
-      
+
       // Cache service should be null
       expect((server as any).cacheService).toBeNull();
     });
@@ -588,8 +606,8 @@ describe('PersonalPipelineServer', () => {
       const configWithDisabledSource = {
         ...defaultConfig,
         sources: [
-          { 
-            ...defaultConfig.sources[0], 
+          {
+            ...defaultConfig.sources[0],
             enabled: false,
             name: 'test-source',
             type: 'file' as const,
@@ -600,9 +618,9 @@ describe('PersonalPipelineServer', () => {
           },
         ],
       };
-      
+
       mockConfigManager.loadConfig.mockResolvedValue(configWithDisabledSource);
-      
+
       await server.start();
 
       // Should not have called createAdapter for disabled sources
@@ -628,7 +646,7 @@ describe('PersonalPipelineServer', () => {
   describe('MCP server lifecycle', () => {
     it('should setup MCP handlers during construction', () => {
       const mcpServer = (server as any).mcpServer;
-      
+
       expect(mcpServer.setRequestHandler).toHaveBeenCalledTimes(2);
       expect(mcpServer.onerror).toBeDefined();
     });
@@ -652,14 +670,14 @@ describe('PersonalPipelineServer', () => {
   describe('Express server setup', () => {
     it('should setup security middleware', () => {
       const app = (server as any).expressApp;
-      
+
       // Should have called middleware setup functions
       expect(app.use).toHaveBeenCalled();
     });
 
     it('should register health endpoints', () => {
       const app = (server as any).expressApp;
-      
+
       expect(app.get).toHaveBeenCalledWith('/health', expect.any(Function));
       expect(app.get).toHaveBeenCalledWith('/ready', expect.any(Function));
       expect(app.get).toHaveBeenCalledWith('/metrics', expect.any(Function));
@@ -667,7 +685,7 @@ describe('PersonalPipelineServer', () => {
 
     it('should setup API routes after initialization', async () => {
       const createAPIRoutes = jest.mocked(require('../../../src/api/routes').createAPIRoutes);
-      
+
       await server.start();
 
       expect(createAPIRoutes).toHaveBeenCalledWith(
@@ -681,8 +699,10 @@ describe('PersonalPipelineServer', () => {
 
   describe('performance monitoring', () => {
     it('should initialize performance monitor during start', async () => {
-      const initializePerformanceMonitor = jest.mocked(require('../../../src/utils/performance').initializePerformanceMonitor);
-      
+      const initializePerformanceMonitor = jest.mocked(
+        require('../../../src/utils/performance').initializePerformanceMonitor
+      );
+
       await server.start();
 
       expect(initializePerformanceMonitor).toHaveBeenCalledWith({
@@ -692,9 +712,11 @@ describe('PersonalPipelineServer', () => {
     });
 
     it('should initialize monitoring service during start', async () => {
-      const initializeMonitoringService = jest.mocked(require('../../../src/utils/monitoring').initializeMonitoringService);
+      const initializeMonitoringService = jest.mocked(
+        require('../../../src/utils/monitoring').initializeMonitoringService
+      );
       const mockMonitoringService = initializeMonitoringService();
-      
+
       await server.start();
 
       expect(initializeMonitoringService).toHaveBeenCalled();
@@ -704,13 +726,15 @@ describe('PersonalPipelineServer', () => {
 
   describe('error handling', () => {
     it('should handle monitoring service errors during stop', async () => {
-      const getMonitoringService = jest.mocked(require('../../../src/utils/monitoring').getMonitoringService);
+      const getMonitoringService = jest.mocked(
+        require('../../../src/utils/monitoring').getMonitoringService
+      );
       getMonitoringService.mockImplementation(() => {
         throw new Error('Monitoring service not found');
       });
 
       await server.start();
-      
+
       // Should not throw when monitoring service is not available
       await expect(server.stop()).resolves.not.toThrow();
     });
@@ -720,11 +744,13 @@ describe('PersonalPipelineServer', () => {
         healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
         shutdown: jest.fn().mockRejectedValue(new Error('Cache shutdown failed')),
       };
-      
-      jest.mocked(require('../../../src/utils/cache').initializeCacheService).mockReturnValue(mockCacheService);
-      
+
+      jest
+        .mocked(require('../../../src/utils/cache').initializeCacheService)
+        .mockReturnValue(mockCacheService);
+
       await server.start();
-      
+
       // Should handle cache shutdown errors gracefully
       await expect(server.stop()).rejects.toThrow('Cache shutdown failed');
     });

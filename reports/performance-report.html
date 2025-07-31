@@ -33,7 +33,7 @@
     <div class="container">
         <div class="header">
             <h1>Performance Benchmark Report</h1>
-            <p class="timestamp">Generated: 2025-07-31T14:21:12.653Z</p>
+            <p class="timestamp">Generated: 2025-07-31T22:11:03.719Z</p>
             <div class="grade A">A</div>
             <p>Overall Performance Grade</p>
         </div>
@@ -47,14 +47,14 @@
             
             <div class="metric-card">
                 <div class="metric-title">Cache Hit Rate</div>
-                <div class="metric-value">92.4%</div>
+                <div class="metric-value">75.4%</div>
                 <div class="metric-target">Target: ≥70.0%</div>
             </div>
             
             
             <div class="metric-card">
                 <div class="metric-title">Peak Memory</div>
-                <div class="metric-value">289MB</div>
+                <div class="metric-value">365MB</div>
                 <div class="metric-target">Target: ≤2048MB</div>
             </div>
             
@@ -65,6 +65,13 @@
             </div>
         </div>
 
+        
+        <div class="recommendations">
+            <h3>💡 Performance Recommendations</h3>
+            <ul>
+                <li><strong>[HIGH]</strong> Improve cache hit rate: Implement cache warming for critical runbooks and increase TTL for stable content</li>
+            </ul>
+        </div>
         
 
         <h3>📊 Tool Performance Summary</h3>
@@ -82,8 +89,8 @@
                 
                     <tr>
                         <td>search_runbooks</td>
-                        <td>3ms</td>
-                        <td>3ms</td>
+                        <td>1ms</td>
+                        <td>2ms</td>
                         <td>200ms</td>
                         <td><span class="status success">PASS</span></td>
                     </tr>
@@ -123,14 +130,14 @@
                     <tr>
                         <td>search_knowledge_base</td>
                         <td>1ms</td>
-                        <td>3ms</td>
+                        <td>1ms</td>
                         <td>500ms</td>
                         <td><span class="status success">PASS</span></td>
                     </tr>
                     
                     <tr>
                         <td>record_resolution_feedback</td>
-                        <td>0ms</td>
+                        <td>1ms</td>
                         <td>1ms</td>
                         <td>500ms</td>
                         <td><span class="status success">PASS</span></td>
@@ -141,8 +148,8 @@
 
         <div class="chart-container">
             <h4>Test Configuration</h4>
-            <p><strong>Concurrent Requests:</strong> 5</p>
-            <p><strong>Test Duration:</strong> 15 seconds</p>
+            <p><strong>Concurrent Requests:</strong> 2</p>
+            <p><strong>Test Duration:</strong> 5 seconds</p>
             <p><strong>Cache Testing:</strong> Enabled</p>
             <p><strong>Cache Warmup:</strong> Enabled</p>
         </div>

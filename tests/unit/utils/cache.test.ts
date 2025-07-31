@@ -1,7 +1,7 @@
 /**
  * Comprehensive Cache Service Tests
  * Tests for both memory-only and Redis-enabled cache configurations
- * 
+ *
  * QA Engineer: Comprehensive testing for milestone 1.3 cache functionality
  * Coverage: Cache operations, Redis fallback, error handling, statistics
  */
@@ -9,7 +9,12 @@
 // Unmock the cache module for this test since we want to test the real implementation
 jest.unmock('../../../src/utils/cache');
 
-import { CacheService, createCacheKey, initializeCacheService, getCacheService } from '../../../src/utils/cache';
+import {
+  CacheService,
+  createCacheKey,
+  initializeCacheService,
+  getCacheService,
+} from '../../../src/utils/cache';
 import { CacheConfig } from '../../../src/types';
 import Redis from 'ioredis';
 
@@ -24,23 +29,25 @@ jest.mock('../../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 // Mock circuit breaker
 jest.mock('../../../src/utils/circuit-breaker', () => ({
   CircuitBreakerFactory: {
     forCache: jest.fn(() => ({
-      execute: jest.fn((fn) => fn())
-    }))
-  }
+      execute: jest.fn(fn => fn()),
+    })),
+  },
 }));
 
 describe('CacheService - Comprehensive Testing', () => {
   let cacheService: CacheService;
   let mockRedisInstance: jest.Mocked<Redis>;
 
-  const createTestConfig = (strategy: 'memory_only' | 'hybrid' | 'redis_only' = 'memory_only'): CacheConfig => ({
+  const createTestConfig = (
+    strategy: 'memory_only' | 'hybrid' | 'redis_only' = 'memory_only'
+  ): CacheConfig => ({
     enabled: true,
     strategy,
     memory: {
@@ -113,10 +120,10 @@ describe('CacheService - Comprehensive Testing', () => {
 
     it('should set and get values from memory cache', async () => {
       const key = createCacheKey('runbooks', 'test-runbook-1');
-      const value = { 
-        id: 'test-runbook-1', 
+      const value = {
+        id: 'test-runbook-1',
         title: 'Emergency Response Runbook',
-        procedures: ['step1', 'step2', 'step3']
+        procedures: ['step1', 'step2', 'step3'],
       };
 
       await cacheService.set(key, value);
@@ -218,12 +225,12 @@ describe('CacheService - Comprehensive Testing', () => {
       const criticalData = [
         {
           key: createCacheKey('runbooks', 'critical-runbook-1'),
-          data: { title: 'Critical System Failure Response', priority: 'high' }
+          data: { title: 'Critical System Failure Response', priority: 'high' },
         },
         {
           key: createCacheKey('procedures', 'emergency-procedure'),
-          data: { steps: ['assess', 'contain', 'resolve'], urgency: 'critical' }
-        }
+          data: { steps: ['assess', 'contain', 'resolve'], urgency: 'critical' },
+        },
       ];
 
       await cacheService.warmCache(criticalData);
@@ -259,12 +266,14 @@ describe('CacheService - Comprehensive Testing', () => {
       const value = { source: 'redis', data: 'fallback test' };
 
       // Mock Redis to return cached data
-      mockRedisInstance.get.mockResolvedValue(JSON.stringify({
-        data: value,
-        timestamp: Date.now(),
-        ttl: 300,
-        content_type: 'runbooks'
-      }));
+      mockRedisInstance.get.mockResolvedValue(
+        JSON.stringify({
+          data: value,
+          timestamp: Date.now(),
+          ttl: 300,
+          content_type: 'runbooks',
+        })
+      );
 
       const result = await cacheService.get(key);
 
@@ -337,7 +346,10 @@ describe('CacheService - Comprehensive Testing', () => {
       await cacheService.clearByType('runbooks');
 
       expect(mockRedisInstance.keys).toHaveBeenCalledWith('pp:test:runbooks:*');
-      expect(mockRedisInstance.del).toHaveBeenCalledWith('pp:test:runbooks:rb1', 'pp:test:runbooks:rb2');
+      expect(mockRedisInstance.del).toHaveBeenCalledWith(
+        'pp:test:runbooks:rb1',
+        'pp:test:runbooks:rb2'
+      );
     });
   });
 
@@ -407,15 +419,15 @@ describe('CacheService - Comprehensive Testing', () => {
             condition: 'severity === "critical"',
             branches: {
               true: { action: 'escalate_immediately' },
-              false: { next: 'node-2' }
-            }
-          }
+              false: { next: 'node-2' },
+            },
+          },
         ],
         metadata: {
           created: new Date().toISOString(),
           tags: ['emergency', 'system-failure'],
-          confidence: 0.95
-        }
+          confidence: 0.95,
+        },
       };
 
       await cacheService.set(key, complexValue);
@@ -426,15 +438,13 @@ describe('CacheService - Comprehensive Testing', () => {
 
     it('should handle concurrent cache operations', async () => {
       const promises = [];
-      
+
       // Simulate concurrent operations
       for (let i = 0; i < 10; i++) {
         const key = createCacheKey('runbooks', `concurrent-test-${i}`);
         const value = { id: i, data: `concurrent data ${i}` };
-        
-        promises.push(
-          cacheService.set(key, value).then(() => cacheService.get(key))
-        );
+
+        promises.push(cacheService.set(key, value).then(() => cacheService.get(key)));
       }
 
       const results = await Promise.all(promises);
@@ -453,10 +463,10 @@ describe('CacheService - Comprehensive Testing', () => {
 
     it('should maintain singleton instance with initializeCacheService', () => {
       const config = createTestConfig('memory_only');
-      
+
       const service1 = initializeCacheService(config);
       const service2 = initializeCacheService(config);
-      
+
       expect(service1).toBe(service2);
     });
 
@@ -468,7 +478,7 @@ describe('CacheService - Comprehensive Testing', () => {
       const config = createTestConfig('memory_only');
       const initializedService = initializeCacheService(config);
       const retrievedService = getCacheService();
-      
+
       expect(retrievedService).toBe(initializedService);
     });
   });
@@ -485,15 +495,13 @@ describe('CacheService - Comprehensive Testing', () => {
       // Generate 1000 cache operations
       for (let i = 0; i < 1000; i++) {
         const key = createCacheKey('knowledge_base', `perf-test-${i}`);
-        const value = { 
-          id: i, 
+        const value = {
+          id: i,
           content: `Performance test data item ${i}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
-        
-        operations.push(
-          cacheService.set(key, value).then(() => cacheService.get(key))
-        );
+
+        operations.push(cacheService.set(key, value).then(() => cacheService.get(key)));
       }
 
       const results = await Promise.all(operations);
@@ -503,10 +511,10 @@ describe('CacheService - Comprehensive Testing', () => {
       // All operations should complete successfully
       expect(results).toHaveLength(1000);
       expect(results.every(result => result !== null)).toBe(true);
-      
+
       // Should complete within reasonable time (adjust threshold as needed)
       expect(duration).toBeLessThan(5000); // 5 seconds
-      
+
       // Check final statistics
       const stats = cacheService.getStats();
       expect(stats.total_operations).toBeGreaterThanOrEqual(2000); // 1000 sets + 1000 gets
@@ -529,7 +537,7 @@ describe('CacheService - Comprehensive Testing', () => {
       const mixedPromises = [];
       for (let i = 0; i < 500; i++) {
         const key = createCacheKey('runbooks', `mixed-workload-${i % 100}`);
-        
+
         if (i % 3 === 0) {
           // Write operation
           mixedPromises.push(cacheService.set(key, { id: i, updated: true }));
@@ -551,10 +559,10 @@ describe('CacheService - Comprehensive Testing', () => {
 describe('Cache Key Utilities', () => {
   it('should create proper cache keys for all content types', () => {
     const contentTypes = ['runbooks', 'procedures', 'decision_trees', 'knowledge_base'] as const;
-    
+
     contentTypes.forEach(type => {
       const key = createCacheKey(type, `test-${type}-123`);
-      
+
       expect(key.type).toBe(type);
       expect(key.identifier).toBe(`test-${type}-123`);
     });
@@ -563,7 +571,7 @@ describe('Cache Key Utilities', () => {
   it('should handle special characters in identifiers', () => {
     const specialId = 'test@#$%^&*()_+-=[]{}|;:,.<>?';
     const key = createCacheKey('runbooks', specialId);
-    
+
     expect(key.type).toBe('runbooks');
     expect(key.identifier).toBe(specialId);
   });
@@ -571,7 +579,7 @@ describe('Cache Key Utilities', () => {
   it('should handle unicode characters in identifiers', () => {
     const unicodeId = 'тест-ランブック-测试-🚨📋✅';
     const key = createCacheKey('procedures', unicodeId);
-    
+
     expect(key.type).toBe('procedures');
     expect(key.identifier).toBe(unicodeId);
   });

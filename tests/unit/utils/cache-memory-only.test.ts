@@ -123,7 +123,7 @@ describe('CacheService (Memory-Only)', () => {
 describe('Cache Key Creation', () => {
   it('should create proper cache keys', () => {
     const key = createCacheKey('runbooks', 'my-runbook-123');
-    
+
     expect(key.type).toBe('runbooks');
     expect(key.identifier).toBe('my-runbook-123');
   });

@@ -1,41 +1,134 @@
-# Personal Pipeline MCP Server API Documentation
+# Personal Pipeline API Reference
 
-## Overview
+> **🚀 New in v1.4**: Complete REST API layer with 11 endpoints, dual access patterns (REST + MCP), and intelligent caching system.
 
-The Personal Pipeline MCP server provides 7 core tools for intelligent documentation retrieval and incident response support. All tools follow the Model Context Protocol (MCP) specification and return structured JSON responses.
+## Getting Started
 
-## MCP Tools
+The Personal Pipeline API provides two ways to access incident response documentation:
+- **🌐 REST API**: Standard HTTP endpoints for any application
+- **⚡ MCP Protocol**: Native protocol for LangGraph agents
 
-### 1. search_runbooks
+### Quick Example
+```bash
+# Search for runbooks (REST API)
+curl -X POST http://localhost:3000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "memory pressure", "max_results": 3}'
 
-Search for operational runbooks based on alert characteristics.
+# Same search via MCP protocol
+echo '{"method":"tools/call","params":{"name":"search_knowledge_base","arguments":{"query":"memory pressure","max_results":3}}}' | npx @modelcontextprotocol/cli stdio node dist/index.js
+```
 
-**Description**: Context-aware operational runbook retrieval with confidence scoring.
+---
 
-**Input Schema**:
-```json
+## 📋 API Endpoints Overview
+
+### 🔍 Search & Discovery
+| Endpoint | Method | Purpose | Response Time |
+|----------|--------|---------|---------------|
+| `/api/search` | POST | General documentation search | < 200ms |
+| `/api/runbooks/search` | POST | Find runbooks by alert type | < 150ms |
+| `/api/runbooks` | GET | List all runbooks | < 100ms |
+| `/api/runbooks/:id` | GET | Get specific runbook | < 50ms |
+
+### 🔧 Operational Support  
+| Endpoint | Method | Purpose | Response Time |
+|----------|--------|---------|---------------|
+| `/api/decision-tree` | POST | Get decision logic | < 150ms |
+| `/api/procedures/:id` | GET | Get procedure steps | < 100ms |
+| `/api/escalation` | POST | Get escalation path | < 50ms |
+| `/api/feedback` | POST | Record resolution feedback | < 100ms |
+
+### 📊 System Management
+| Endpoint | Method | Purpose | Response Time |
+|----------|--------|---------|---------------|
+| `/api/sources` | GET | List documentation sources | < 50ms |
+| `/api/health` | GET | API health status | < 10ms |
+| `/api/performance` | GET | Performance metrics | < 10ms |
+
+---
+
+## 🔐 Authentication
+
+**Current Version**: No authentication required  
+**Planned**: API key authentication, OAuth2, role-based access control
+
+```bash
+# All requests work without authentication
+curl http://localhost:3000/api/health
+```
+
+---
+
+## 🔍 Search Operations
+
+### General Search
+
+Find documentation across all sources with fuzzy matching and confidence scoring.
+
+```http
+POST /api/search
+Content-Type: application/json
+
 {
-  "alert_type": "string",      // Required: e.g., "memory_pressure", "disk_full"
-  "severity": "string",        // Required: "critical"|"high"|"medium"|"low"|"info"
-  "affected_systems": ["string"], // Required: List of affected systems
-  "context": {}                // Optional: Additional context object
+  "query": "database connection timeout",
+  "categories": ["troubleshooting", "database"],
+  "max_results": 5,
+  "max_age_days": 30
 }
 ```
 
-**Example Request**:
+**Response:**
 ```json
+{
+  "success": true,
+  "results": [
+    {
+      "id": "db-timeout-guide",
+      "title": "Database Connection Timeout Troubleshooting",
+      "content": "Step-by-step guide for resolving timeout issues...",
+      "source": "local-docs",
+      "confidence_score": 0.87,
+      "match_reasons": ["title match", "content relevance"],
+      "last_updated": "2025-07-28T10:00:00.000Z"
+    }
+  ],
+  "total_results": 1,
+  "performance": {
+    "response_time_ms": 23,
+    "cache_hit": false,
+    "optimization_applied": ["query_preprocessing", "result_ranking"]
+  }
+}
+```
+
+### Runbook Search
+
+Search operational runbooks by alert characteristics with intelligent matching.
+
+```http
+POST /api/runbooks/search
+Content-Type: application/json
+
 {
   "alert_type": "memory_pressure",
   "severity": "high",
   "affected_systems": ["web-server-01", "api-gateway"],
   "context": {
     "memory_usage_percent": 85,
-    "duration_minutes": 15
+    "duration_minutes": 15,
+    "time_of_day": "peak_hours"
   }
 }
 ```
 
-**Response Structure**:
+**Advanced Features:**
+- **🎯 Context-aware matching**: Uses alert context for better runbook selection
+- **📊 Confidence scoring**: Each result includes match confidence (0.0-1.0)
+- **⚡ Intelligent caching**: Frequently used runbooks cached for sub-150ms response
+- **📈 Success tracking**: Historical success rates included in results
+
+**Response:**
 ```json
 {
   "success": true,
@@ -44,423 +137,311 @@ Search for operational runbooks based on alert characteristics.
       "id": "mem-pressure-001",
       "title": "High Memory Usage Runbook",
       "version": "1.2",
-      "description": "Procedures for handling memory pressure alerts",
+      "description": "Comprehensive procedures for memory pressure alerts",
       "triggers": ["memory_usage > 80%", "OOM killer active"],
-      "severity_mapping": { "high": "critical", "medium": "high" },
-      "decision_tree": { /* Decision tree object */ },
-      "procedures": [ /* Array of procedure steps */ ],
+      "severity_mapping": {"high": "critical", "medium": "high"},
+      "procedures": [
+        {
+          "name": "check_memory_usage",
+          "description": "Analyze current memory utilization patterns",
+          "estimated_time_minutes": 2
+        },
+        {
+          "name": "identify_memory_hogs",
+          "description": "Find processes consuming excessive memory",
+          "estimated_time_minutes": 3
+        }
+      ],
       "metadata": {
         "confidence_score": 0.92,
         "success_rate": 0.85,
-        "avg_resolution_time_minutes": 12
+        "avg_resolution_time_minutes": 12,
+        "last_used": "2025-07-28T18:30:00.000Z"
       }
     }
   ],
-  "total_results": 1,
-  "confidence_scores": [0.92],
-  "retrieval_time_ms": 45,
-  "timestamp": "2025-07-28T20:15:30.123Z"
+  "performance": {
+    "response_time_ms": 45,
+    "cache_hit": true,
+    "search_strategy": "alert_type_priority"
+  }
 }
 ```
 
-### 2. get_decision_tree
+---
 
-Retrieve decision logic for specific operational scenarios.
+## 🔧 Operational Support
 
-**Description**: Get structured decision trees with conditional logic for progressive incident resolution.
+### Decision Trees
 
-**Input Schema**:
-```json
-{
-  "alert_context": {},         // Required: Context about the alert
-  "current_agent_state": {}    // Optional: Current state for progressive decisions
-}
-```
+Get intelligent decision logic for progressive incident resolution.
 
-**Example Request**:
-```json
+```http
+POST /api/decision-tree
+Content-Type: application/json
+
 {
   "alert_context": {
     "alert_type": "disk_full",
     "severity": "critical",
     "affected_systems": ["database-01"],
-    "disk_usage_percent": 95
+    "disk_usage_percent": 95,
+    "business_hours": false
   },
   "current_agent_state": {
-    "previous_actions": ["checked_disk_usage", "identified_large_files"],
+    "previous_actions": ["checked_disk_usage"],
     "current_step": "cleanup_evaluation"
   }
 }
 ```
 
-**Response Structure**:
-```json
-{
-  "success": true,
-  "decision_tree": {
-    "id": "disk_cleanup_dt",
-    "name": "Disk Cleanup Decision Tree",
-    "description": "Decision logic for disk space recovery",
-    "branches": [
-      {
-        "id": "check_logs",
-        "condition": "disk_usage > 90%",
-        "description": "Check for large log files",
-        "action": "identify_log_files",
-        "next_step": "cleanup_logs",
-        "confidence": 0.9
-      }
-    ],
-    "default_action": "escalate"
-  },
-  "confidence_score": 0.85,
-  "context_applied": true,
-  "retrieval_time_ms": 32,
-  "timestamp": "2025-07-28T20:15:30.123Z"
-}
+**Smart Features:**
+- **🧠 Progressive logic**: Adapts based on current state
+- **⏰ Time-aware**: Different logic for business vs. off hours
+- **📊 Confidence weighting**: Each branch includes confidence score
+- **🔄 State tracking**: Maintains context across decision points
+
+### Procedure Details
+
+Get executable steps for specific procedures with parameter substitution.
+
+```http
+GET /api/procedures/mem-pressure-001_restart_service?context={"service_name":"nginx","server":"web-01"}
 ```
 
-### 3. get_procedure
-
-Retrieve detailed execution steps for specific procedures.
-
-**Description**: Get step-by-step execution instructions for operational procedures.
-
-**Input Schema**:
-```json
-{
-  "runbook_id": "string",      // Required: ID of the runbook
-  "step_name": "string",       // Required: Name of the procedure step
-  "current_context": {}        // Optional: Context for parameter substitution
-}
-```
-
-**Example Request**:
-```json
-{
-  "runbook_id": "mem-pressure-001",
-  "step_name": "restart_service",
-  "current_context": {
-    "service_name": "nginx",
-    "server_hostname": "web-01"
-  }
-}
-```
-
-**Response Structure**:
+**Response:**
 ```json
 {
   "success": true,
   "procedure": {
     "id": "mem-pressure-001_restart_service",
     "name": "restart_service",
-    "description": "Restart the affected service gracefully",
+    "description": "Gracefully restart the affected service",
     "command": "sudo systemctl restart nginx",
-    "expected_outcome": "Service restarted successfully, memory usage decreased",
+    "expected_outcome": "Service restarted, memory usage decreased by ~30%",
     "timeout_seconds": 300,
-    "prerequisites": ["backup_config", "notify_team"],
-    "tools_required": ["shell", "monitoring_tools"]
-  },
-  "confidence_score": 0.8,
-  "retrieval_time_ms": 28,
-  "timestamp": "2025-07-28T20:15:30.123Z"
-}
-```
-
-### 4. get_escalation_path
-
-Determine appropriate escalation procedures based on context.
-
-**Description**: Get escalation contacts and procedures based on severity and business hours.
-
-**Input Schema**:
-```json
-{
-  "severity": "string",        // Required: "critical"|"high"|"medium"|"low"|"info"
-  "business_hours": boolean,   // Required: Whether incident is during business hours
-  "failed_attempts": ["string"] // Optional: List of failed resolution attempts
-}
-```
-
-**Example Request**:
-```json
-{
-  "severity": "critical",
-  "business_hours": false,
-  "failed_attempts": ["restart_service", "clear_disk_space"]
-}
-```
-
-**Response Structure**:
-```json
-{
-  "success": true,
-  "escalation_contacts": [
-    {
-      "name": "Night Shift Lead",
-      "role": "L2 Support",
-      "contact": "oncall-night@company.com",
-      "availability": "24x7"
+    "prerequisites": ["backup_config", "notify_oncall_team"],
+    "rollback_steps": ["restore_previous_config", "restart_service"],
+    "validation": {
+      "success_indicators": ["service_status=active", "memory_usage<70%"],
+      "failure_indicators": ["service_status=failed", "error_logs_present"]
     }
-  ],
-  "escalation_procedure": "1. Contact Night Shift Lead via oncall-night@company.com\\n2. If no response in 15 minutes, escalate to Emergency Escalation",
-  "estimated_response_time": "5 minutes",
-  "retrieval_time_ms": 15,
-  "timestamp": "2025-07-28T20:15:30.123Z"
+  }
 }
 ```
 
-### 5. list_sources
+---
 
-List all configured documentation sources with health status.
+## ⚡ MCP Protocol Tools
 
-**Description**: Get information about all configured documentation sources and their health.
+Perfect for LangGraph agents and MCP-compatible systems.
 
-**Input Schema**:
-```json
-{
-  "include_health": boolean    // Optional: Include health check info (default: true)
-}
+### Available Tools
+
+| Tool Name | Purpose | Input | Response Time |
+|-----------|---------|-------|---------------|
+| `search_runbooks` | Find operational runbooks | alert context | < 150ms |
+| `get_decision_tree` | Get decision logic | alert + state | < 150ms |
+| `get_procedure` | Get procedure steps | runbook + step | < 100ms |
+| `get_escalation_path` | Find escalation contacts | severity + hours | < 50ms |
+| `list_sources` | List documentation sources | health flag | < 50ms |
+| `search_knowledge_base` | General search | query + filters | < 200ms |
+| `record_resolution_feedback` | Record outcomes | feedback data | < 100ms |
+
+### Example: MCP Tool Usage
+
+```javascript
+// MCP client example
+const response = await mcpClient.callTool('search_runbooks', {
+  alert_type: 'memory_pressure',
+  severity: 'high',
+  affected_systems: ['web-server-01']
+});
+
+console.log(`Found ${response.runbooks.length} runbooks`);
+console.log(`Best match confidence: ${response.confidence_scores[0]}`);
 ```
 
-**Example Request**:
-```json
-{
-  "include_health": true
-}
-```
+---
 
-**Response Structure**:
-```json
-{
-  "success": true,
-  "sources": [
-    {
-      "name": "local-docs",
-      "type": "file",
-      "enabled": true,
-      "health": {
-        "source_name": "local-docs",
-        "healthy": true,
-        "response_time_ms": 5,
-        "last_check": "2025-07-28T20:15:30.123Z",
-        "metadata": {
-          "document_count": 2,
-          "last_index_update": "2025-07-28T20:00:00.000Z"
-        }
-      }
-    }
-  ]
-}
-```
+## 🚨 Error Handling
 
-### 6. search_knowledge_base
+### Error Response Format
 
-General documentation search across all sources.
-
-**Description**: Perform general search across all configured documentation sources.
-
-**Input Schema**:
-```json
-{
-  "query": "string",           // Required: Search query
-  "categories": ["string"],    // Optional: Limit to specific categories
-  "max_age_days": number,      // Optional: Only return recent documents
-  "max_results": number        // Optional: Maximum results (default: 10)
-}
-```
-
-**Example Request**:
-```json
-{
-  "query": "database connection timeout",
-  "categories": ["troubleshooting", "database"],
-  "max_results": 5
-}
-```
-
-**Response Structure**:
-```json
-{
-  "success": true,
-  "results": [
-    {
-      "id": "db-timeout-guide",
-      "title": "Database Connection Timeout Troubleshooting",
-      "content": "This guide covers common database timeout issues...",
-      "source": "local-docs",
-      "source_type": "file",
-      "confidence_score": 0.87,
-      "match_reasons": ["title match", "content relevance"],
-      "retrieval_time_ms": 23,
-      "last_updated": "2025-07-28T10:00:00.000Z"
-    }
-  ],
-  "total_results": 1
-}
-```
-
-### 7. record_resolution_feedback
-
-Record feedback about resolution outcomes for system improvement.
-
-**Description**: Capture resolution feedback to improve the system's recommendations over time.
-
-**Input Schema**:
-```json
-{
-  "runbook_id": "string",              // Required: ID of runbook used
-  "procedure_id": "string",            // Required: ID of procedure executed
-  "outcome": "string",                 // Required: "success"|"partial_success"|"failure"|"escalated"
-  "resolution_time_minutes": number,   // Required: Time to resolve
-  "notes": "string"                    // Optional: Additional notes
-}
-```
-
-**Example Request**:
-```json
-{
-  "runbook_id": "mem-pressure-001",
-  "procedure_id": "restart_service",
-  "outcome": "success",
-  "resolution_time_minutes": 8,
-  "notes": "Service restart resolved the memory pressure issue completely"
-}
-```
-
-**Response Structure**:
-```json
-{
-  "success": true,
-  "message": "Feedback recorded successfully",
-  "retrieval_time_ms": 12,
-  "timestamp": "2025-07-28T20:15:30.123Z"
-}
-```
-
-## Development Tools (Milestone 1.2)
-
-Three convenience scripts are available for development and testing:
-
-### Sample Data Generator (`npm run generate-sample-data`)
-- Generates 15 realistic runbooks across 7 alert scenarios
-- Creates 30 knowledge base articles with metadata  
-- Produces test configuration files
-- Output directory: `test-data/`
-
-### Configuration Validator (`npm run validate-config`)
-- Schema validation with Zod
-- Environment variable checking
-- Source connection testing
-- JSON report output capability
-
-### MCP Client Testing Tool (`npm run test-mcp`)
-- Interactive mode for manual testing
-- Automated test suite with 18 scenarios
-- Tool validation mode for quick checks
-- Specific tool testing capability
-
-## HTTP Endpoints
-
-The server also provides HTTP endpoints for health checking and monitoring:
-
-### GET /health
-
-Returns the overall health status of the server and all configured sources.
-
-**Response**:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-07-28T20:15:30.123Z",
-  "version": "0.1.0",
-  "sources": [
-    {
-      "source_name": "local-docs",
-      "healthy": true,
-      "response_time_ms": 5,
-      "last_check": "2025-07-28T20:15:30.123Z"
-    }
-  ],
-  "uptime": 3600.5
-}
-```
-
-### GET /ready
-
-Kubernetes readiness probe endpoint.
-
-**Response**:
-```json
-{
-  "status": "ready",
-  "timestamp": "2025-07-28T20:15:30.123Z"
-}
-```
-
-### GET /metrics
-
-Returns server metrics and source adapter statistics.
-
-**Response**:
-```json
-{
-  "timestamp": "2025-07-28T20:15:30.123Z",
-  "version": "0.1.0",
-  "uptime": 3600.5,
-  "sources": [
-    {
-      "name": "local-docs",
-      "type": "file",
-      "document_count": 2,
-      "cache_hit_rate": 0.85,
-      "avg_response_time_ms": 15
-    }
-  ]
-}
-```
-
-## Error Handling
-
-All tools return consistent error responses:
+All errors follow a consistent structure with actionable recovery guidance:
 
 ```json
 {
   "success": false,
-  "message": "Error description",
-  "retrieval_time_ms": 25,
-  "timestamp": "2025-07-28T20:15:30.123Z"
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed: missing required field 'alert_type'",
+    "severity": "low",
+    "http_status": 400,
+    "recovery_actions": [
+      "Add required 'alert_type' field to request body",
+      "Check API documentation for valid alert_type values"
+    ],
+    "retry_recommended": true,
+    "documentation_link": "/docs#alert-types"
+  },
+  "performance": {
+    "response_time_ms": 15,
+    "request_id": "req_2025072820153001"
+  }
 }
 ```
 
-Common error scenarios:
-- **Invalid input**: Schema validation failures
-- **Source unavailable**: Documentation source is down
-- **Timeout**: Request exceeded timeout limit
-- **Not found**: Requested resource doesn't exist
-- **Rate limited**: Too many requests
+### Common Error Scenarios
 
-## Performance Characteristics
+#### 🔍 Search Errors
+```bash
+# Invalid query format
+curl -X POST /api/search -d '{"invalid": "json}'
+# Returns: VALIDATION_ERROR with field requirements
 
-- **Target response times**:
-  - Cached runbook queries: < 200ms
-  - Standard procedures: < 500ms
-  - General search: < 1000ms
-- **Concurrent queries**: 50+ simultaneous operations supported
-- **Cache efficiency**: 80%+ hit rate for operational scenarios
-- **Availability**: 99.9% uptime target
+# No results found  
+curl -X POST /api/search -d '{"query": "nonexistent_topic"}'
+# Returns: success=true, results=[], with search suggestions
+```
 
-## Authentication
+#### ⚡ Performance Errors
+```bash
+# Source timeout
+curl -X POST /api/runbooks/search -d '{"alert_type": "complex_query"}'
+# Returns: SOURCE_TIMEOUT with fallback options
 
-Currently the MCP server uses stdio transport and inherits authentication from the calling LangGraph agent. Future versions will support:
-- API key authentication
-- OAuth2 integration
-- Role-based access control
-- Audit logging
+# Rate limiting
+curl -X POST /api/search # (101st request in minute)
+# Returns: RATE_LIMITED with retry-after header
+```
 
-## Rate Limiting
+### HTTP Status Codes
 
-- Default: 100 requests per minute per client
-- Configurable via `server.max_concurrent_requests`
-- Graceful degradation with queue management
-- Circuit breaker pattern for source protection
+| Code | Meaning | When It Happens | Recovery |
+|------|---------|-----------------|----------|
+| **200** | Success | Operation completed | Continue |
+| **400** | Bad Request | Invalid parameters | Fix request format |
+| **404** | Not Found | Resource doesn't exist | Check ID/path |
+| **429** | Too Many Requests | Rate limit exceeded | Wait and retry |
+| **500** | Internal Error | Server issue | Retry or contact support |
+| **503** | Service Unavailable | Source adapter down | Use cached data |
+
+---
+
+## 📈 Performance & Optimization
+
+### Response Time Targets
+
+| Operation Type | Target | Typical | 95th Percentile |
+|----------------|--------|---------|-----------------|
+| **Health checks** | < 10ms | 3ms | 8ms |
+| **Cached runbooks** | < 150ms | 45ms | 120ms |
+| **Fresh searches** | < 200ms | 156ms | 185ms |
+| **Procedure lookup** | < 100ms | 28ms | 75ms |
+
+### Intelligent Caching
+
+**7 Caching Strategies:**
+- **Critical runbooks**: 24h TTL, pre-warmed at startup
+- **Decision trees**: 12h TTL, context-aware keys
+- **Procedures**: 6h TTL, parameter-specific caching
+- **Search results**: 1h TTL, query normalization
+- **Health checks**: 5min TTL, circuit breaker integration
+
+**Cache Performance:**
+```bash
+# Check cache statistics
+curl http://localhost:3000/api/performance
+
+{
+  "cache": {
+    "hit_rate": 0.78,
+    "response_time_improvement": "65%",
+    "memory_usage_mb": 45,
+    "redis_connected": true
+  }
+}
+```
+
+### Monitoring & Observability
+
+Real-time performance metrics included in every response:
+
+```json
+{
+  "performance": {
+    "response_time_ms": 45,
+    "cache_hit": true,
+    "source_response_times": {"local-docs": 12},
+    "optimization_applied": ["query_preprocessing", "result_caching"],
+    "request_id": "req_2025072820153001"
+  }
+}
+```
+
+---
+
+## 🚀 Getting Started Examples
+
+### Basic Incident Response Flow
+
+```bash
+# 1. Search for relevant runbooks
+curl -X POST http://localhost:3000/api/runbooks/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alert_type": "memory_pressure",
+    "severity": "high",
+    "affected_systems": ["web-server-01"]
+  }'
+
+# 2. Get decision tree for next steps
+curl -X POST http://localhost:3000/api/decision-tree \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alert_context": {
+      "alert_type": "memory_pressure",
+      "severity": "high"
+    }
+  }'
+
+# 3. Get specific procedure details
+curl http://localhost:3000/api/procedures/mem-pressure-001_restart_service
+
+# 4. Record feedback after resolution
+curl -X POST http://localhost:3000/api/feedback \
+  -H "Content-Type: application/json" \
+  -d '{
+    "runbook_id": "mem-pressure-001",
+    "procedure_id": "restart_service",
+    "outcome": "success",
+    "resolution_time_minutes": 8
+  }'
+```
+
+### Development & Testing
+
+```bash
+# Check API health
+curl http://localhost:3000/api/health
+
+# View performance metrics
+curl http://localhost:3000/api/performance
+
+# List all available sources
+curl http://localhost:3000/api/sources
+
+# Test with sample data
+npm run generate-sample-data
+npm run demo:walkthrough
+```
+
+---
+
+## 📚 Additional Resources
+
+- **🔧 Setup Guide**: See `docs/DEMO-GUIDE.md` for complete setup instructions
+- **⚡ Performance**: See `docs/MILESTONE-1.3-SUMMARY.md` for caching details  
+- **🚀 REST API**: See `docs/MILESTONE-1.4-REST-API.md` for implementation details
+- **🛠️ Development**: Use `npm run test-mcp` for interactive testing

@@ -44,5 +44,5 @@ This document provides troubleshooting guidance for cpu high issues in our infra
 For escalation: sre-oncall@company.com
 
 ---
-*Last updated: 7/29/2025*
+*Last updated: 7/31/2025*
 *Maintained by: DevOps Team*

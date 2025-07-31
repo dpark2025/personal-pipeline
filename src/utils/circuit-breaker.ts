@@ -1,9 +1,9 @@
 /**
  * Circuit Breaker Pattern Implementation
- * 
+ *
  * Provides fault tolerance and resilience for external service calls,
  * implementing the circuit breaker pattern to prevent cascading failures.
- * 
+ *
  * Authored by: DevOps Engineer (Hank)
  * Date: 2025-07-29
  */
@@ -12,18 +12,18 @@ import { EventEmitter } from 'events';
 import { logger } from './logger.js';
 
 export enum CircuitState {
-  CLOSED = 'closed',     // Normal operation
-  OPEN = 'open',         // Circuit is open, requests fail fast
-  HALF_OPEN = 'half_open' // Testing if service has recovered
+  CLOSED = 'closed', // Normal operation
+  OPEN = 'open', // Circuit is open, requests fail fast
+  HALF_OPEN = 'half_open', // Testing if service has recovered
 }
 
 export interface CircuitBreakerConfig {
-  failureThreshold: number;      // Number of failures before opening
-  recoveryTimeout: number;       // Time to wait before trying again (ms)
-  monitoringWindow: number;      // Time window for failure counting (ms)
-  successThreshold: number;      // Successes needed to close in half-open state
-  timeout: number;               // Request timeout (ms)
-  name?: string;                 // Circuit name for logging
+  failureThreshold: number; // Number of failures before opening
+  recoveryTimeout: number; // Time to wait before trying again (ms)
+  monitoringWindow: number; // Time window for failure counting (ms)
+  successThreshold: number; // Successes needed to close in half-open state
+  timeout: number; // Request timeout (ms)
+  name?: string; // Circuit name for logging
 }
 
 export interface CircuitBreakerStats {
@@ -58,7 +58,7 @@ export class CircuitBreaker extends EventEmitter {
     super();
     this.config = config;
     this.name = config.name || 'Circuit';
-    
+
     logger.debug('Circuit breaker initialized', {
       name: this.name,
       failureThreshold: config.failureThreshold,
@@ -204,9 +204,7 @@ export class CircuitBreaker extends EventEmitter {
    */
   private cleanupFailureWindow(): void {
     const cutoff = Date.now() - this.config.monitoringWindow;
-    this.failureWindow = this.failureWindow.filter(
-      failureTime => failureTime.getTime() > cutoff
-    );
+    this.failureWindow = this.failureWindow.filter(failureTime => failureTime.getTime() > cutoff);
   }
 
   /**
@@ -312,17 +310,20 @@ export class CircuitBreakerFactory {
   /**
    * Create or get a circuit breaker for external services
    */
-  static forExternalService(serviceName: string, customConfig?: Partial<CircuitBreakerConfig>): CircuitBreaker {
+  static forExternalService(
+    serviceName: string,
+    customConfig?: Partial<CircuitBreakerConfig>
+  ): CircuitBreaker {
     if (this.breakers.has(serviceName)) {
       return this.breakers.get(serviceName)!;
     }
 
     const config: CircuitBreakerConfig = {
-      failureThreshold: 5,        // 5 failures
-      recoveryTimeout: 60000,     // 1 minute
-      monitoringWindow: 300000,   // 5 minutes
-      successThreshold: 3,        // 3 successes to close
-      timeout: 30000,             // 30 second timeout
+      failureThreshold: 5, // 5 failures
+      recoveryTimeout: 60000, // 1 minute
+      monitoringWindow: 300000, // 5 minutes
+      successThreshold: 3, // 3 successes to close
+      timeout: 30000, // 30 second timeout
       name: serviceName,
       ...customConfig,
     };
@@ -343,17 +344,17 @@ export class CircuitBreakerFactory {
    */
   static forCache(cacheName: string = 'redis'): CircuitBreaker {
     const name = `cache_${cacheName}`;
-    
+
     if (this.breakers.has(name)) {
       return this.breakers.get(name)!;
     }
 
     const config: CircuitBreakerConfig = {
-      failureThreshold: 3,        // 3 failures
-      recoveryTimeout: 30000,     // 30 seconds
-      monitoringWindow: 120000,   // 2 minutes
-      successThreshold: 2,        // 2 successes to close
-      timeout: 5000,              // 5 second timeout
+      failureThreshold: 3, // 3 failures
+      recoveryTimeout: 30000, // 30 seconds
+      monitoringWindow: 120000, // 2 minutes
+      successThreshold: 2, // 2 successes to close
+      timeout: 5000, // 5 second timeout
       name,
     };
 
@@ -370,17 +371,17 @@ export class CircuitBreakerFactory {
    */
   static forDatabase(dbName: string): CircuitBreaker {
     const name = `db_${dbName}`;
-    
+
     if (this.breakers.has(name)) {
       return this.breakers.get(name)!;
     }
 
     const config: CircuitBreakerConfig = {
-      failureThreshold: 3,        // 3 failures
-      recoveryTimeout: 60000,     // 1 minute
-      monitoringWindow: 300000,   // 5 minutes
-      successThreshold: 2,        // 2 successes to close
-      timeout: 10000,             // 10 second timeout
+      failureThreshold: 3, // 3 failures
+      recoveryTimeout: 60000, // 1 minute
+      monitoringWindow: 300000, // 5 minutes
+      successThreshold: 2, // 2 successes to close
+      timeout: 10000, // 10 second timeout
       name,
     };
 
@@ -418,7 +419,7 @@ export class CircuitBreakerFactory {
   } {
     const breakers = this.getAllBreakers();
     const stats = breakers.map(b => b.getStats());
-    
+
     let healthy = 0;
     let degraded = 0;
     let failed = 0;

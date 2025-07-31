@@ -32,14 +32,19 @@ jest.mock('../../../src/utils/performance', () => ({
       response_times: { avg_ms: 150, p95_ms: 300, p99_ms: 500 },
       error_tracking: { error_rate: 0.1 },
     }),
-    getToolMetrics: jest.fn().mockReturnValue(new Map([
-      ['search_runbooks', {
-        calls: 5,
-        errors: 0,
-        avg_time_ms: 200,
-        error_rate: 0,
-      }],
-    ])),
+    getToolMetrics: jest.fn().mockReturnValue(
+      new Map([
+        [
+          'search_runbooks',
+          {
+            calls: 5,
+            errors: 0,
+            avg_time_ms: 200,
+            error_rate: 0,
+          },
+        ],
+      ])
+    ),
     generateReport: jest.fn().mockReturnValue({
       summary: {
         total_requests: 10,
@@ -114,9 +119,9 @@ describe('PPMCPTools', () => {
           }),
         },
       ]),
-      healthCheckAll: jest.fn().mockResolvedValue([
-        { name: 'test-adapter', healthy: true, response_time_ms: 50 },
-      ]),
+      healthCheckAll: jest
+        .fn()
+        .mockResolvedValue([{ name: 'test-adapter', healthy: true, response_time_ms: 50 }]),
       search: jest.fn(),
       searchRunbooks: jest.fn(),
       getDocument: jest.fn(),
@@ -209,7 +214,7 @@ describe('PPMCPTools', () => {
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0]).toHaveProperty('type', 'text');
-      
+
       const response = JSON.parse((result.content[0] as any).text);
       expect(response).toHaveProperty('success', true);
       expect(response).toHaveProperty('runbooks');

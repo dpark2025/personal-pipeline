@@ -52,8 +52,8 @@ This MCP server transforms scattered operational knowledge into structured, acti
 Experience all milestone 1.3 features with our comprehensive demo environment:
 
 ```bash
-# One-command demo setup with sample data, caching, and monitoring
-npm run demo:setup
+# One-command demo start with sample data, caching, and monitoring
+npm run demo:start
 
 # Interactive walkthrough of all features
 npm run demo:walkthrough

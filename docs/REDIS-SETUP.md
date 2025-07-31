@@ -548,8 +548,8 @@ redis-cli flushdb              # Clear current database (use carefully!)
 # Personal Pipeline Operations
 npm run health:cache           # Check cache health
 npm run performance:monitor    # Monitor performance
-npm run demo:setup             # Setup with Redis demo
-npm run demo:setup:memory-only # Setup without Redis
+npm run demo:start             # Setup with Redis demo
+npm run demo:start:memory-only # Setup without Redis
 ```
 
 ### Support

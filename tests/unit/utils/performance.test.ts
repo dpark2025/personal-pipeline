@@ -1,18 +1,18 @@
 /**
  * Comprehensive Performance Monitor Tests
  * Tests for performance tracking, metrics collection, and monitoring
- * 
+ *
  * QA Engineer: Testing performance monitoring for milestone 1.3
  * Coverage: Tool execution tracking, metrics calculation, real-time monitoring
  */
 
 // Import the real PerformanceMonitor for testing
-import { 
-  PerformanceMonitor, 
-  getPerformanceMonitor, 
+import {
+  PerformanceMonitor,
+  getPerformanceMonitor,
   initializePerformanceMonitor,
   PerformanceTimer,
-  createTimer
+  createTimer,
 } from '../../../src/utils/performance';
 
 // Unmock the performance module for this test file
@@ -25,7 +25,7 @@ jest.mock('../../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 describe('PerformanceMonitor - Comprehensive Testing', () => {
@@ -82,18 +82,18 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
 
     it('should track errors correctly', () => {
       const toolName = 'get_escalation_path';
-      
+
       // Record successful executions
       performanceMonitor.recordToolExecution(toolName, 100, false);
       performanceMonitor.recordToolExecution(toolName, 150, false);
-      
+
       // Record error execution
       performanceMonitor.recordToolExecution(toolName, 200, true);
 
       const metrics = performanceMonitor.getToolPerformance(toolName)!;
       expect(metrics.total_calls).toBe(3);
       expect(metrics.error_count).toBe(1);
-      expect(metrics.error_rate).toBe(1/3);
+      expect(metrics.error_rate).toBe(1 / 3);
     });
 
     it('should calculate percentiles correctly', () => {
@@ -113,12 +113,12 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
     it('should update last_called timestamp', () => {
       const toolName = 'record_resolution_feedback';
       const beforeTime = new Date().toISOString();
-      
+
       performanceMonitor.recordToolExecution(toolName, 100);
-      
+
       const metrics = performanceMonitor.getToolPerformance(toolName)!;
       const afterTime = new Date().toISOString();
-      
+
       const lastCalledTime = new Date(metrics.last_called).getTime();
       expect(lastCalledTime).toBeGreaterThanOrEqual(new Date(beforeTime).getTime());
       expect(lastCalledTime).toBeLessThanOrEqual(new Date(afterTime).getTime());
@@ -147,7 +147,7 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
 
       expect(metrics.error_tracking).toBeDefined();
       expect(metrics.error_tracking.total_errors).toBe(1);
-      expect(metrics.error_tracking.error_rate).toBe(1/3);
+      expect(metrics.error_tracking.error_rate).toBe(1 / 3);
 
       expect(metrics.resource_usage).toBeDefined();
       expect(metrics.resource_usage.memory_mb).toBeGreaterThan(0);
@@ -197,9 +197,9 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
       performanceMonitor.stopRealtimeMonitoring();
     });
 
-    it('should call registered callbacks during monitoring', (done) => {
+    it('should call registered callbacks during monitoring', done => {
       let callbackCount = 0;
-      
+
       const callback1 = jest.fn(() => callbackCount++);
       const callback2 = jest.fn(() => callbackCount++);
 
@@ -216,7 +216,7 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
       }, 200);
     });
 
-    it('should handle callback errors gracefully', (done) => {
+    it('should handle callback errors gracefully', done => {
       const errorCallback = jest.fn(() => {
         throw new Error('Callback error');
       });
@@ -236,7 +236,7 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
 
     it('should remove callbacks correctly', () => {
       const callback = jest.fn();
-      
+
       performanceMonitor.onMetricsUpdate(callback);
       expect(performanceMonitor['realtimeCallbacks']).toContain(callback);
 
@@ -254,7 +254,7 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
 
       // Mock console.warn to capture alerts
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
+
       performanceMonitor.startRealtimeMonitoring(50);
 
       setTimeout(() => {
@@ -278,15 +278,13 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
       expect(report.alerts).toBeInstanceOf(Array);
 
       // Should have recommendations for high response time
-      const highResponseRecommendation = report.recommendations.find(r => 
+      const highResponseRecommendation = report.recommendations.find(r =>
         r.includes('P95 response time exceeds')
       );
       expect(highResponseRecommendation).toBeDefined();
 
       // Should have alerts for slow tool
-      const slowToolAlert = report.alerts.find(a => 
-        a.includes('slow_tool')
-      );
+      const slowToolAlert = report.alerts.find(a => a.includes('slow_tool'));
       expect(slowToolAlert).toBeDefined();
     });
 
@@ -302,8 +300,8 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
       });
 
       const report = performanceMonitor.generateReport();
-      
-      const memoryRecommendation = report.recommendations.find(r => 
+
+      const memoryRecommendation = report.recommendations.find(r =>
         r.includes('Memory usage exceeds')
       );
       expect(memoryRecommendation).toBeDefined();
@@ -347,7 +345,7 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
 
     it('should handle concurrent operations safely', async () => {
       const promises = [];
-      
+
       // Simulate concurrent tool executions
       for (let i = 0; i < 100; i++) {
         promises.push(
@@ -373,7 +371,7 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
     it('should return singleton instance with getPerformanceMonitor', () => {
       const monitor1 = getPerformanceMonitor();
       const monitor2 = getPerformanceMonitor();
-      
+
       expect(monitor1).toBe(monitor2);
     });
 
@@ -395,16 +393,16 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
       // Test the decorator by manually recording like it would
       const toolName = 'test_method';
       const startTime = Date.now();
-      
+
       // Simulate some work
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       const endTime = Date.now();
       const executionTime = endTime - startTime;
-      
+
       // Record the execution manually (simulating what decorator should do)
       performanceMonitor.recordToolExecution(toolName, executionTime);
-      
+
       // Also record an error case
       performanceMonitor.recordToolExecution('error_method', 50, true);
 
@@ -432,7 +430,7 @@ describe('PerformanceTimer Utility', () => {
 
   it('should measure elapsed time', async () => {
     const delay = 50;
-    
+
     await new Promise(resolve => setTimeout(resolve, delay));
     const elapsed = timer.elapsed();
 
@@ -443,7 +441,7 @@ describe('PerformanceTimer Utility', () => {
   it('should reset timer correctly', async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
     timer.reset();
-    
+
     const elapsed = timer.elapsed();
     expect(elapsed).toBeLessThan(10); // Should be very small after reset
   });
@@ -451,7 +449,7 @@ describe('PerformanceTimer Utility', () => {
   it('should measure lap times', async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
     const lap1 = timer.lap();
-    
+
     await new Promise(resolve => setTimeout(resolve, 30));
     const lap2 = timer.lap();
 
@@ -466,9 +464,9 @@ describe('PerformanceTimer Utility', () => {
 
     await new Promise(resolve => setTimeout(resolve, 50));
     timer1.reset();
-    
+
     await new Promise(resolve => setTimeout(resolve, 30));
-    
+
     const elapsed1 = timer1.elapsed();
     const elapsed2 = timer2.elapsed();
 
@@ -490,7 +488,7 @@ describe('Performance Edge Cases and Error Handling', () => {
 
   it('should handle negative execution times', () => {
     performanceMonitor.recordToolExecution('negative_test', -10);
-    
+
     const metrics = performanceMonitor.getToolPerformance('negative_test');
     expect(metrics).toBeDefined();
     expect(metrics!.total_time_ms).toBe(-10);
@@ -499,14 +497,14 @@ describe('Performance Edge Cases and Error Handling', () => {
   it('should handle very large execution times', () => {
     const largeTime = 1000000; // 1 million ms
     performanceMonitor.recordToolExecution('large_test', largeTime);
-    
+
     const metrics = performanceMonitor.getToolPerformance('large_test');
     expect(metrics!.total_time_ms).toBe(largeTime);
   });
 
   it('should handle empty tool names', () => {
     performanceMonitor.recordToolExecution('', 100);
-    
+
     const metrics = performanceMonitor.getToolPerformance('');
     expect(metrics).toBeDefined();
     expect(metrics!.tool_name).toBe('');
@@ -515,7 +513,7 @@ describe('Performance Edge Cases and Error Handling', () => {
   it('should handle special characters in tool names', () => {
     const specialName = 'tool@#$%^&*()_+-=[]{}|;:,.<>?';
     performanceMonitor.recordToolExecution(specialName, 100);
-    
+
     const metrics = performanceMonitor.getToolPerformance(specialName);
     expect(metrics).toBeDefined();
     expect(metrics!.tool_name).toBe(specialName);
@@ -524,7 +522,7 @@ describe('Performance Edge Cases and Error Handling', () => {
   it('should handle unicode characters in tool names', () => {
     const unicodeName = 'инструмент-工具-ツール-🔧📊⚡';
     performanceMonitor.recordToolExecution(unicodeName, 100);
-    
+
     const metrics = performanceMonitor.getToolPerformance(unicodeName);
     expect(metrics).toBeDefined();
     expect(metrics!.tool_name).toBe(unicodeName);
@@ -532,7 +530,7 @@ describe('Performance Edge Cases and Error Handling', () => {
 
   it('should maintain performance under heavy load', () => {
     const startTime = Date.now();
-    
+
     // Simulate heavy load
     for (let i = 0; i < 10000; i++) {
       performanceMonitor.recordToolExecution(`tool_${i % 100}`, Math.random() * 1000);
@@ -540,13 +538,13 @@ describe('Performance Edge Cases and Error Handling', () => {
         performanceMonitor.recordError(`error_type_${i % 10}`);
       }
     }
-    
+
     const endTime = Date.now();
     const duration = endTime - startTime;
-    
+
     // Should complete within reasonable time
     expect(duration).toBeLessThan(5000); // 5 seconds
-    
+
     const metrics = performanceMonitor.getMetrics();
     expect(metrics.response_times.count).toBe(10000);
     expect(metrics.error_tracking.total_errors).toBe(10);

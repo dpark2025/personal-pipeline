@@ -260,10 +260,10 @@ npm run health:cache | jq '.cache.strategy'
 
 ```bash
 # Demo with Redis (recommended)
-npm run demo:setup
+npm run demo:start
 
 # Demo without Redis
-npm run demo:setup:memory-only
+npm run demo:start:memory-only
 
 # Validate demo performance
 npm run demo:validate

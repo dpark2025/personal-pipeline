@@ -26,19 +26,20 @@ import { CacheService, initializeCacheService } from '../utils/cache.js';
 import { AppConfig, CacheConfig } from '../types/index.js';
 import { performance } from 'perf_hooks';
 import { initializePerformanceMonitor, getPerformanceMonitor } from '../utils/performance.js';
-import { initializeMonitoringService, getMonitoringService, defaultMonitoringConfig } from '../utils/monitoring.js';
+import {
+  initializeMonitoringService,
+  getMonitoringService,
+  defaultMonitoringConfig,
+} from '../utils/monitoring.js';
 import { CircuitBreakerFactory } from '../utils/circuit-breaker.js';
 import { createAPIRoutes } from '../api/routes.js';
-import { 
-  securityHeaders, 
-  performanceMonitoring, 
-  requestSizeLimiter, 
-  globalErrorHandler 
+import {
+  securityHeaders,
+  performanceMonitoring,
+  requestSizeLimiter,
+  globalErrorHandler,
 } from '../api/middleware.js';
-import { 
-  correlationMiddleware,
-  correlationErrorHandler
-} from '../api/correlation.js';
+import { correlationMiddleware, correlationErrorHandler } from '../api/correlation.js';
 import { createSwaggerRouter } from '../api/swagger.js';
 import { intelligentCaching, warmCriticalCache } from '../api/caching-middleware.js';
 
@@ -93,7 +94,7 @@ export class PersonalPipelineServer {
       // Initialize performance monitoring
       initializePerformanceMonitor({
         windowSize: 60000, // 1 minute sliding window
-        maxSamples: 1000,   // Keep last 1000 samples
+        maxSamples: 1000, // Keep last 1000 samples
       });
 
       // Initialize monitoring service
@@ -115,12 +116,11 @@ export class PersonalPipelineServer {
       // Warm critical cache if cache service is available
       if (this.cacheService && this.mcpTools) {
         setTimeout(() => {
-          warmCriticalCache(this.cacheService, this.mcpTools)
-            .catch(error => {
-              logger.warn('Cache warming failed during startup', {
-                error: error instanceof Error ? error.message : String(error)
-              });
+          warmCriticalCache(this.cacheService, this.mcpTools).catch(error => {
+            logger.warn('Cache warming failed during startup', {
+              error: error instanceof Error ? error.message : String(error),
             });
+          });
         }, 5000); // Wait 5 seconds after startup to warm cache
       }
 
@@ -367,7 +367,7 @@ export class PersonalPipelineServer {
     this.expressApp.post('/mcp/call', async (req, res): Promise<void> => {
       try {
         const { tool, arguments: args } = req.body;
-        
+
         if (!tool) {
           res.status(400).json({
             error: 'Missing required field: tool',
@@ -399,7 +399,13 @@ export class PersonalPipelineServer {
 
         // Parse the result from MCP format
         let responseData: any;
-        if (result.content && result.content.length > 0 && result.content[0] && 'text' in result.content[0] && result.content[0].text) {
+        if (
+          result.content &&
+          result.content.length > 0 &&
+          result.content[0] &&
+          'text' in result.content[0] &&
+          result.content[0].text
+        ) {
           try {
             responseData = JSON.parse(result.content[0].text as string);
           } catch (error) {
@@ -415,7 +421,6 @@ export class PersonalPipelineServer {
           execution_time_ms: Math.round(executionTime),
           timestamp: new Date().toISOString(),
         });
-
       } catch (error) {
         logger.error('MCP call endpoint error', {
           error: error instanceof Error ? error.message : String(error),
@@ -450,7 +455,10 @@ export class PersonalPipelineServer {
           overall_grade: this.calculatePerformanceGrade(report.summary),
           targets_met: this.checkPerformanceTargets(report.summary),
           bottlenecks: this.identifyBottlenecks(toolMetrics.by_tool),
-          optimization_opportunities: this.findOptimizationOpportunities(report.summary, toolMetrics.by_tool),
+          optimization_opportunities: this.findOptimizationOpportunities(
+            report.summary,
+            toolMetrics.by_tool
+          ),
           resource_efficiency: this.analyzeResourceEfficiency(report.summary),
         };
 
@@ -460,7 +468,6 @@ export class PersonalPipelineServer {
           detailed_metrics: toolMetrics,
           analysis,
         });
-
       } catch (error) {
         logger.error('Performance endpoint error', { error });
         res.status(500).json({
@@ -544,7 +551,7 @@ export class PersonalPipelineServer {
         const monitoringService = getMonitoringService();
         const { alertId } = req.params;
         const resolved = monitoringService.manuallyResolveAlert(alertId);
-        
+
         if (resolved) {
           res.json({
             success: true,
@@ -605,7 +612,7 @@ export class PersonalPipelineServer {
       try {
         const { name } = req.params;
         const breaker = CircuitBreakerFactory.getBreaker(name);
-        
+
         if (breaker) {
           breaker.manualReset();
           res.json({
@@ -706,9 +713,9 @@ export class PersonalPipelineServer {
       try {
         const performanceMonitor = getPerformanceMonitor();
         const metrics = performanceMonitor.getMetrics();
-        
+
         // Determine health based on performance thresholds
-        const isHealthy = 
+        const isHealthy =
           metrics.response_times.p95_ms < 2000 &&
           metrics.error_tracking.error_rate < 0.1 &&
           metrics.resource_usage.memory_mb < 2048;
@@ -766,7 +773,7 @@ export class PersonalPipelineServer {
       const apiRoutes = createAPIRoutes({
         mcpTools: this.mcpTools,
         sourceRegistry: this.sourceRegistry,
-        ...(this.cacheService && { cacheService: this.cacheService })
+        ...(this.cacheService && { cacheService: this.cacheService }),
       });
 
       // Create Swagger UI documentation router
@@ -774,7 +781,7 @@ export class PersonalPipelineServer {
 
       // Mount API routes at /api prefix
       this.expressApp.use('/api', apiRoutes);
-      
+
       // Mount Swagger UI at /api/docs
       this.expressApp.use('/api/docs', swaggerRouter);
 
@@ -786,8 +793,8 @@ export class PersonalPipelineServer {
         components: {
           mcp_tools: !!this.mcpTools,
           source_registry: !!this.sourceRegistry,
-          cache_service: !!this.cacheService
-        }
+          cache_service: !!this.cacheService,
+        },
       });
 
       // Add 404 handler for unmatched routes (must be after all other routes)
@@ -802,10 +809,9 @@ export class PersonalPipelineServer {
       // Global error handlers for API (must be last)
       this.expressApp.use(correlationErrorHandler);
       this.expressApp.use(globalErrorHandler());
-
     } catch (error) {
       logger.error('Failed to setup API routes', {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -1132,7 +1138,7 @@ export class PersonalPipelineServer {
     try {
       const performanceMonitor = getPerformanceMonitor();
       const metrics = performanceMonitor.getMetrics();
-      const isPerformanceHealthy = 
+      const isPerformanceHealthy =
         metrics.response_times.p95_ms < 2000 &&
         metrics.error_tracking.error_rate < 0.1 &&
         metrics.resource_usage.memory_mb < 2048;
@@ -1183,7 +1189,7 @@ export class PersonalPipelineServer {
     // Determine overall status
     const healthPercentage = totalComponents > 0 ? (healthyComponents / totalComponents) * 100 : 0;
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
-    
+
     if (healthPercentage >= 80) {
       overallStatus = 'healthy';
     } else if (healthPercentage >= 50) {
@@ -1213,16 +1219,21 @@ export class PersonalPipelineServer {
     const timestamp = Date.now();
 
     // Helper function to add metric
-    const addMetric = (name: string, value: number, labels: Record<string, string> = {}, help?: string) => {
+    const addMetric = (
+      name: string,
+      value: number,
+      labels: Record<string, string> = {},
+      help?: string
+    ) => {
       if (help) {
         lines.push(`# HELP ${name} ${help}`);
         lines.push(`# TYPE ${name} gauge`);
       }
-      
+
       const labelStr = Object.entries(labels)
         .map(([k, v]) => `${k}="${v}"`)
         .join(',');
-      
+
       const labelPart = labelStr ? `{${labelStr}}` : '';
       lines.push(`${name}${labelPart} ${value} ${timestamp}`);
     };
@@ -1232,16 +1243,41 @@ export class PersonalPipelineServer {
 
     // Process memory metrics
     if (data.performance?.memory) {
-      addMetric('pp_memory_rss_bytes', data.performance.memory.rss_mb * 1024 * 1024, {}, 'Resident set size memory');
-      addMetric('pp_memory_heap_used_bytes', data.performance.memory.heap_used_mb * 1024 * 1024, {}, 'Heap memory used');
-      addMetric('pp_memory_heap_total_bytes', data.performance.memory.heap_total_mb * 1024 * 1024, {}, 'Total heap memory');
-      addMetric('pp_memory_external_bytes', data.performance.memory.external_mb * 1024 * 1024, {}, 'External memory');
+      addMetric(
+        'pp_memory_rss_bytes',
+        data.performance.memory.rss_mb * 1024 * 1024,
+        {},
+        'Resident set size memory'
+      );
+      addMetric(
+        'pp_memory_heap_used_bytes',
+        data.performance.memory.heap_used_mb * 1024 * 1024,
+        {},
+        'Heap memory used'
+      );
+      addMetric(
+        'pp_memory_heap_total_bytes',
+        data.performance.memory.heap_total_mb * 1024 * 1024,
+        {},
+        'Total heap memory'
+      );
+      addMetric(
+        'pp_memory_external_bytes',
+        data.performance.memory.external_mb * 1024 * 1024,
+        {},
+        'External memory'
+      );
     }
 
     // Cache metrics
     if (data.cache) {
       addMetric('pp_cache_hit_rate', data.cache.hit_rate, {}, 'Cache hit rate (0-1)');
-      addMetric('pp_cache_operations_total', data.cache.total_operations, {}, 'Total cache operations');
+      addMetric(
+        'pp_cache_operations_total',
+        data.cache.total_operations,
+        {},
+        'Total cache operations'
+      );
       addMetric('pp_cache_hits_total', data.cache.hits, {}, 'Total cache hits');
       addMetric('pp_cache_misses_total', data.cache.misses, {}, 'Total cache misses');
     }
@@ -1252,7 +1288,12 @@ export class PersonalPipelineServer {
         const labels = { tool: toolName };
         addMetric('pp_tool_calls_total', metrics.calls || 0, labels, 'Total tool calls');
         addMetric('pp_tool_errors_total', metrics.errors || 0, labels, 'Total tool errors');
-        addMetric('pp_tool_avg_duration_ms', metrics.avg_time_ms || 0, labels, 'Average tool execution time in milliseconds');
+        addMetric(
+          'pp_tool_avg_duration_ms',
+          metrics.avg_time_ms || 0,
+          labels,
+          'Average tool execution time in milliseconds'
+        );
         addMetric('pp_tool_error_rate', metrics.error_rate || 0, labels, 'Tool error rate (0-1)');
       });
     }
@@ -1262,10 +1303,20 @@ export class PersonalPipelineServer {
       data.sources.forEach((source: any, index: number) => {
         const labels = { source: source.name || `source_${index}`, type: source.type || 'unknown' };
         const isHealthy = !source.error ? 1 : 0;
-        addMetric('pp_source_healthy', isHealthy, labels, 'Source adapter health status (1=healthy, 0=unhealthy)');
-        
+        addMetric(
+          'pp_source_healthy',
+          isHealthy,
+          labels,
+          'Source adapter health status (1=healthy, 0=unhealthy)'
+        );
+
         if (source.response_time_ms !== undefined) {
-          addMetric('pp_source_response_time_ms', source.response_time_ms, labels, 'Source adapter response time in milliseconds');
+          addMetric(
+            'pp_source_response_time_ms',
+            source.response_time_ms,
+            labels,
+            'Source adapter response time in milliseconds'
+          );
         }
       });
     }
@@ -1348,7 +1399,7 @@ export class PersonalPipelineServer {
 
     for (const [toolName, metrics] of Object.entries(toolMetrics)) {
       const toolData = metrics as any;
-      
+
       // High response time bottleneck
       if (toolData.avg_time_ms > 1000) {
         bottlenecks.push({
@@ -1357,7 +1408,8 @@ export class PersonalPipelineServer {
           severity: toolData.avg_time_ms > 2000 ? 'high' : 'medium',
           description: `Tool ${toolName} has high average response time: ${toolData.avg_time_ms.toFixed(0)}ms`,
           impact: 'User experience degradation',
-          recommendation: 'Optimize database queries, implement caching, or reduce computational complexity',
+          recommendation:
+            'Optimize database queries, implement caching, or reduce computational complexity',
         });
       }
 
@@ -1369,7 +1421,8 @@ export class PersonalPipelineServer {
           severity: toolData.error_rate > 0.1 ? 'high' : 'medium',
           description: `Tool ${toolName} has high error rate: ${(toolData.error_rate * 100).toFixed(1)}%`,
           impact: 'Service reliability issues',
-          recommendation: 'Investigate error causes, improve error handling, and add retry mechanisms',
+          recommendation:
+            'Investigate error causes, improve error handling, and add retry mechanisms',
         });
       }
 
@@ -1483,8 +1536,8 @@ export class PersonalPipelineServer {
   private analyzeResourceEfficiency(metrics: any): any {
     const memoryEfficiency = Math.max(0, 100 - (metrics.resource_usage.memory_mb / 2048) * 100);
     const responseTimeEfficiency = Math.max(0, 100 - (metrics.response_times.avg_ms / 1000) * 100);
-    const errorEfficiency = Math.max(0, 100 - (metrics.error_tracking.error_rate * 10000));
-    
+    const errorEfficiency = Math.max(0, 100 - metrics.error_tracking.error_rate * 10000);
+
     const overallEfficiency = (memoryEfficiency + responseTimeEfficiency + errorEfficiency) / 3;
 
     return {
@@ -1493,7 +1546,11 @@ export class PersonalPipelineServer {
       response_time_efficiency_percent: Math.round(responseTimeEfficiency),
       error_efficiency_percent: Math.round(errorEfficiency),
       efficiency_grade: this.getEfficiencyGrade(overallEfficiency),
-      recommendations: this.getEfficiencyRecommendations(memoryEfficiency, responseTimeEfficiency, errorEfficiency),
+      recommendations: this.getEfficiencyRecommendations(
+        memoryEfficiency,
+        responseTimeEfficiency,
+        errorEfficiency
+      ),
     };
   }
 
@@ -1511,23 +1568,35 @@ export class PersonalPipelineServer {
   /**
    * Get efficiency recommendations
    */
-  private getEfficiencyRecommendations(memory: number, responseTime: number, error: number): string[] {
+  private getEfficiencyRecommendations(
+    memory: number,
+    responseTime: number,
+    error: number
+  ): string[] {
     const recommendations = [];
 
     if (memory < 70) {
-      recommendations.push('Optimize memory usage through better data structures and garbage collection tuning');
+      recommendations.push(
+        'Optimize memory usage through better data structures and garbage collection tuning'
+      );
     }
 
     if (responseTime < 70) {
-      recommendations.push('Improve response times through caching, query optimization, and code profiling');
+      recommendations.push(
+        'Improve response times through caching, query optimization, and code profiling'
+      );
     }
 
     if (error < 90) {
-      recommendations.push('Reduce error rates through better error handling, input validation, and testing');
+      recommendations.push(
+        'Reduce error rates through better error handling, input validation, and testing'
+      );
     }
 
     if (recommendations.length === 0) {
-      recommendations.push('System efficiency is good - focus on monitoring and maintaining current performance levels');
+      recommendations.push(
+        'System efficiency is good - focus on monitoring and maintaining current performance levels'
+      );
     }
 
     return recommendations;

@@ -1,7 +1,7 @@
 /**
  * Performance Integration Tests
  * End-to-end performance testing with real MCP tool execution
- * 
+ *
  * QA Engineer: Performance validation for milestone 1.3
  * Coverage: Load testing, benchmarking, performance regression detection
  */
@@ -34,7 +34,7 @@ jest.mock('../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 describe.skip('Performance Integration Tests - TODO: Fix handleRequest method calls', () => {
@@ -58,9 +58,9 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
           { step: 'Check current active connections', timeout: '30s' },
           { step: 'Analyze slow query log', timeout: '2m' },
           { step: 'Review connection pool metrics', timeout: '1m' },
-          { step: 'Optimize queries or scale resources', timeout: '5m' }
+          { step: 'Optimize queries or scale resources', timeout: '5m' },
         ],
-        metadata: { confidence_score: 0.92, last_updated: new Date().toISOString() }
+        metadata: { confidence_score: 0.92, last_updated: new Date().toISOString() },
       },
       {
         id: 'perf-rb-002',
@@ -71,9 +71,9 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
           { step: 'Generate heap dump', timeout: '2m' },
           { step: 'Analyze memory patterns', timeout: '10m' },
           { step: 'Identify leak sources', timeout: '15m' },
-          { step: 'Apply fixes or restart service', timeout: '5m' }
+          { step: 'Apply fixes or restart service', timeout: '5m' },
         ],
-        metadata: { confidence_score: 0.88, last_updated: new Date().toISOString() }
+        metadata: { confidence_score: 0.88, last_updated: new Date().toISOString() },
       },
       {
         id: 'perf-rb-003',
@@ -84,26 +84,26 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
           { step: 'Run network diagnostics', timeout: '5m' },
           { step: 'Check routing tables', timeout: '2m' },
           { step: 'Analyze traffic patterns', timeout: '10m' },
-          { step: 'Implement traffic shaping', timeout: '3m' }
+          { step: 'Implement traffic shaping', timeout: '3m' },
         ],
-        metadata: { confidence_score: 0.85, last_updated: new Date().toISOString() }
-      }
+        metadata: { confidence_score: 0.85, last_updated: new Date().toISOString() },
+      },
     ];
 
     // Create runbook files
     for (let i = 0; i < runbookTemplates.length; i++) {
       const template = runbookTemplates[i];
       if (!template) continue;
-      
+
       // Create multiple variations for load testing
       for (let j = 0; j < 10; j++) {
         const runbook = {
           ...template,
           id: `${template.id}-var-${j}`,
           title: `${template.title} - Variation ${j}`,
-          triggers: [...template.triggers, `variation_${j}_trigger`]
+          triggers: [...template.triggers, `variation_${j}_trigger`],
         };
-        
+
         await fs.writeFile(
           path.join(testDataDir, `runbook-${i}-${j}.json`),
           JSON.stringify(runbook, null, 2)
@@ -122,14 +122,14 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
           `Execute performance scenario ${i}`,
           `Collect metrics and data ${i}`,
           `Analyze results for scenario ${i}`,
-          `Generate performance report ${i}`
+          `Generate performance report ${i}`,
         ],
         estimated_duration: `${5 + i * 2} minutes`,
         metadata: {
           complexity: i % 3 === 0 ? 'high' : 'medium',
           frequency: 'on-demand',
-          last_executed: new Date().toISOString()
-        }
+          last_executed: new Date().toISOString(),
+        },
       };
 
       await fs.writeFile(
@@ -142,23 +142,25 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
   beforeEach(async () => {
     // Initialize test configuration optimized for performance testing
     const testConfig = {
-      sources: [{
-        name: 'performance-test-filesystem',
-        type: 'filesystem',
-        enabled: true,
-        config: {
-          path: testDataDir,
-          watch: false,
-          extensions: ['.json', '.md']
-        }
-      }],
+      sources: [
+        {
+          name: 'performance-test-filesystem',
+          type: 'filesystem',
+          enabled: true,
+          config: {
+            path: testDataDir,
+            watch: false,
+            extensions: ['.json', '.md'],
+          },
+        },
+      ],
       cache: {
         enabled: true,
         strategy: 'hybrid' as const,
         memory: {
           max_keys: 1000,
           ttl_seconds: 300,
-          check_period_seconds: 60
+          check_period_seconds: 60,
         },
         redis: {
           enabled: true,
@@ -167,20 +169,20 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
           key_prefix: 'pp:perf:',
           connection_timeout_ms: 2000,
           retry_attempts: 2,
-          retry_delay_ms: 500
+          retry_delay_ms: 500,
         },
         content_types: {
           runbooks: { ttl_seconds: 300, warmup: true },
           procedures: { ttl_seconds: 180, warmup: true },
           decision_trees: { ttl_seconds: 240, warmup: true },
-          knowledge_base: { ttl_seconds: 90, warmup: false }
-        }
+          knowledge_base: { ttl_seconds: 90, warmup: false },
+        },
       },
       performance: {
         enabled: true,
         windowSize: 60000, // 1 minute
-        maxSamples: 10000,  // Large sample size for performance testing
-        realtimeMonitoring: true
+        maxSamples: 10000, // Large sample size for performance testing
+        realtimeMonitoring: true,
       },
       monitoring: {
         enabled: true,
@@ -188,9 +190,9 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
         alertRetentionHours: 1,
         maxActiveAlerts: 100,
         notificationChannels: {
-          console: false // Disable to avoid noise during performance tests
-        }
-      }
+          console: false, // Disable to avoid noise during performance tests
+        },
+      },
     };
 
     // Initialize services
@@ -234,17 +236,17 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
           arguments: {
             alert_type: 'slow_query',
             severity: 'critical',
-            systems: ['database']
-          }
-        }
+            systems: ['database'],
+          },
+        },
       });
 
       // Measure cached response times
       const cachedResponseTimes = [];
-      
+
       for (let i = 0; i < 20; i++) {
         const startTime = process.hrtime.bigint();
-        
+
         const response = await server.handleRequest({
           method: 'tools/call',
           params: {
@@ -252,21 +254,24 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
             arguments: {
               alert_type: 'slow_query',
               severity: 'critical',
-              systems: ['database']
-            }
-          }
+              systems: ['database'],
+            },
+          },
         });
-        
+
         const endTime = process.hrtime.bigint();
         const responseTimeMs = Number(endTime - startTime) / 1_000_000;
-        
+
         expect(response.isError).toBe(false);
         cachedResponseTimes.push(responseTimeMs);
       }
 
       // Validate performance requirements
-      const avgResponseTime = cachedResponseTimes.reduce((a, b) => a + b, 0) / cachedResponseTimes.length;
-      const p95ResponseTime = cachedResponseTimes.sort((a, b) => a - b)[Math.floor(cachedResponseTimes.length * 0.95)];
+      const avgResponseTime =
+        cachedResponseTimes.reduce((a, b) => a + b, 0) / cachedResponseTimes.length;
+      const p95ResponseTime = cachedResponseTimes.sort((a, b) => a - b)[
+        Math.floor(cachedResponseTimes.length * 0.95)
+      ];
       const maxResponseTime = Math.max(...cachedResponseTimes);
 
       expect(avgResponseTime).toBeLessThan(200); // <200ms average
@@ -281,11 +286,11 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
 
     it('should meet <500ms uncached response time requirement', async () => {
       const uncachedResponseTimes = [];
-      
+
       // Test different queries to avoid cache hits
       for (let i = 0; i < 10; i++) {
         const startTime = process.hrtime.bigint();
-        
+
         const response = await server.handleRequest({
           method: 'tools/call',
           params: {
@@ -293,21 +298,24 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
             arguments: {
               alert_type: `unique_alert_${i}`,
               severity: 'medium',
-              systems: [`system_${i}`]
-            }
-          }
+              systems: [`system_${i}`],
+            },
+          },
         });
-        
+
         const endTime = process.hrtime.bigint();
         const responseTimeMs = Number(endTime - startTime) / 1_000_000;
-        
+
         expect(response.isError).toBe(false);
         uncachedResponseTimes.push(responseTimeMs);
       }
 
       // Validate performance requirements
-      const avgResponseTime = uncachedResponseTimes.reduce((a, b) => a + b, 0) / uncachedResponseTimes.length;
-      const p95ResponseTime = uncachedResponseTimes.sort((a, b) => a - b)[Math.floor(uncachedResponseTimes.length * 0.95)];
+      const avgResponseTime =
+        uncachedResponseTimes.reduce((a, b) => a + b, 0) / uncachedResponseTimes.length;
+      const p95ResponseTime = uncachedResponseTimes.sort((a, b) => a - b)[
+        Math.floor(uncachedResponseTimes.length * 0.95)
+      ];
       const maxResponseTime = Math.max(...uncachedResponseTimes);
 
       expect(avgResponseTime).toBeLessThan(500); // <500ms average
@@ -329,7 +337,7 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
         { alert_type: 'high_latency', severity: 'critical', systems: ['network'] },
         { alert_type: 'slow_query', severity: 'medium', systems: ['database'] },
         { alert_type: 'packet_loss', severity: 'high', systems: ['network'] },
-        { alert_type: 'connection_drops', severity: 'critical', systems: ['network'] }
+        { alert_type: 'connection_drops', severity: 'critical', systems: ['network'] },
       ];
 
       const startTime = process.hrtime.bigint();
@@ -338,7 +346,7 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
       // Generate concurrent requests
       for (let i = 0; i < concurrentRequests; i++) {
         const query = testQueries[i % testQueries.length];
-        
+
         concurrentPromises.push(
           server.handleRequest({
             method: 'tools/call',
@@ -346,9 +354,9 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
               name: 'search_runbooks',
               arguments: {
                 ...query,
-                request_id: `concurrent_${i}` // Make each request unique
-              }
-            }
+                request_id: `concurrent_${i}`, // Make each request unique
+              },
+            },
           })
         );
       }
@@ -383,13 +391,13 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
       const cacheWarmupQueries = [
         { alert_type: 'warmup_query_1', severity: 'high', systems: ['test'] },
         { alert_type: 'warmup_query_2', severity: 'medium', systems: ['test'] },
-        { alert_type: 'warmup_query_3', severity: 'low', systems: ['test'] }
+        { alert_type: 'warmup_query_3', severity: 'low', systems: ['test'] },
       ];
 
       for (const query of cacheWarmupQueries) {
         await server.handleRequest({
           method: 'tools/call',
-          params: { name: 'search_runbooks', arguments: query }
+          params: { name: 'search_runbooks', arguments: query },
         });
       }
 
@@ -400,11 +408,11 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
 
       for (let i = 0; i < highLoadRequests; i++) {
         const query = cacheWarmupQueries[i % cacheWarmupQueries.length];
-        
+
         cachedPromises.push(
           server.handleRequest({
             method: 'tools/call',
-            params: { name: 'search_runbooks', arguments: query }
+            params: { name: 'search_runbooks', arguments: query },
           })
         );
       }
@@ -430,11 +438,11 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
   describe('Memory and Resource Performance', () => {
     it('should maintain stable memory usage under load', async () => {
       const initialMemory = process.memoryUsage();
-      
+
       // Generate sustained load
       for (let batch = 0; batch < 10; batch++) {
         const batchPromises = [];
-        
+
         for (let i = 0; i < 20; i++) {
           batchPromises.push(
             server.handleRequest({
@@ -444,15 +452,15 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
                 arguments: {
                   alert_type: `memory_test_${batch}_${i}`,
                   severity: 'medium',
-                  systems: ['memory_test']
-                }
-              }
+                  systems: ['memory_test'],
+                },
+              },
             })
           );
         }
-        
+
         await Promise.all(batchPromises);
-        
+
         // Force garbage collection if available
         if (global.gc) {
           global.gc();
@@ -476,7 +484,7 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
     it('should handle resource cleanup properly', async () => {
       // Create resource-intensive operations
       const resourcePromises = [];
-      
+
       for (let i = 0; i < 50; i++) {
         resourcePromises.push(
           server.handleRequest({
@@ -485,9 +493,9 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
               name: 'get_procedure',
               arguments: {
                 procedure_id: `perf-proc-${i % 5}`,
-                section: 'all'
-              }
-            }
+                section: 'all',
+              },
+            },
           })
         );
       }
@@ -509,10 +517,10 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
     it('should detect performance degradation in tool execution', async () => {
       // Establish baseline performance
       const baselineResults = [];
-      
+
       for (let i = 0; i < 10; i++) {
         const startTime = process.hrtime.bigint();
-        
+
         await server.handleRequest({
           method: 'tools/call',
           params: {
@@ -520,11 +528,11 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
             arguments: {
               alert_type: 'baseline_test',
               severity: 'medium',
-              systems: ['baseline']
-            }
-          }
+              systems: ['baseline'],
+            },
+          },
         });
-        
+
         const endTime = process.hrtime.bigint();
         baselineResults.push(Number(endTime - startTime) / 1_000_000);
       }
@@ -533,10 +541,10 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
 
       // Simulate performance regression with more complex query
       const regressionResults = [];
-      
+
       for (let i = 0; i < 10; i++) {
         const startTime = process.hrtime.bigint();
-        
+
         await server.handleRequest({
           method: 'tools/call',
           params: {
@@ -544,11 +552,11 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
             arguments: {
               alert_type: 'complex_regression_test',
               severity: 'critical',
-              systems: ['regression', 'complex', 'multiple', 'systems']
-            }
-          }
+              systems: ['regression', 'complex', 'multiple', 'systems'],
+            },
+          },
         });
-        
+
         const endTime = process.hrtime.bigint();
         regressionResults.push(Number(endTime - startTime) / 1_000_000);
       }
@@ -563,7 +571,7 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
       console.log(`Performance Regression Analysis:
         Baseline Avg: ${baselineAvg.toFixed(2)}ms
         Regression Avg: ${regressionAvg.toFixed(2)}ms
-        Change: ${((regressionAvg - baselineAvg) / baselineAvg * 100).toFixed(1)}%`);
+        Change: ${(((regressionAvg - baselineAvg) / baselineAvg) * 100).toFixed(1)}%`);
     });
 
     it('should generate performance alerts for slow operations', async () => {
@@ -574,19 +582,19 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
 
       // Generate performance report
       const report = performanceMonitor.generateReport();
-      
+
       expect(report.alerts.length).toBeGreaterThan(0);
       expect(report.recommendations.length).toBeGreaterThan(0);
-      
+
       // Should have alerts for slow tools
-      const slowToolAlert = report.alerts.find(alert => 
-        alert.includes('slow_test_tool') && alert.includes('high response time')
+      const slowToolAlert = report.alerts.find(
+        alert => alert.includes('slow_test_tool') && alert.includes('high response time')
       );
       expect(slowToolAlert).toBeDefined();
 
       // Should have performance recommendations
-      const performanceRecommendation = report.recommendations.find(rec =>
-        rec.includes('response time') || rec.includes('performance')
+      const performanceRecommendation = report.recommendations.find(
+        rec => rec.includes('response time') || rec.includes('performance')
       );
       expect(performanceRecommendation).toBeDefined();
     });
@@ -599,7 +607,7 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
 
       for (const loadLevel of loadLevels) {
         performanceMonitor.reset(); // Reset for clean metrics
-        
+
         const startTime = process.hrtime.bigint();
         const promises = [];
 
@@ -613,22 +621,22 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
                 arguments: {
                   alert_type: `scale_test_${i}`,
                   severity: 'medium',
-                  systems: ['scale']
-                }
-              }
+                  systems: ['scale'],
+                },
+              },
             })
           );
         }
 
         await Promise.all(promises);
         const totalTime = Number(process.hrtime.bigint() - startTime) / 1_000_000;
-        
+
         const metrics = performanceMonitor.getMetrics();
         results.push({
           loadLevel,
           totalTime,
           avgResponseTime: totalTime / loadLevel,
-          throughput: metrics.throughput.requests_per_second
+          throughput: metrics.throughput.requests_per_second,
         });
       }
 
@@ -644,7 +652,7 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
           const prevResult = results[index - 1];
           const throughputRatio = result.throughput / prevResult.throughput;
           const loadRatio = result.loadLevel / prevResult.loadLevel;
-          
+
           // Throughput should scale reasonably with load
           expect(throughputRatio).toBeGreaterThan(0.5); // Should not drop below 50% efficiency
         }
@@ -654,26 +662,26 @@ describe.skip('Performance Integration Tests - TODO: Fix handleRequest method ca
     it('should maintain performance with large datasets', async () => {
       // Test performance with many different queries to stress filesystem adapter
       const largeDatasetQueries = [];
-      
+
       // Generate 100 unique queries
       for (let i = 0; i < 100; i++) {
         largeDatasetQueries.push({
           alert_type: `dataset_query_${i}`,
           severity: i % 3 === 0 ? 'critical' : i % 3 === 1 ? 'high' : 'medium',
-          systems: [`system_${i % 10}`, `component_${i % 5}`]
+          systems: [`system_${i % 10}`, `component_${i % 5}`],
         });
       }
 
       const startTime = process.hrtime.bigint();
-      
+
       // Execute all queries
       const datasetPromises = largeDatasetQueries.map(query =>
         server.handleRequest({
           method: 'tools/call',
           params: {
             name: 'search_runbooks',
-            arguments: query
-          }
+            arguments: query,
+          },
         })
       );
 

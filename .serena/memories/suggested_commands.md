@@ -73,7 +73,7 @@ npm run performance:reset
 ## Demo Environment Commands
 ```bash
 # One-command demo setup
-npm run demo:setup
+npm run demo:start
 
 # Interactive walkthrough
 npm run demo:walkthrough

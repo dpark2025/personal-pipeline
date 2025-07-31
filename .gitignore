@@ -154,3 +154,23 @@ test-results/
 playwright-report/
 validation-report.json
 .aider*
+
+# Demo and development files
+demo-setup.log
+server-demo.log
+monitoring-demo.log
+*.pid
+server.log
+config/demo-config.yaml
+
+# Test fixtures (temporary test directories)
+tests/fixtures/test-*/
+
+# Generated reports
+reports/
+temp-delete.sh
+
+# Version files (should be deleted, not ignored)
+docs/API-VERSION-*.md
+
+# Serena files are kept - agent Serena needs these

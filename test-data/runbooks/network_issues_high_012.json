@@ -1,8 +1,8 @@
 {
   "id": "network_issues_high_012",
   "title": "Network Issues - HIGH Alert Response",
-  "version": "1.4",
-  "description": "Runbook for responding to high severity network issues alerts on switch systems",
+  "version": "1.9",
+  "description": "Runbook for responding to high severity network issues alerts on router systems",
   "triggers": [
     "packet_loss",
     "latency_high",
@@ -79,11 +79,11 @@
   ],
   "escalation_path": "l1_support",
   "metadata": {
-    "created_at": "2025-07-28T23:59:26.365Z",
-    "updated_at": "2025-07-28T23:59:26.365Z",
+    "created_at": "2025-07-31T22:23:36.691Z",
+    "updated_at": "2025-07-31T22:23:36.691Z",
     "author": "SRE Team",
-    "confidence_score": 0.8669882120795908,
-    "success_rate": 0.8510560895058928,
-    "avg_resolution_time_minutes": 118
+    "confidence_score": 0.813749427966206,
+    "success_rate": 0.8763046719325959,
+    "avg_resolution_time_minutes": 37
   }
 }

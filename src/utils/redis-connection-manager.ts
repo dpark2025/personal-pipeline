@@ -1,9 +1,9 @@
 /**
  * Redis Connection Manager with Exponential Backoff
- * 
+ *
  * Manages Redis connections with intelligent retry logic, exponential backoff,
  * and connection state tracking to prevent log spam and excessive retries.
- * 
+ *
  * Authored by: Backend Lead (Cindy)
  * Date: 2025-07-29
  */
@@ -18,7 +18,7 @@ export enum ConnectionState {
   CONNECTING = 'connecting',
   CONNECTED = 'connected',
   FAILED = 'failed',
-  CIRCUIT_OPEN = 'circuit_open'
+  CIRCUIT_OPEN = 'circuit_open',
 }
 
 export interface ConnectionStats {
@@ -95,7 +95,11 @@ export class RedisConnectionManager extends EventEmitter {
       return;
     }
 
-    if (this.state === ConnectionState.CIRCUIT_OPEN && this.nextRetryAt && Date.now() < this.nextRetryAt.getTime()) {
+    if (
+      this.state === ConnectionState.CIRCUIT_OPEN &&
+      this.nextRetryAt &&
+      Date.now() < this.nextRetryAt.getTime()
+    ) {
       const remainingMs = this.nextRetryAt.getTime() - Date.now();
       logger.debug('Redis connection circuit breaker open, waiting for retry window', {
         nextRetryAt: this.nextRetryAt.toISOString(),
@@ -146,7 +150,7 @@ export class RedisConnectionManager extends EventEmitter {
       if (this.state === ConnectionState.DISCONNECTED || this.state === ConnectionState.FAILED) {
         await this.connect();
       }
-      
+
       if (!this.isAvailable()) {
         return null;
       }
@@ -159,16 +163,17 @@ export class RedisConnectionManager extends EventEmitter {
         error: error instanceof Error ? error.message : String(error),
         state: this.state,
       });
-      
+
       // Check if this is a connection error
-      if (error instanceof Error && (
-        error.message.includes('Connection is closed') ||
-        error.message.includes('ECONNREFUSED') ||
-        error.message.includes('ETIMEDOUT')
-      )) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('Connection is closed') ||
+          error.message.includes('ECONNREFUSED') ||
+          error.message.includes('ETIMEDOUT'))
+      ) {
         this.handleConnectionFailure(error);
       }
-      
+
       return null;
     }
   }
@@ -217,7 +222,7 @@ export class RedisConnectionManager extends EventEmitter {
       // Now manually initiate connection after handlers are set up
       try {
         await this.redis.connect();
-        
+
         // Wait for ready state with timeout
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -235,7 +240,7 @@ export class RedisConnectionManager extends EventEmitter {
             resolve();
           });
 
-          this.redis!.once('error', (error) => {
+          this.redis!.once('error', error => {
             clearTimeout(timeout);
             reject(error);
           });
@@ -247,7 +252,6 @@ export class RedisConnectionManager extends EventEmitter {
 
       // Connection successful
       this.handleConnectionSuccess();
-
     } catch (error) {
       this.handleConnectionFailure(error as Error);
     }
@@ -265,7 +269,7 @@ export class RedisConnectionManager extends EventEmitter {
     });
 
     // Handle all errors to prevent unhandled error events
-    this.redis.on('error', (error) => {
+    this.redis.on('error', error => {
       // Prevent this error from becoming unhandled
       // Log level depends on circuit breaker state and failure count
       if (this.state === ConnectionState.CIRCUIT_OPEN) {
@@ -297,7 +301,7 @@ export class RedisConnectionManager extends EventEmitter {
         state: this.state,
         wasConnected: this.state === ConnectionState.CONNECTED,
       });
-      
+
       if (this.state === ConnectionState.CONNECTED) {
         this.setState(ConnectionState.DISCONNECTED);
         if (!this.isShuttingDown) {
@@ -387,7 +391,7 @@ export class RedisConnectionManager extends EventEmitter {
 
   private scheduleReconnect(): void {
     if (this.isShuttingDown) return;
-    
+
     // Immediate reconnect for unexpected disconnections
     this.scheduleNextRetry(1000); // 1 second delay
   }
@@ -403,9 +407,9 @@ export class RedisConnectionManager extends EventEmitter {
     if (this.state === ConnectionState.CIRCUIT_OPEN) {
       // Circuit breaker timeout - use configuration value or default to 60 seconds
       delay = Math.max(60000, this.config.max_retry_delay_ms); // At least 60 seconds
-      
+
       this.nextRetryAt = new Date(Date.now() + delay);
-      
+
       logger.debug('Redis circuit breaker open - scheduling long delay retry', {
         delay,
         nextRetryAt: this.nextRetryAt.toISOString(),
@@ -416,13 +420,14 @@ export class RedisConnectionManager extends EventEmitter {
       // Apply exponential backoff for failed connections
       if (!customDelay && this.consecutiveFailures > 0) {
         delay = Math.min(
-          this.currentDelay * Math.pow(this.config.backoff_multiplier, this.consecutiveFailures - 1),
+          this.currentDelay *
+            Math.pow(this.config.backoff_multiplier, this.consecutiveFailures - 1),
           this.config.max_retry_delay_ms
         );
       }
 
       this.nextRetryAt = new Date(Date.now() + delay);
-      
+
       logger.debug('Scheduling Redis reconnection', {
         delay,
         nextRetryAt: this.nextRetryAt.toISOString(),
@@ -454,7 +459,7 @@ export class RedisConnectionManager extends EventEmitter {
     if (this.state !== newState) {
       const oldState = this.state;
       this.state = newState;
-      
+
       logger.debug('Redis connection state changed', {
         oldState,
         newState,

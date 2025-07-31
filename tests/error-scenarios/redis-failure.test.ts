@@ -1,7 +1,7 @@
 /**
  * Redis Failure Scenario Tests
  * Testing system behavior when Redis is unavailable or failing
- * 
+ *
  * QA Engineer: Error scenario testing for milestone 1.3
  * Coverage: Redis failures, network issues, graceful degradation
  */
@@ -21,7 +21,7 @@ jest.mock('../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 describe('Redis Failure Scenarios', () => {
@@ -53,8 +53,8 @@ describe('Redis Failure Scenarios', () => {
       cacheStrategy: 'hybrid' as const,
       generateTestData: {
         runbooks: 3,
-        procedures: 2
-      }
+        procedures: 2,
+      },
     });
 
     cacheHelper = new CacheTestHelper(testEnv.cacheService);
@@ -68,15 +68,13 @@ describe('Redis Failure Scenarios', () => {
   describe('Redis Connection Failures', () => {
     it('should handle Redis connection timeout gracefully', async () => {
       // Simulate connection timeout
-      mockRedisInstance.get.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout')), 100)
-        )
+      mockRedisInstance.get.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 100))
       );
-      mockRedisInstance.setex.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout')), 100)
-        )
+      mockRedisInstance.setex.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 100))
       );
       mockRedisInstance.ping.mockRejectedValue(new Error('Connection timeout'));
 
@@ -88,9 +86,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'timeout_test',
             severity: 'medium',
-            systems: ['redis_test']
-          }
-        }
+            systems: ['redis_test'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -124,9 +122,9 @@ describe('Redis Failure Scenarios', () => {
           name: 'get_procedure',
           arguments: {
             procedure_id: 'proc-001',
-            section: 'overview'
-          }
-        }
+            section: 'overview',
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -155,9 +153,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'auth_failure_test',
             severity: 'high',
-            systems: ['auth_test']
-          }
-        }
+            systems: ['auth_test'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -181,22 +179,22 @@ describe('Redis Failure Scenarios', () => {
       const operations = [
         {
           name: 'search_runbooks',
-          arguments: { alert_type: 'server_unavailable_1', severity: 'medium', systems: ['test'] }
+          arguments: { alert_type: 'server_unavailable_1', severity: 'medium', systems: ['test'] },
         },
         {
           name: 'get_procedure',
-          arguments: { procedure_id: 'proc-001', section: 'steps' }
+          arguments: { procedure_id: 'proc-001', section: 'steps' },
         },
         {
           name: 'search_knowledge_base',
-          arguments: { query: 'server unavailable test', category: 'test' }
-        }
+          arguments: { query: 'server unavailable test', category: 'test' },
+        },
       ];
 
       for (const op of operations) {
         const response = await testEnv.mcpExecutor.executeToolCall({
           method: 'tools/call',
-          params: op
+          params: op,
         });
         expect(response.isError).toBe(false);
       }
@@ -222,9 +220,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'partial_failure_test',
             severity: 'low',
-            systems: ['partial_test']
-          }
-        }
+            systems: ['partial_test'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -255,9 +253,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'corruption_test',
             severity: 'medium',
-            systems: ['corruption_test']
-          }
-        }
+            systems: ['corruption_test'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -289,9 +287,9 @@ describe('Redis Failure Scenarios', () => {
           name: 'get_procedure',
           arguments: {
             procedure_id: 'proc-001',
-            section: 'all'
-          }
-        }
+            section: 'all',
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -309,12 +307,14 @@ describe('Redis Failure Scenarios', () => {
       mockRedisInstance.get.mockImplementation(() => {
         callCount++;
         if (callCount === 1) {
-          return Promise.resolve(JSON.stringify({
-            data: { test: 'expiring_data' },
-            timestamp: Date.now(),
-            ttl: 1, // Very short TTL
-            content_type: 'runbooks'
-          }));
+          return Promise.resolve(
+            JSON.stringify({
+              data: { test: 'expiring_data' },
+              timestamp: Date.now(),
+              ttl: 1, // Very short TTL
+              content_type: 'runbooks',
+            })
+          );
         }
         return Promise.resolve(null); // Expired on subsequent calls
       });
@@ -330,9 +330,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'expiration_test',
             severity: 'low',
-            systems: ['expiration_test']
-          }
-        }
+            systems: ['expiration_test'],
+          },
+        },
       });
 
       expect(response1.isError).toBe(false);
@@ -348,9 +348,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'expiration_test',
             severity: 'low',
-            systems: ['expiration_test']
-          }
-        }
+            systems: ['expiration_test'],
+          },
+        },
       });
 
       expect(response2.isError).toBe(false);
@@ -389,9 +389,9 @@ describe('Redis Failure Scenarios', () => {
             arguments: {
               alert_type: `intermittent_test_${i}`,
               severity: 'medium',
-              systems: ['network_test']
-            }
-          }
+              systems: ['network_test'],
+            },
+          },
         });
 
         expect(response.isError).toBe(false);
@@ -419,9 +419,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'dns_failure_test',
             severity: 'high',
-            systems: ['dns_test']
-          }
-        }
+            systems: ['dns_test'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -449,9 +449,9 @@ describe('Redis Failure Scenarios', () => {
               arguments: {
                 alert_type: `partition_test_${i}`,
                 severity: 'medium',
-                systems: ['partition_test']
-              }
-            }
+                systems: ['partition_test'],
+              },
+            },
           })
         );
       }
@@ -482,9 +482,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'recovery_test_before',
             severity: 'medium',
-            systems: ['recovery_test']
-          }
-        }
+            systems: ['recovery_test'],
+          },
+        },
       });
 
       expect(response1.isError).toBe(false);
@@ -502,9 +502,9 @@ describe('Redis Failure Scenarios', () => {
           arguments: {
             alert_type: 'recovery_test_after',
             severity: 'medium',
-            systems: ['recovery_test']
-          }
-        }
+            systems: ['recovery_test'],
+          },
+        },
       });
 
       expect(response2.isError).toBe(false);
@@ -563,9 +563,9 @@ describe('Redis Failure Scenarios', () => {
             arguments: {
               alert_type: `circuit_breaker_test_${i}`,
               severity: 'medium',
-              systems: ['circuit_test']
-            }
-          }
+              systems: ['circuit_test'],
+            },
+          },
         });
 
         expect(response.isError).toBe(false);
@@ -598,9 +598,9 @@ describe('Redis Failure Scenarios', () => {
               arguments: {
                 alert_type: `performance_test_${i}`,
                 severity: 'medium',
-                systems: ['performance_test']
-              }
-            }
+                systems: ['performance_test'],
+              },
+            },
           })
         );
       }
@@ -638,9 +638,9 @@ describe('Redis Failure Scenarios', () => {
             arguments: {
               alert_type: `memory_test_${i}`,
               severity: 'low',
-              systems: ['memory_test']
-            }
-          }
+              systems: ['memory_test'],
+            },
+          },
         });
       }
 

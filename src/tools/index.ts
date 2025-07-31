@@ -542,10 +542,7 @@ export class PPMCPTools {
     const { runbook_id, step_name } = args;
 
     // Create cache key based on runbook and step
-    const cacheKey = createCacheKey(
-      'procedures',
-      JSON.stringify({ runbook_id, step_name })
-    );
+    const cacheKey = createCacheKey('procedures', JSON.stringify({ runbook_id, step_name }));
 
     // Try to get from cache first
     if (this.cacheService) {
@@ -726,7 +723,7 @@ export class PPMCPTools {
         const results = await adapter.search(query, {
           categories,
           max_age_days,
-          confidence_threshold: 0.3,
+          confidence_threshold: 0.4, // Reasonable threshold for quality results
         });
         allResults.push(...results);
       } catch (error) {

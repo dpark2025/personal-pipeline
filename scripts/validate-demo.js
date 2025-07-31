@@ -118,12 +118,12 @@ async function searchRunbooks(query, showTiming = false) {
   const startTime = performance.now();
   
   try {
+    // Call general search API with updated parameter format (max_results instead of type/limit)
     const result = await apiCall('/api/search', {
       method: 'POST',
       body: JSON.stringify({
         query,
-        type: 'runbooks',
-        limit: 5
+        max_results: 5
       })
     });
     
@@ -284,20 +284,29 @@ async function validateCachePerformance() {
     log.step('Checking cache statistics...');
     const cacheStats = await apiCall('/health/cache');
     
-    if (cacheStats && typeof cacheStats.hit_rate === 'number') {
+    if (cacheStats) {
+      // Check cache health
       addTest(
-        'Cache Hit Rate',
-        cacheStats.hit_rate >= CONFIG.validationTargets.cacheHitRate,
-        `Cache hit rate: ${(cacheStats.hit_rate * 100).toFixed(1)}% (target: ≥${CONFIG.validationTargets.cacheHitRate * 100}%)`,
-        { hitRate: cacheStats.hit_rate, target: CONFIG.validationTargets.cacheHitRate }
+        'Cache Health',
+        cacheStats.overall_healthy === true,
+        `Cache overall health: ${cacheStats.overall_healthy ? 'healthy' : 'unhealthy'}`,
+        { 
+          overallHealthy: cacheStats.overall_healthy,
+          memoryHealthy: cacheStats.memory_cache?.healthy, 
+          redisHealthy: cacheStats.redis_cache?.healthy 
+        }
       );
       
       addTest(
-        'Cache Health',
+        'Memory Cache Health',
         cacheStats.memory_cache?.healthy === true,
         `Memory cache healthy: ${cacheStats.memory_cache?.healthy}`,
-        { memoryHealthy: cacheStats.memory_cache?.healthy, redisHealthy: cacheStats.redis_cache?.healthy }
+        { memoryCache: cacheStats.memory_cache, redisCache: cacheStats.redis_cache }
       );
+      
+      // For hit rate, we'd need to check the separate performance endpoint
+      // since the /health/cache endpoint doesn't include hit rate statistics
+      addWarning('Cache Hit Rate', 'Hit rate statistics require performance endpoint - will be checked in performance metrics');
     } else {
       addWarning('Cache Statistics', 'Cache statistics not available or invalid format');
     }
@@ -317,11 +326,35 @@ async function validateHealthMonitoring() {
     log.step('Checking detailed health monitoring...');
     const detailedHealth = await apiCall('/health/detailed', { timeout });
     
-    if (detailedHealth) {
+    if (detailedHealth && detailedHealth.components) {
       for (const component of components) {
-        const componentHealth = detailedHealth[component];
+        let componentHealth;
+        let componentKey = component;
+        
+        // Map validation component names to actual health data structure
+        switch (component) {
+          case 'server':
+            componentKey = 'mcp_server';
+            break;
+          case 'cache':
+            componentKey = 'cache_service';
+            break;
+          case 'sources':
+            componentKey = 'source_adapters';
+            break;
+          case 'performance':
+            componentKey = 'tools';
+            break;
+          case 'monitoring':
+            componentKey = 'monitoring_system';
+            break;
+        }
+        
+        componentHealth = detailedHealth.components[componentKey];
+        
         if (componentHealth) {
-          const isHealthy = componentHealth.healthy === true || 
+          const isHealthy = componentHealth.status === 'healthy' || 
+                           componentHealth.healthy === true ||
                            (componentHealth.healthy_count >= 0 && componentHealth.total_count > 0);
           
           addTest(
@@ -331,7 +364,7 @@ async function validateHealthMonitoring() {
             componentHealth
           );
         } else {
-          addWarning(`${component} Health`, `No health data available for ${component}`);
+          addWarning(`${component} Health`, `No health data available for ${component} (looking for ${componentKey})`);
         }
       }
     } else {
@@ -445,6 +478,18 @@ async function validatePerformanceMetrics() {
       log.data(`CPU usage: ${cpu_percent}%`);
     }
     
+    // Cache hit rate validation (if available in performance metrics)
+    if (perfMetrics.cache && typeof perfMetrics.cache.hit_rate === 'number') {
+      addTest(
+        'Cache Hit Rate',
+        perfMetrics.cache.hit_rate >= CONFIG.validationTargets.cacheHitRate,
+        `Cache hit rate: ${(perfMetrics.cache.hit_rate * 100).toFixed(1)}% (target: ≥${CONFIG.validationTargets.cacheHitRate * 100}%)`,
+        { hitRate: perfMetrics.cache.hit_rate, target: CONFIG.validationTargets.cacheHitRate }
+      );
+    } else if (perfMetrics.cache) {
+      addWarning('Cache Hit Rate', 'Cache hit rate not available in performance metrics');
+    }
+    
   } catch (error) {
     addTest('Performance Metrics', false, `Performance metrics validation failed: ${error.message}`);
   }
@@ -458,8 +503,8 @@ async function validateCircuitBreakers() {
     log.step('Checking circuit breaker status...');
     const circuitBreakers = await apiCall('/circuit-breakers');
     
-    if (circuitBreakers && circuitBreakers.circuit_breakers) {
-      const breakers = circuitBreakers.circuit_breakers;
+    if (circuitBreakers && circuitBreakers.breakers) {
+      const breakers = circuitBreakers.breakers;
       
       addTest(
         'Circuit Breakers Available',
@@ -468,23 +513,28 @@ async function validateCircuitBreakers() {
         { count: breakers.length }
       );
       
-      let healthyBreakers = 0;
+      // Summary statistics
+      addTest(
+        'Circuit Breaker Health Summary',
+        circuitBreakers.healthy > 0 && circuitBreakers.failed === 0,
+        `Circuit breaker health: ${circuitBreakers.healthy} healthy, ${circuitBreakers.degraded} degraded, ${circuitBreakers.failed} failed`,
+        { 
+          healthy: circuitBreakers.healthy, 
+          degraded: circuitBreakers.degraded, 
+          failed: circuitBreakers.failed,
+          total: circuitBreakers.total
+        }
+      );
+      
+      // Individual breaker status
       breakers.forEach(breaker => {
-        const isHealthy = breaker.state === 'closed' || breaker.state === 'half-open';
-        if (isHealthy) healthyBreakers++;
-        
+        const isHealthy = breaker.state === 'CLOSED';
+        const isDegraded = breaker.state === 'HALF_OPEN';
         log.data(`${breaker.name}: ${breaker.state} (failures: ${breaker.failure_count}/${breaker.failure_threshold})`);
       });
       
-      addTest(
-        'Circuit Breaker Health',
-        healthyBreakers === breakers.length,
-        `${healthyBreakers}/${breakers.length} circuit breakers in healthy state`,
-        { healthy: healthyBreakers, total: breakers.length }
-      );
-      
     } else {
-      addWarning('Circuit Breakers', 'Circuit breaker information not available');
+      addWarning('Circuit Breakers', 'Circuit breaker information not available - expected .breakers array');
     }
   } catch (error) {
     addWarning('Circuit Breakers', `Could not check circuit breakers: ${error.message}`);
@@ -633,7 +683,7 @@ async function main() {
     const serverAvailable = await validateServerAvailability();
     if (!serverAvailable) {
       log.error('Server is not available. Please ensure the demo environment is running:');
-      log.info('./scripts/setup-demo.sh');
+      log.info('npm run demo:start');
       process.exit(1);
     }
     

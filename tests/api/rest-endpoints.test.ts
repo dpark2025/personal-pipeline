@@ -1,6 +1,6 @@
 /**
  * Comprehensive REST API Endpoint Tests
- * 
+ *
  * Tests all 11 REST API endpoints with realistic examples,
  * correlation ID tracking, error handling, and performance validation.
  */
@@ -19,14 +19,14 @@ describe('Personal Pipeline REST API Endpoints', () => {
     // Initialize server with test configuration
     const configManager = new ConfigManager();
     server = new PersonalPipelineServer(configManager);
-    
+
     // Start server
     await server.start();
-    
+
     // Get Express app for testing
     app = (server as any).expressApp;
     baseURL = '/api';
-    
+
     // Wait for server to fully initialize
     await new Promise(resolve => setTimeout(resolve, 2000));
   }, 30000);
@@ -39,9 +39,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
   describe('Correlation ID Tracking', () => {
     it('should generate correlation ID when not provided', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/health`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/health`).expect(200);
 
       expect(response.headers['x-correlation-id']).toBeDefined();
       expect(response.headers['x-correlation-id']).toMatch(/^req_\d{15}_[a-z0-9]{8}$/);
@@ -50,7 +48,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
     it('should use provided correlation ID', async () => {
       const customCorrelationId = 'test_correlation_12345';
-      
+
       const response = await request(app)
         .get(`${baseURL}/health`)
         .set('X-Correlation-ID', customCorrelationId)
@@ -62,7 +60,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
     it('should handle invalid correlation ID gracefully', async () => {
       const invalidCorrelationId = 'x'.repeat(150); // Too long
-      
+
       const response = await request(app)
         .get(`${baseURL}/health`)
         .set('X-Correlation-ID', invalidCorrelationId)
@@ -80,13 +78,10 @@ describe('Personal Pipeline REST API Endpoints', () => {
       const searchPayload = {
         query: 'database connection timeout troubleshooting',
         categories: ['database', 'troubleshooting'],
-        max_results: 5
+        max_results: 5,
       };
 
-      const response = await request(app)
-        .post(`${baseURL}/search`)
-        .send(searchPayload)
-        .expect(200);
+      const response = await request(app).post(`${baseURL}/search`).send(searchPayload).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeDefined();
@@ -105,14 +100,13 @@ describe('Personal Pipeline REST API Endpoints', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
       expect(response.body.error.details.correlation_id).toBeDefined();
-      expect(response.body.error.details.validation_errors).toContain('Missing required field: query');
+      expect(response.body.error.details.validation_errors).toContain(
+        'Missing required field: query'
+      );
     });
 
     it('should handle empty query string', async () => {
-      const response = await request(app)
-        .post(`${baseURL}/search`)
-        .send({ query: '' })
-        .expect(400);
+      const response = await request(app).post(`${baseURL}/search`).send({ query: '' }).expect(400);
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
@@ -121,9 +115,9 @@ describe('Personal Pipeline REST API Endpoints', () => {
     it('should limit max_results parameter', async () => {
       const response = await request(app)
         .post(`${baseURL}/search`)
-        .send({ 
+        .send({
           query: 'test query',
-          max_results: 150 // Above limit
+          max_results: 150, // Above limit
         })
         .expect(400);
 
@@ -140,8 +134,8 @@ describe('Personal Pipeline REST API Endpoints', () => {
         affected_systems: ['user-api', 'postgres-primary'],
         context: {
           error_message: 'Connection timeout after 30s',
-          occurrence_count: 5
-        }
+          occurrence_count: 5,
+        },
       };
 
       const response = await request(app)
@@ -153,7 +147,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
       expect(response.body.data).toBeDefined();
       expect(response.body.metadata.correlation_id).toBeDefined();
       expect(response.body.metadata.execution_time_ms).toBeGreaterThan(0);
-      
+
       // Should be cached for critical runbook operations
       expect(response.headers['x-cache-hint']).toBeDefined();
     });
@@ -161,8 +155,8 @@ describe('Personal Pipeline REST API Endpoints', () => {
     it('should validate required fields for runbook search', async () => {
       const response = await request(app)
         .post(`${baseURL}/runbooks/search`)
-        .send({ 
-          alert_type: 'database_failure'
+        .send({
+          alert_type: 'database_failure',
           // Missing severity and affected_systems
         })
         .expect(400);
@@ -172,7 +166,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
       expect(response.body.error.details.validation_errors).toEqual(
         expect.arrayContaining([
           'Missing required field: severity',
-          'Missing required field: affected_systems'
+          'Missing required field: affected_systems',
         ])
       );
     });
@@ -183,7 +177,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
         .send({
           alert_type: 'test_alert',
           severity: 'super_critical', // Invalid severity
-          affected_systems: ['system1']
+          affected_systems: ['system1'],
         })
         .expect(400);
 
@@ -197,7 +191,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
         .send({
           alert_type: 'test_alert',
           severity: 'high',
-          affected_systems: []
+          affected_systems: [],
         })
         .expect(400);
 
@@ -209,10 +203,8 @@ describe('Personal Pipeline REST API Endpoints', () => {
   describe('3. GET /api/runbooks/:id - Specific Runbook Retrieval', () => {
     it('should retrieve specific runbook by ID', async () => {
       const runbookId = 'rb_001_db_connection';
-      
-      const response = await request(app)
-        .get(`${baseURL}/runbooks/${runbookId}`)
-        .expect(200);
+
+      const response = await request(app).get(`${baseURL}/runbooks/${runbookId}`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeDefined();
@@ -241,9 +233,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
   describe('4. GET /api/runbooks - List All Runbooks', () => {
     it('should list all runbooks with default parameters', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/runbooks`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/runbooks`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.runbooks).toBeDefined();
@@ -263,18 +253,14 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should apply severity filter', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/runbooks?severity=critical`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/runbooks?severity=critical`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.filters_applied.severity).toBe('critical');
     });
 
     it('should handle invalid limit parameter', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/runbooks?limit=abc`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/runbooks?limit=abc`).expect(200);
 
       // Should use default limit when invalid
       expect(response.body.data.filters_applied.limit).toBe(50);
@@ -290,13 +276,13 @@ describe('Personal Pipeline REST API Endpoints', () => {
           affected_systems: ['user-api'],
           metrics: {
             connection_count: 0,
-            error_rate: 0.95
-          }
+            error_rate: 0.95,
+          },
         },
         current_agent_state: {
           attempted_steps: ['check_service_status'],
-          execution_time_seconds: 45
-        }
+          execution_time_seconds: 45,
+        },
       };
 
       const response = await request(app)
@@ -313,7 +299,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
       const response = await request(app)
         .post(`${baseURL}/decision-tree`)
         .send({
-          current_agent_state: { attempted_steps: [] }
+          current_agent_state: { attempted_steps: [] },
         })
         .expect(400);
 
@@ -322,23 +308,20 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should handle missing alert_context gracefully', async () => {
-      const response = await request(app)
-        .post(`${baseURL}/decision-tree`)
-        .send({})
-        .expect(400);
+      const response = await request(app).post(`${baseURL}/decision-tree`).send({}).expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.details.validation_errors).toContain('Missing required field: alert_context');
+      expect(response.body.error.details.validation_errors).toContain(
+        'Missing required field: alert_context'
+      );
     });
   });
 
   describe('6. GET /api/procedures/:id - Procedure Details', () => {
     it('should retrieve procedure details by ID', async () => {
       const procedureId = 'rb_001_restart_pool';
-      
-      const response = await request(app)
-        .get(`${baseURL}/procedures/${procedureId}`)
-        .expect(200);
+
+      const response = await request(app).get(`${baseURL}/procedures/${procedureId}`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeDefined();
@@ -346,9 +329,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should validate procedure ID format', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/procedures/invalid_format`)
-        .expect(400);
+      const response = await request(app).get(`${baseURL}/procedures/invalid_format`).expect(400);
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('INVALID_PROCEDURE_ID');
@@ -356,15 +337,11 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should handle missing procedure ID', async () => {
-      await request(app)
-        .get(`${baseURL}/procedures/`)
-        .expect(404);
+      await request(app).get(`${baseURL}/procedures/`).expect(404);
     });
 
     it('should handle empty procedure ID', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/procedures/ `)
-        .expect(400);
+      const response = await request(app).get(`${baseURL}/procedures/ `).expect(400);
 
       expect(response.body.error.code).toBe('MISSING_PROCEDURE_ID');
     });
@@ -375,7 +352,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
       const escalationPayload = {
         severity: 'critical',
         business_hours: false,
-        failed_attempts: ['primary_oncall']
+        failed_attempts: ['primary_oncall'],
       };
 
       const response = await request(app)
@@ -391,7 +368,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     it('should handle business hours escalation', async () => {
       const escalationPayload = {
         severity: 'medium',
-        business_hours: true
+        business_hours: true,
       };
 
       const response = await request(app)
@@ -411,7 +388,9 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(response.body.error.details.validation_errors).toContain('Missing required field: business_hours');
+      expect(response.body.error.details.validation_errors).toContain(
+        'Missing required field: business_hours'
+      );
     });
 
     it('should validate severity enum', async () => {
@@ -419,7 +398,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
         .post(`${baseURL}/escalation`)
         .send({
           severity: 'super_high',
-          business_hours: true
+          business_hours: true,
         })
         .expect(400);
 
@@ -430,9 +409,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
   describe('8. GET /api/sources - Documentation Sources', () => {
     it('should list all configured sources with health status', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/sources`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/sources`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeDefined();
@@ -441,9 +418,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should include health information by default', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/sources`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/sources`).expect(200);
 
       if (response.body.data.sources.length > 0) {
         const firstSource = response.body.data.sources[0];
@@ -461,7 +436,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
         procedure_id: 'restart_pool',
         outcome: 'success',
         resolution_time_minutes: 15,
-        notes: 'Required additional database restart after connection pool restart'
+        notes: 'Required additional database restart after connection pool restart',
       };
 
       const response = await request(app)
@@ -479,7 +454,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
         .post(`${baseURL}/feedback`)
         .send({
           runbook_id: 'rb_001',
-          outcome: 'success'
+          outcome: 'success',
           // Missing procedure_id and resolution_time_minutes
         })
         .expect(400);
@@ -489,7 +464,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
       expect(response.body.error.details.validation_errors).toEqual(
         expect.arrayContaining([
           'Missing required field: procedure_id',
-          'Missing required field: resolution_time_minutes'
+          'Missing required field: resolution_time_minutes',
         ])
       );
     });
@@ -501,7 +476,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
           runbook_id: 'rb_001',
           procedure_id: 'step_001',
           outcome: 'maybe_success', // Invalid outcome
-          resolution_time_minutes: 10
+          resolution_time_minutes: 10,
         })
         .expect(400);
 
@@ -516,7 +491,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
           runbook_id: 'rb_001',
           procedure_id: 'step_001',
           outcome: 'success',
-          resolution_time_minutes: -5
+          resolution_time_minutes: -5,
         })
         .expect(400);
 
@@ -527,9 +502,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
   describe('10. GET /api/health - API Health Status', () => {
     it('should return API health status', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/health`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/health`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.api_status).toBeDefined();
@@ -540,9 +513,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should include cache health information', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/health`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/health`).expect(200);
 
       if (response.body.data.cache) {
         expect(response.body.data.cache.overall_healthy).toBeDefined();
@@ -551,8 +522,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should return appropriate status code based on health', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/health`);
+      const response = await request(app).get(`${baseURL}/health`);
 
       if (response.body.data.api_status === 'healthy') {
         expect(response.status).toBe(200);
@@ -564,9 +534,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
   describe('11. GET /api/performance - Performance Metrics', () => {
     it('should return performance metrics', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/performance`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/performance`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.tools).toBeDefined();
@@ -579,9 +547,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should include timestamp in performance data', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/performance`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/performance`).expect(200);
 
       expect(response.body.data.timestamp).toBeDefined();
       const timestamp = new Date(response.body.data.timestamp);
@@ -592,26 +558,31 @@ describe('Personal Pipeline REST API Endpoints', () => {
   describe('Performance Requirements Validation', () => {
     it('should meet response time requirements for critical endpoints', async () => {
       const criticalEndpoints = [
-        { method: 'post', path: '/runbooks/search', payload: { alert_type: 'test', severity: 'critical', affected_systems: ['system1'] } },
-        { method: 'post', path: '/escalation', payload: { severity: 'critical', business_hours: false } },
-        { method: 'get', path: '/health' }
+        {
+          method: 'post',
+          path: '/runbooks/search',
+          payload: { alert_type: 'test', severity: 'critical', affected_systems: ['system1'] },
+        },
+        {
+          method: 'post',
+          path: '/escalation',
+          payload: { severity: 'critical', business_hours: false },
+        },
+        { method: 'get', path: '/health' },
       ];
 
       for (const endpoint of criticalEndpoints) {
         const startTime = Date.now();
-        
+
         let response;
         if (endpoint.method === 'post') {
-          response = await request(app)
-            .post(`${baseURL}${endpoint.path}`)
-            .send(endpoint.payload);
+          response = await request(app).post(`${baseURL}${endpoint.path}`).send(endpoint.payload);
         } else {
-          response = await request(app)
-            .get(`${baseURL}${endpoint.path}`);
+          response = await request(app).get(`${baseURL}${endpoint.path}`);
         }
 
         const responseTime = Date.now() - startTime;
-        
+
         // Critical endpoints should respond within 500ms for incident response
         expect(responseTime).toBeLessThan(500);
         expect(response.headers['x-response-time']).toBeDefined();
@@ -619,9 +590,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should include performance headers in all responses', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/health`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/health`).expect(200);
 
       expect(response.headers['x-response-time']).toBeDefined();
       expect(response.headers['x-performance-tier']).toBeDefined();
@@ -644,23 +613,17 @@ describe('Personal Pipeline REST API Endpoints', () => {
     it('should handle oversized requests', async () => {
       const largePayload = {
         query: 'test query',
-        large_field: 'x'.repeat(15 * 1024 * 1024) // 15MB
+        large_field: 'x'.repeat(15 * 1024 * 1024), // 15MB
       };
 
-      const response = await request(app)
-        .post(`${baseURL}/search`)
-        .send(largePayload)
-        .expect(413);
+      const response = await request(app).post(`${baseURL}/search`).send(largePayload).expect(413);
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('REQUEST_TOO_LARGE');
     });
 
     it('should provide recovery actions in error responses', async () => {
-      const response = await request(app)
-        .post(`${baseURL}/search`)
-        .send({ query: '' })
-        .expect(400);
+      const response = await request(app).post(`${baseURL}/search`).send({ query: '' }).expect(400);
 
       expect(response.body.error.details.recovery_actions).toBeDefined();
       expect(Array.isArray(response.body.error.details.recovery_actions)).toBe(true);
@@ -670,17 +633,13 @@ describe('Personal Pipeline REST API Endpoints', () => {
 
   describe('Documentation and API Discovery', () => {
     it('should redirect /api/docs to Swagger UI', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/docs`)
-        .expect(302);
+      const response = await request(app).get(`${baseURL}/docs`).expect(302);
 
       expect(response.headers.location).toBe('/api/docs/');
     });
 
     it('should serve OpenAPI specification', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/docs/openapi.json`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/docs/openapi.json`).expect(200);
 
       expect(response.body.openapi).toBe('3.0.3');
       expect(response.body.info.title).toBe('Personal Pipeline REST API');
@@ -689,9 +648,7 @@ describe('Personal Pipeline REST API Endpoints', () => {
     });
 
     it('should provide testing utilities', async () => {
-      const response = await request(app)
-        .get(`${baseURL}/docs/test-utils`)
-        .expect(200);
+      const response = await request(app).get(`${baseURL}/docs/test-utils`).expect(200);
 
       expect(response.body.correlation_id_format).toBeDefined();
       expect(response.body.sample_correlation_id).toBeDefined();
