@@ -5,7 +5,7 @@
  * and integrated correlation ID support for testing.
  */
 
-import { Router } from 'express';
+import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { openAPISpec } from './openapi.js';
 import { logger } from '../utils/logger.js';
@@ -13,8 +13,8 @@ import { logger } from '../utils/logger.js';
 /**
  * Create Swagger UI router with enhanced configuration
  */
-export function createSwaggerRouter(): Router {
-  const router = Router();
+export function createSwaggerRouter(): express.Router {
+  const router = express.Router();
   
   // Custom CSS for improved styling
   const customCss = `

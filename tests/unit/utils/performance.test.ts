@@ -116,8 +116,8 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
       const metrics = performanceMonitor.getToolPerformance(toolName)!;
       const afterTime = new Date().toISOString();
       
-      expect(metrics.last_called).toBeGreaterThanOrEqual(new Date(beforeTime));
-      expect(metrics.last_called).toBeLessThanOrEqual(new Date(afterTime));
+      expect(metrics.last_called).toBeGreaterThanOrEqual(new Date(beforeTime).getTime());
+      expect(metrics.last_called).toBeLessThanOrEqual(new Date(afterTime).getTime());
     });
   });
 
@@ -289,13 +289,13 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
     it('should generate memory usage recommendations', () => {
       // Mock high memory usage
       const originalMemoryUsage = process.memoryUsage;
-      process.memoryUsage = jest.fn(() => ({
+      (process.memoryUsage as unknown as jest.Mock) = jest.fn().mockReturnValue({
         rss: 2 * 1024 * 1024 * 1024, // 2GB
         heapTotal: 1024 * 1024 * 1024,
         heapUsed: 512 * 1024 * 1024,
         external: 100 * 1024 * 1024,
         arrayBuffers: 50 * 1024 * 1024,
-      })) as typeof process.memoryUsage;
+      });
 
       const report = performanceMonitor.generateReport();
       
@@ -412,7 +412,7 @@ describe('PerformanceMonitor - Comprehensive Testing', () => {
       try {
         await testInstance.errorMethod();
       } catch (error) {
-        expect(error.message).toBe('Test error');
+        expect((error as Error).message).toBe('Test error');
       }
 
       // Verify metrics were recorded

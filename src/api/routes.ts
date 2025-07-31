@@ -5,7 +5,7 @@
  * to all Personal Pipeline functionality with proper error handling and validation.
  */
 
-import express, { Router } from 'express';
+import express from 'express';
 import { PPMCPTools } from '../tools/index.js';
 import { SourceAdapterRegistry } from '../adapters/base.js';
 import { CacheService } from '../utils/cache.js';
@@ -353,7 +353,7 @@ function handleProcedureError(
 /**
  * Create and configure all REST API routes
  */
-export function createAPIRoutes(options: APIRouteOptions): Router {
+export function createAPIRoutes(options: APIRouteOptions): express.Router {
   const router = express.Router();
   const { mcpTools, sourceRegistry, cacheService } = options;
 

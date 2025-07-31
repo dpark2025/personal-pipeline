@@ -7,7 +7,7 @@
  */
 
 import { PersonalPipelineServer } from '../../src/core/server';
-import { getPerformanceMonitor, initializePerformanceMonitor, PerformanceMonitor } from '../../src/utils/performance';
+import { initializePerformanceMonitor, PerformanceMonitor } from '../../src/utils/performance';
 import { initializeCacheService } from '../../src/utils/cache';
 import { initializeMonitoringService } from '../../src/utils/monitoring';
 import fs from 'fs/promises';
@@ -93,6 +93,7 @@ describe('Performance Integration Tests', () => {
     // Create runbook files
     for (let i = 0; i < runbookTemplates.length; i++) {
       const template = runbookTemplates[i];
+      if (!template) continue;
       
       // Create multiple variations for load testing
       for (let j = 0; j < 10; j++) {

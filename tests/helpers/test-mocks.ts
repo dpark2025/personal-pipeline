@@ -36,22 +36,41 @@ jest.mock('../../src/utils/logger', () => ({
 
 jest.mock('../../src/utils/cache', () => ({
   initializeCacheService: jest.fn().mockReturnValue({
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
-    clear: jest.fn(),
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    clear: jest.fn().mockResolvedValue(undefined),
     getStats: jest.fn().mockReturnValue({ 
-      hits: 0, 
-      misses: 0, 
-      total_operations: 0,
-      hit_rate: 0 
+      hits: 10, 
+      misses: 5, 
+      total_operations: 15,
+      hit_rate: 0.67 
     }),
     healthCheck: jest.fn().mockResolvedValue({ 
-      healthy: true,
+      overall_healthy: true,
+      memory_cache: { healthy: true, response_time_ms: 10 },
       redis_cache: { healthy: true, response_time_ms: 50 }
     }),
     shutdown: jest.fn().mockResolvedValue(undefined),
   }),
+  CacheService: jest.fn().mockImplementation(() => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    clear: jest.fn().mockResolvedValue(undefined),
+    getStats: jest.fn().mockReturnValue({ 
+      hits: 10, 
+      misses: 5, 
+      total_operations: 15,
+      hit_rate: 0.67 
+    }),
+    healthCheck: jest.fn().mockResolvedValue({ 
+      overall_healthy: true,
+      memory_cache: { healthy: true, response_time_ms: 10 },
+      redis_cache: { healthy: true, response_time_ms: 50 }
+    }),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+  })),
   createCacheKey: jest.fn().mockImplementation((type, key) => `${type}:${key}`),
 }));
 
@@ -60,10 +79,24 @@ jest.mock('../../src/utils/performance', () => ({
     recordResponseTime: jest.fn(),
     recordCacheHit: jest.fn(),
     recordCacheMiss: jest.fn(),
+    recordToolExecution: jest.fn(),
     getMetrics: jest.fn().mockReturnValue({
-      requests: { total: 0, success: 0, errors: 0 },
-      response_times: { avg: 0, p95: 0, p99: 0, count: 0, avg_ms: 0 },
-      cache: { hits: 0, misses: 0, hit_rate: 0 },
+      requests: { total: 5, success: 4, errors: 1 },
+      response_times: { avg: 150, p95: 200, p99: 250, count: 5, avg_ms: 150 },
+      cache: { hits: 3, misses: 2, hit_rate: 0.6 },
+    }),
+    getToolMetrics: jest.fn().mockReturnValue(new Map()),
+    getToolPerformance: jest.fn().mockReturnValue({
+      executions: 1,
+      total_time_ms: 150,
+      avg_time_ms: 150,
+      min_time_ms: 150,
+      max_time_ms: 150,
+      errors: 0,
+      last_called: Date.now()
+    }),
+    generateReport: jest.fn().mockReturnValue({
+      recommendations: []
     }),
     stopRealtimeMonitoring: jest.fn(),
     healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
@@ -73,34 +106,128 @@ jest.mock('../../src/utils/performance', () => ({
     recordResponseTime: jest.fn(),
     recordCacheHit: jest.fn(),
     recordCacheMiss: jest.fn(),
+    recordToolExecution: jest.fn(),
     getMetrics: jest.fn().mockReturnValue({
-      requests: { total: 0, success: 0, errors: 0 },
-      response_times: { avg: 0, p95: 0, p99: 0, count: 0, avg_ms: 0 },
-      cache: { hits: 0, misses: 0, hit_rate: 0 },
+      requests: { total: 5, success: 4, errors: 1 },
+      response_times: { avg: 150, p95: 200, p99: 250, count: 5, avg_ms: 150 },
+      cache: { hits: 3, misses: 2, hit_rate: 0.6 },
+    }),
+    getToolMetrics: jest.fn().mockReturnValue(new Map()),
+    getToolPerformance: jest.fn().mockReturnValue({
+      executions: 1,
+      total_time_ms: 150,
+      avg_time_ms: 150,
+      min_time_ms: 150,
+      max_time_ms: 150,
+      errors: 0,
+      last_called: Date.now()
+    }),
+    generateReport: jest.fn().mockReturnValue({
+      recommendations: []
     }),
     stopRealtimeMonitoring: jest.fn(),
     healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
     shutdown: jest.fn().mockResolvedValue(undefined),
   }),
+  PerformanceMonitor: jest.fn().mockImplementation(() => ({
+    recordResponseTime: jest.fn(),
+    recordCacheHit: jest.fn(),
+    recordCacheMiss: jest.fn(),
+    recordToolExecution: jest.fn(),
+    getMetrics: jest.fn().mockReturnValue({
+      requests: { total: 5, success: 4, errors: 1 },
+      response_times: { avg: 150, p95: 200, p99: 250, count: 5, avg_ms: 150 },
+      cache: { hits: 3, misses: 2, hit_rate: 0.6 },
+    }),
+    getToolMetrics: jest.fn().mockReturnValue(new Map()),
+    getToolPerformance: jest.fn().mockReturnValue({
+      executions: 1,
+      total_time_ms: 150,
+      avg_time_ms: 150,
+      min_time_ms: 150,
+      max_time_ms: 150,
+      errors: 0,
+      last_called: Date.now()
+    }),
+    generateReport: jest.fn().mockReturnValue({
+      recommendations: []
+    }),
+    stopRealtimeMonitoring: jest.fn(),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 jest.mock('../../src/utils/monitoring', () => ({
   initializeMonitoringService: jest.fn().mockReturnValue({
     start: jest.fn(),
+    stop: jest.fn(),
     recordMetric: jest.fn(),
     checkThresholds: jest.fn(),
-    getStatus: jest.fn().mockReturnValue({ status: 'healthy' }),
+    addRule: jest.fn(),
+    getRules: jest.fn().mockReturnValue([]),
+    getStatus: jest.fn().mockReturnValue({ 
+      status: 'healthy', 
+      enabled: true, 
+      running: true,
+      rules: 1,
+      activeAlerts: 0,
+      totalAlerts: 0,
+      lastCheck: new Date()
+    }),
+    getAlertHistory: jest.fn().mockReturnValue([]),
+    once: jest.fn(),
     healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
     shutdown: jest.fn().mockResolvedValue(undefined),
   }),
-  getMonitoringService: jest.fn().mockReturnValue({
+  getMonitoringService: jest.fn().mockImplementation(() => {
+    // Mock the singleton pattern - throw error if not initialized
+    if (process.env.NODE_ENV === 'test' && !process.env.MONITORING_INITIALIZED) {
+      throw new Error('Monitoring service not initialized');
+    }
+    return {
     start: jest.fn(),
+    stop: jest.fn(),
     recordMetric: jest.fn(),
     checkThresholds: jest.fn(),
-    getStatus: jest.fn().mockReturnValue({ status: 'healthy' }),
+    addRule: jest.fn(),
+    getRules: jest.fn().mockReturnValue([]),
+    getStatus: jest.fn().mockReturnValue({ 
+      status: 'healthy', 
+      enabled: true, 
+      running: true,
+      rules: 1,
+      activeAlerts: 0,
+      totalAlerts: 0,
+      lastCheck: new Date()
+    }),
+    getAlertHistory: jest.fn().mockReturnValue([]),
+    once: jest.fn(),
     healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
     shutdown: jest.fn().mockResolvedValue(undefined),
+    };
   }),
+  MonitoringService: jest.fn().mockImplementation(() => ({
+    start: jest.fn(),
+    stop: jest.fn(),
+    recordMetric: jest.fn(),
+    checkThresholds: jest.fn(),
+    addRule: jest.fn(),
+    getRules: jest.fn().mockReturnValue([]),
+    getStatus: jest.fn().mockReturnValue({ 
+      status: 'healthy', 
+      enabled: true, 
+      running: true,
+      rules: 1,
+      activeAlerts: 0,
+      totalAlerts: 0,
+      lastCheck: new Date()
+    }),
+    getAlertHistory: jest.fn().mockReturnValue([]),
+    once: jest.fn(),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+  })),
   defaultMonitoringConfig: {
     enabled: true,
     check_interval_ms: 30000,
@@ -148,7 +275,7 @@ jest.mock('../../src/adapters/file', () => ({
   })),
 }));
 
-// Mock Express
+// Mock Express - Handle both CommonJS and ESM imports
 jest.mock('express', () => {
   const mockApp = {
     use: jest.fn(),
@@ -166,10 +293,24 @@ jest.mock('express', () => {
       };
     }),
   };
+  const mockRouter = () => ({
+    use: jest.fn(),
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  });
+  
   const express: any = jest.fn(() => mockApp);
   express.json = jest.fn(() => jest.fn());
   express.urlencoded = jest.fn(() => jest.fn());
   express.static = jest.fn(() => jest.fn());
+  express.Router = mockRouter;
+  
+  // Also add as default export property for CommonJS compatibility
+  express.default = express;
+  express.default.Router = mockRouter;
+  
   return express;
 });
 

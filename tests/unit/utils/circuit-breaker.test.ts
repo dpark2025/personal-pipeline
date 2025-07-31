@@ -76,7 +76,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         await circuitBreaker.execute(mockFunction);
         fail('Should have thrown circuit breaker error');
       } catch (error) {
-        expect(error.message).toContain('Circuit breaker test-circuit is OPEN');
+        expect((error as Error).message).toContain('Circuit breaker test-circuit is OPEN');
         expect(mockFunction).not.toHaveBeenCalled();
       }
     });
@@ -171,7 +171,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         await circuitBreaker.execute(slowFunction);
         fail('Should have timed out');
       } catch (error) {
-        expect(error.message).toContain('timeout after 500ms');
+        expect((error as Error).message).toContain('timeout after 500ms');
       }
     });
 
@@ -182,7 +182,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         await circuitBreaker.execute(errorFunction);
         fail('Should have thrown function error');
       } catch (error) {
-        expect(error.message).toBe('Function error');
+        expect((error as Error).message).toBe('Function error');
       }
     });
 
@@ -195,7 +195,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         await circuitBreaker.execute(syncErrorFunction);
         fail('Should have thrown sync error');
       } catch (error) {
-        expect(error.message).toBe('Sync error');
+        expect((error as Error).message).toBe('Sync error');
       }
     });
   });
@@ -424,7 +424,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
     });
 
     it('should handle functions that return non-Promise values', async () => {
-      const syncFunction = jest.fn(() => 'sync result');
+      const syncFunction = jest.fn(async () => 'sync result');
 
       const result = await circuitBreaker.execute(syncFunction);
       expect(result).toBe('sync result');
@@ -444,7 +444,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         // May or may not timeout depending on execution speed
       } catch (error) {
         // If it times out, that's acceptable
-        if (!error.message.includes('timeout')) {
+        if (!(error as Error).message.includes('timeout')) {
           throw error;
         }
       }
@@ -571,8 +571,8 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
 
     it('should provide health status for all breakers', () => {
       const service1 = CircuitBreakerFactory.forExternalService('service1');
-      const service2 = CircuitBreakerFactory.forExternalService('service2');
-      const cache = CircuitBreakerFactory.forCache('redis');
+      CircuitBreakerFactory.forExternalService('service2');
+      CircuitBreakerFactory.forCache('redis');
 
       // Trip one breaker
       service1.trip();
@@ -653,7 +653,7 @@ describe('Utility Functions', () => {
         await wrappedFunction();
         fail('Should have thrown error');
       } catch (error) {
-        expect(error.message).toBe('Function failed');
+        expect((error as Error).message).toBe('Function failed');
       }
 
       expect(circuitBreaker.getStats().totalFailures).toBe(1);
@@ -682,7 +682,7 @@ describe('Utility Functions', () => {
         await wrappedFunction();
         fail('Should have failed fast');
       } catch (error) {
-        expect(error.message).toContain('Circuit breaker wrapper-test is OPEN');
+        expect((error as Error).message).toContain('Circuit breaker wrapper-test is OPEN');
         expect(mockFunction).not.toHaveBeenCalled();
       }
     });

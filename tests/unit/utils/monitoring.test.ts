@@ -504,7 +504,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       monitoringService.once('alert', () => {
         const history = monitoringService.getAlertHistory();
         expect(history.length).toBe(1);
-        expect(history[0].title).toBe('Test History');
+        expect(history[0]?.title).toBe('Test History');
         done();
       });
 
