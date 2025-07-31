@@ -17,6 +17,9 @@
  *   --output <file>     Save results to JSON file
  *   --target <ms>       Target response time in ms (default: 200)
  *   --verbose           Detailed logging
+ *   --port <n>          Server port to use (default: 3000)
+ *   --reuse-server      Reuse existing healthy server if available
+ *   --force-new-server  Force starting new server (ignore existing)
  */
 
 import { performance } from 'perf_hooks';
@@ -24,6 +27,7 @@ import { spawn } from 'child_process';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createServer } from 'net';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -117,6 +121,119 @@ const MCP_TOOLS = [
   }
 ];
 
+// Port Management Utilities
+class PortManager {
+  /**
+   * Check if a port is available for use
+   */
+  static async isPortAvailable(port) {
+    return new Promise((resolve) => {
+      const server = createServer();
+      
+      server.once('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          resolve(false);
+        } else {
+          resolve(false);
+        }
+      });
+
+      server.once('listening', () => {
+        server.close(() => {
+          resolve(true);
+        });
+      });
+
+      server.listen(port, 'localhost');
+    });
+  }
+
+  /**
+   * Find an available port starting from basePort
+   */
+  static async detectAvailablePort(basePort = 3000, maxAttempts = 10) {
+    for (let i = 0; i < maxAttempts; i++) {
+      const port = basePort + i;
+      if (await this.isPortAvailable(port)) {
+        return port;
+      }
+    }
+    throw new Error(`No available ports found in range ${basePort}-${basePort + maxAttempts - 1}`);
+  }
+
+  /**
+   * Check if a server is healthy on a given port
+   */
+  static async isServerHealthy(port) {
+    try {
+      const response = await fetch(`http://localhost:${port}/health`, {
+        timeout: 5000
+      });
+      
+      if (!response.ok) {
+        return false;
+      }
+      
+      const health = await response.json();
+      return health.status === 'healthy';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Detect if there's an existing healthy server and whether to reuse it
+   */
+  static async detectExistingServer(preferredPort = 3000, options = {}) {
+    const { reuseServer = true, validateHealth = true } = options;
+    
+    // Check if port is in use
+    const portInUse = !(await this.isPortAvailable(preferredPort));
+    
+    if (!portInUse) {
+      return {
+        hasExistingServer: false,
+        serverPort: preferredPort,
+        action: 'start_new',
+        message: `Port ${preferredPort} is available for new server`
+      };
+    }
+
+    // Port is in use - check if it's a healthy server
+    if (validateHealth) {
+      const isHealthy = await this.isServerHealthy(preferredPort);
+      
+      if (isHealthy && reuseServer) {
+        return {
+          hasExistingServer: true,
+          serverPort: preferredPort,
+          action: 'reuse_existing',
+          message: `Healthy server found on port ${preferredPort}, will reuse`
+        };
+      } else if (isHealthy && !reuseServer) {
+        // Find alternative port
+        try {
+          const newPort = await this.detectAvailablePort(preferredPort + 1);
+          return {
+            hasExistingServer: true,
+            serverPort: newPort,
+            action: 'start_new_port',
+            message: `Healthy server exists on ${preferredPort}, starting new server on ${newPort}`
+          };
+        } catch (error) {
+          throw new Error(`Port ${preferredPort} in use by healthy server and no alternative ports available. Use --reuse-server or --force-new-server`);
+        }
+      } else {
+        // Port in use but not healthy - could be different service
+        throw new Error(`Port ${preferredPort} is in use but server is not healthy. Please stop the conflicting service or use --port to specify different port`);
+      }
+    }
+
+    // Port in use but health check disabled
+    throw new Error(`Port ${preferredPort} is in use. Use --port to specify different port or --reuse-server to attempt reuse`);
+  }
+}
+
 class PerformanceBenchmark {
   constructor(options = {}) {
     this.options = {
@@ -127,9 +244,17 @@ class PerformanceBenchmark {
       target: options.target || PERFORMANCE_TARGETS.cached_response_ms,
       verbose: options.verbose || false,
       output: options.output,
-      serverUrl: options.serverUrl || 'http://localhost:3000',
+      port: options.port || parseInt(process.env.PP_BENCHMARK_PORT) || 3000,
+      reuseServer: options.reuseServer !== false && (process.env.PP_REUSE_SERVER !== 'false'),
+      forceNewServer: options.forceNewServer || false,
+      serverUrl: options.serverUrl,
       ...options
     };
+
+    // Build serverUrl based on determined port
+    if (!this.options.serverUrl) {
+      this.options.serverUrl = `http://localhost:${this.options.port}`;
+    }
 
     this.results = {
       timestamp: new Date().toISOString(),
@@ -143,6 +268,7 @@ class PerformanceBenchmark {
 
     this.mcpProcess = null;
     this.isServerReady = false;
+    this.serverInfo = null; // Will store server management info
   }
 
   /**
@@ -190,24 +316,95 @@ class PerformanceBenchmark {
   }
 
   /**
-   * Start MCP server process for testing
+   * Smart MCP server management with port conflict resolution
    */
   async startMCPServer() {
     if (this.options.externalServer) {
       console.log('📡 Using external MCP server');
+      this.serverInfo = { action: 'external', serverPort: this.options.port };
       return;
     }
 
-    console.log('🔧 Starting MCP server for benchmarking...');
+    console.log('🔧 Analyzing server requirements...');
+
+    try {
+      // Detect existing server and determine strategy
+      this.serverInfo = await PortManager.detectExistingServer(this.options.port, {
+        reuseServer: this.options.reuseServer && !this.options.forceNewServer,
+        validateHealth: true
+      });
+
+      console.log(`📊 ${this.serverInfo.message}`);
+
+      // Update serverUrl based on determined port
+      this.options.serverUrl = `http://localhost:${this.serverInfo.serverPort}`;
+
+      switch (this.serverInfo.action) {
+        case 'reuse_existing':
+          await this.reuseExistingServer();
+          break;
+        case 'start_new':
+        case 'start_new_port':
+          await this.startNewServer();
+          break;
+        default:
+          throw new Error(`Unknown server action: ${this.serverInfo.action}`);
+      }
+
+    } catch (error) {
+      // Enhanced error handling with actionable suggestions
+      const suggestion = this.getPortConflictSuggestion(error.message);
+      console.error(`❌ Server setup failed: ${error.message}`);
+      if (suggestion) {
+        console.error(`💡 Suggestion: ${suggestion}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Reuse existing healthy server
+   */
+  async reuseExistingServer() {
+    console.log('♻️  Reusing existing healthy server...');
+    
+    // Verify server is still healthy
+    const isHealthy = await PortManager.isServerHealthy(this.serverInfo.serverPort);
+    if (!isHealthy) {
+      throw new Error(`Server on port ${this.serverInfo.serverPort} is no longer healthy`);
+    }
+
+    this.isServerReady = true;
+    console.log(`✅ Successfully connected to existing server on port ${this.serverInfo.serverPort}`);
+  }
+
+  /**
+   * Start new server instance
+   */
+  async startNewServer() {
+    console.log(`🚀 Starting new MCP server on port ${this.serverInfo.serverPort}...`);
 
     return new Promise((resolve, reject) => {
+      const env = { 
+        ...process.env, 
+        NODE_ENV: 'test',
+        PORT: this.serverInfo.serverPort.toString()
+      };
+
       this.mcpProcess = spawn('npm', ['run', 'dev'], {
         cwd: join(__dirname, '..'),
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, NODE_ENV: 'test' }
+        env
       });
 
       let serverOutput = '';
+      let startupTimeout;
+
+      const cleanup = () => {
+        if (startupTimeout) {
+          clearTimeout(startupTimeout);
+        }
+      };
 
       this.mcpProcess.stdout.on('data', (data) => {
         serverOutput += data.toString();
@@ -216,8 +413,10 @@ class PerformanceBenchmark {
         }
         
         // Check if server is ready
-        if (data.toString().includes('Express server started')) {
+        if (data.toString().includes('Express server started') || 
+            data.toString().includes(`listening on port ${this.serverInfo.serverPort}`)) {
           this.isServerReady = true;
+          cleanup();
           resolve();
         }
       });
@@ -228,23 +427,59 @@ class PerformanceBenchmark {
           console.error(`[MCP ERROR] ${message}`);
         }
         
+        // Check for port conflict
+        if (message.includes('EADDRINUSE') || message.includes('address already in use')) {
+          cleanup();
+          reject(new Error(`Port ${this.serverInfo.serverPort} became unavailable during startup. Try different port with --port flag`));
+          return;
+        }
+
         // Don't fail on warnings
         if (!message.includes('warning') && !message.includes('deprecated')) {
+          cleanup();
           reject(new Error(`MCP server failed to start: ${message}`));
         }
       });
 
       this.mcpProcess.on('error', (error) => {
+        cleanup();
         reject(new Error(`Failed to start MCP server: ${error.message}`));
       });
 
-      // Timeout after 30 seconds
-      setTimeout(() => {
+      this.mcpProcess.on('exit', (code, signal) => {
+        if (!this.isServerReady && code !== 0) {
+          cleanup();
+          reject(new Error(`MCP server exited with code ${code} (signal: ${signal})`));
+        }
+      });
+
+      // Enhanced timeout with context
+      startupTimeout = setTimeout(() => {
+        cleanup();
         if (!this.isServerReady) {
-          reject(new Error('MCP server failed to start within 30 seconds'));
+          const suggestion = serverOutput.includes('EADDRINUSE') ? 
+            'Port conflict detected. Use --port to specify different port or --reuse-server to use existing server' :
+            'Check server logs for errors. Try --verbose for more details';
+          reject(new Error(`MCP server failed to start within 30 seconds. ${suggestion}`));
         }
       }, 30000);
     });
+  }
+
+  /**
+   * Get actionable suggestion for port conflicts
+   */
+  getPortConflictSuggestion(errorMessage) {
+    if (errorMessage.includes('port') && errorMessage.includes('in use')) {
+      return 'Try: --port 3001 (use different port), --reuse-server (reuse existing), or stop the conflicting service';
+    }
+    if (errorMessage.includes('no alternative ports')) {
+      return 'Try: --reuse-server (reuse existing server) or --port 4000 (use higher port range)';
+    }
+    if (errorMessage.includes('not healthy')) {
+      return 'Stop the conflicting service and try again, or use --port to use different port';
+    }
+    return null;
   }
 
   /**
@@ -995,7 +1230,8 @@ class PerformanceBenchmark {
    * Clean up resources
    */
   async cleanup() {
-    if (this.mcpProcess && !this.mcpProcess.killed) {
+    // Only cleanup if we started our own server process
+    if (this.mcpProcess && !this.mcpProcess.killed && this.serverInfo?.action !== 'reuse_existing') {
       console.log('🧹 Cleaning up MCP server process...');
       this.mcpProcess.kill('SIGTERM');
       
@@ -1004,6 +1240,8 @@ class PerformanceBenchmark {
         this.mcpProcess.on('exit', resolve);
         setTimeout(resolve, 5000); // Force kill after 5 seconds
       });
+    } else if (this.serverInfo?.action === 'reuse_existing') {
+      console.log('♻️  Leaving existing server running (reused)');
     }
   }
 }
@@ -1046,6 +1284,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         options.externalServer = true;
         i--; // No value for this flag
         break;
+      case 'port':
+        options.port = parseInt(value) || 3000;
+        break;
+      case 'reuse-server':
+        options.reuseServer = true;
+        i--; // No value for this flag
+        break;
+      case 'force-new-server':
+        options.forceNewServer = true;
+        i--; // No value for this flag
+        break;
       case 'help':
         console.log(`
 Performance Benchmark Suite for Personal Pipeline MCP Server
@@ -1061,12 +1310,27 @@ Options:
   --target <ms>       Target response time in ms (default: 200)
   --verbose           Detailed logging
   --external-server   Use external server (don't start MCP server)
+  --port <n>          Server port to use (default: 3000)
+  --reuse-server      Reuse existing healthy server if available
+  --force-new-server  Force starting new server (ignore existing)
   --help              Show this help message
+
+Environment Variables:
+  PP_BENCHMARK_PORT   Default port to use (default: 3000)
+  PP_REUSE_SERVER     Enable server reuse by default (default: true)
 
 Examples:
   node scripts/benchmark.js --concurrent 25 --duration 60
   node scripts/benchmark.js --cache-test --output results/benchmark.json
   node scripts/benchmark.js --target 100 --verbose
+  node scripts/benchmark.js --port 3001 --force-new-server
+  node scripts/benchmark.js --reuse-server --verbose
+
+Port Conflict Resolution:
+  If port 3000 is in use, the script will:
+  1. Check if it's a healthy PP server (default: reuse it)
+  2. Find alternative port if --force-new-server is used
+  3. Provide clear error messages with suggestions
         `);
         process.exit(0);
       default:

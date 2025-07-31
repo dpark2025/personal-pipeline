@@ -81,7 +81,7 @@ describe('Health Monitoring Integration Tests', () => {
       }],
       cache: {
         enabled: true,
-        strategy: 'memory_with_redis' as const,
+        strategy: 'hybrid' as const,
         memory: {
           max_keys: 100,
           ttl_seconds: 300,
@@ -115,8 +115,7 @@ describe('Health Monitoring Integration Tests', () => {
         alertRetentionHours: 1,
         maxActiveAlerts: 50,
         notificationChannels: {
-          console: false, // Disable for clean test output
-          webhook: undefined
+          console: false // Disable for clean test output
         }
       },
       server: {
@@ -132,14 +131,14 @@ describe('Health Monitoring Integration Tests', () => {
 
     // Initialize and start server
     server = new PersonalPipelineServer();
-    await server.initialize(testConfig);
+    await server.start();
     
     // Create Express app for health endpoints
     app = express();
     app.use(express.json());
     
     // Add health endpoints that would be created by the server
-    app.get('/health', async (req, res) => {
+    app.get('/health', async (_req, res) => {
       try {
         const cacheService = getCacheService();
         const performanceMonitor = getPerformanceMonitor();

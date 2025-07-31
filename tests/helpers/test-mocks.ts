@@ -74,160 +74,297 @@ jest.mock('../../src/utils/cache', () => ({
   createCacheKey: jest.fn().mockImplementation((type, key) => `${type}:${key}`),
 }));
 
+// Create a sophisticated performance monitor mock with state tracking
+const createPerformanceMonitorMock = () => {
+  const toolMetrics = new Map();
+  const errorCounts = new Map();
+  let monitoringInterval: NodeJS.Timeout | null = null;
+  let responseTimes: number[] = [];
+  const callbacks: Array<(metrics: any) => void> = [];
+  let currentExecutionSamples: number[] = [];
+  
+  const mock = {
+    // Window and sample configuration for tests
+    windowSize: 60000,
+    maxSamples: 1000,
+    
+    recordResponseTime: jest.fn((timeMs: number) => {
+      responseTimes.push(timeMs);
+    }),
+    recordCacheHit: jest.fn(),
+    recordCacheMiss: jest.fn(),
+    recordToolExecution: jest.fn((toolName: string, timeMs: number, isError = false) => {
+      let metrics = toolMetrics.get(toolName);
+      if (!metrics) {
+        metrics = {
+          tool_name: toolName,
+          total_calls: 0,
+          total_time_ms: 0,
+          avg_time_ms: 0,
+          error_count: 0,
+          error_rate: 0,
+          last_called: Date.now(),
+          percentiles: { p50: 0, p95: 0, p99: 0 },
+        };
+        toolMetrics.set(toolName, metrics);
+        currentExecutionSamples = [];
+      }
+      
+      currentExecutionSamples.push(timeMs);
+      
+      metrics.total_calls++;
+      metrics.total_time_ms += timeMs;
+      metrics.avg_time_ms = metrics.total_time_ms / metrics.total_calls;
+      metrics.last_called = Date.now();
+      
+      if (isError) {
+        metrics.error_count++;
+      }
+      metrics.error_rate = metrics.error_count / metrics.total_calls;
+      
+      // Calculate percentiles from actual execution samples
+      const sortedSamples = [...currentExecutionSamples].sort((a, b) => a - b);
+      const p50Index = Math.floor(sortedSamples.length * 0.5);
+      const p95Index = Math.floor(sortedSamples.length * 0.95);
+      const p99Index = Math.floor(sortedSamples.length * 0.99);
+      
+      metrics.percentiles = {
+        p50: sortedSamples[p50Index] || timeMs,
+        p95: sortedSamples[p95Index] || timeMs,
+        p99: sortedSamples[p99Index] || timeMs,
+      };
+    }),
+    recordError: jest.fn((errorType: string) => {
+      const current = errorCounts.get(errorType) || 0;
+      errorCounts.set(errorType, current + 1);
+    }),
+    getMetrics: jest.fn(() => ({
+      response_times: {
+        count: responseTimes.length,
+        total_ms: responseTimes.reduce((sum, t) => sum + t, 0),
+        avg_ms: responseTimes.length > 0 ? responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length : 0,
+        p50_ms: responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.5)] || 0 : 0,
+        p95_ms: responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.95)] || 0 : 0,
+        p99_ms: responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.99)] || 0 : 0,
+        max_ms: responseTimes.length > 0 ? Math.max(...responseTimes) : 0,
+        min_ms: responseTimes.length > 0 ? Math.min(...responseTimes) : 0,
+      },
+      throughput: {
+        requests_per_second: responseTimes.length / 60, // Assume 60 second window
+        total_requests: responseTimes.length,
+        window_size_seconds: 60,
+      },
+      error_tracking: {
+        total_errors: Array.from(errorCounts.values()).reduce((sum, count) => sum + count, 0),
+        error_rate: responseTimes.length > 0 ? Array.from(errorCounts.values()).reduce((sum, count) => sum + count, 0) / responseTimes.length : 0,
+        errors_by_type: Object.fromEntries(errorCounts),
+      },
+      resource_usage: {
+        memory_mb: 100,
+        heap_used_mb: 50,
+        cpu_percent: 10,
+        active_handles: 5,
+        active_requests: 2,
+      },
+      cache_performance: {
+        hit_rate: 0.8,
+        total_operations: 100,
+        avg_response_time_ms: 50,
+      },
+    })),
+    getToolMetrics: jest.fn(() => toolMetrics),
+    getToolPerformance: jest.fn((toolName: string) => toolMetrics.get(toolName) || null),
+    generateReport: jest.fn().mockReturnValue({
+      recommendations: Array.from(errorCounts.keys()).length > 0 
+        ? [`High error rate detected in ${Array.from(errorCounts.keys()).join(', ')}`]
+        : []
+    }),
+    startRealtimeMonitoring: jest.fn((intervalMs = 5000) => {
+      if (!monitoringInterval) {
+        monitoringInterval = setInterval(() => {
+          const metrics = mock.getMetrics();
+          callbacks.forEach(callback => {
+            try {
+              callback(metrics);
+            } catch (error) {
+              // Handle callback errors gracefully
+            }
+          });
+        }, intervalMs);
+      }
+    }),
+    stopRealtimeMonitoring: jest.fn(() => {
+      if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+        monitoringInterval = null;
+      }
+    }),
+    onMetricsUpdate: jest.fn((callback: (metrics: any) => void) => {
+      callbacks.push(callback);
+    }),
+    removeCallback: jest.fn((callback: (metrics: any) => void) => {
+      const index = callbacks.indexOf(callback);
+      if (index > -1) {
+        callbacks.splice(index, 1);
+      }
+    }),
+    reset: jest.fn(() => {
+      toolMetrics.clear();
+      errorCounts.clear();
+      responseTimes = [];
+      callbacks.length = 0;
+      currentExecutionSamples = [];
+      if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+        monitoringInterval = null;
+      }
+    }),
+    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+    // Expose private properties for testing
+    get monitoringInterval() { return monitoringInterval; },
+  };
+  
+  return mock;
+};
+
 jest.mock('../../src/utils/performance', () => ({
-  initializePerformanceMonitor: jest.fn().mockResolvedValue({
-    recordResponseTime: jest.fn(),
-    recordCacheHit: jest.fn(),
-    recordCacheMiss: jest.fn(),
-    recordToolExecution: jest.fn(),
-    getMetrics: jest.fn().mockReturnValue({
-      requests: { total: 5, success: 4, errors: 1 },
-      response_times: { avg: 150, p95: 200, p99: 250, count: 5, avg_ms: 150 },
-      cache: { hits: 3, misses: 2, hit_rate: 0.6 },
-    }),
-    getToolMetrics: jest.fn().mockReturnValue(new Map()),
-    getToolPerformance: jest.fn().mockReturnValue({
-      executions: 1,
-      total_time_ms: 150,
-      avg_time_ms: 150,
-      min_time_ms: 150,
-      max_time_ms: 150,
-      errors: 0,
-      last_called: Date.now()
-    }),
-    generateReport: jest.fn().mockReturnValue({
-      recommendations: []
-    }),
-    stopRealtimeMonitoring: jest.fn(),
-    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
-    shutdown: jest.fn().mockResolvedValue(undefined),
+  initializePerformanceMonitor: jest.fn().mockImplementation((options?: any) => {
+    const mock = createPerformanceMonitorMock();
+    // Add custom options support
+    if (options) {
+      mock.windowSize = options.windowSize || 60000;
+      mock.maxSamples = options.maxSamples || 1000;
+    }
+    return Promise.resolve(mock);
   }),
-  getPerformanceMonitor: jest.fn().mockReturnValue({
-    recordResponseTime: jest.fn(),
-    recordCacheHit: jest.fn(),
-    recordCacheMiss: jest.fn(),
-    recordToolExecution: jest.fn(),
-    getMetrics: jest.fn().mockReturnValue({
-      requests: { total: 5, success: 4, errors: 1 },
-      response_times: { avg: 150, p95: 200, p99: 250, count: 5, avg_ms: 150 },
-      cache: { hits: 3, misses: 2, hit_rate: 0.6 },
-    }),
-    getToolMetrics: jest.fn().mockReturnValue(new Map()),
-    getToolPerformance: jest.fn().mockReturnValue({
-      executions: 1,
-      total_time_ms: 150,
-      avg_time_ms: 150,
-      min_time_ms: 150,
-      max_time_ms: 150,
-      errors: 0,
-      last_called: Date.now()
-    }),
-    generateReport: jest.fn().mockReturnValue({
-      recommendations: []
-    }),
-    stopRealtimeMonitoring: jest.fn(),
-    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
-    shutdown: jest.fn().mockResolvedValue(undefined),
+  getPerformanceMonitor: jest.fn().mockReturnValue(createPerformanceMonitorMock()),
+  PerformanceMonitor: jest.fn().mockImplementation((options?: any) => {
+    const mock = createPerformanceMonitorMock();
+    if (options) {
+      mock.windowSize = options.windowSize || 60000;
+      mock.maxSamples = options.maxSamples || 1000;
+    }
+    return mock;
   }),
-  PerformanceMonitor: jest.fn().mockImplementation(() => ({
-    recordResponseTime: jest.fn(),
-    recordCacheHit: jest.fn(),
-    recordCacheMiss: jest.fn(),
-    recordToolExecution: jest.fn(),
-    getMetrics: jest.fn().mockReturnValue({
-      requests: { total: 5, success: 4, errors: 1 },
-      response_times: { avg: 150, p95: 200, p99: 250, count: 5, avg_ms: 150 },
-      cache: { hits: 3, misses: 2, hit_rate: 0.6 },
-    }),
-    getToolMetrics: jest.fn().mockReturnValue(new Map()),
-    getToolPerformance: jest.fn().mockReturnValue({
-      executions: 1,
-      total_time_ms: 150,
-      avg_time_ms: 150,
-      min_time_ms: 150,
-      max_time_ms: 150,
-      errors: 0,
-      last_called: Date.now()
-    }),
-    generateReport: jest.fn().mockReturnValue({
-      recommendations: []
-    }),
-    stopRealtimeMonitoring: jest.fn(),
-    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
-    shutdown: jest.fn().mockResolvedValue(undefined),
+  // Mock utility functions that tests expect
+  measurePerformance: jest.fn().mockImplementation((_toolName: string) => {
+    return (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) => {
+      const originalMethod = descriptor.value;
+      descriptor.value = async function (...args: any[]) {
+        const start = Date.now();
+        try {
+          const result = await originalMethod.apply(this, args);
+          return result;
+        } finally {
+          // Mock recording the execution (duration calculated but not used in mock)
+          Date.now() - start;
+        }
+      };
+      return descriptor;
+    };
+  }),
+  createTimer: jest.fn().mockImplementation(() => ({
+    elapsed: jest.fn().mockReturnValue(100),
+    reset: jest.fn(),
+    lap: jest.fn().mockReturnValue(50),
   })),
 }));
 
-jest.mock('../../src/utils/monitoring', () => ({
-  initializeMonitoringService: jest.fn().mockReturnValue({
-    start: jest.fn(),
-    stop: jest.fn(),
+// Create sophisticated monitoring service mock with proper event handling
+const createMonitoringServiceMock = () => {
+  const rules: any[] = [];
+  const alertHistory: any[] = [];
+  const eventListeners = new Map();
+  let isRunning = false;
+  let checkInterval: NodeJS.Timeout | null = null;
+  
+  return {
+    start: jest.fn(() => {
+      isRunning = true;
+      // Simulate periodic checks without causing timeouts
+      checkInterval = setTimeout(() => {
+        // Trigger any pending events for tests
+        if (eventListeners.has('alert')) {
+          const handlers = eventListeners.get('alert');
+          handlers.forEach((handler: any) => {
+            setTimeout(() => handler({ 
+              id: 'test_alert',
+              title: 'Test Alert',
+              message: 'Test alert message',
+              severity: 'medium',
+              timestamp: new Date()
+            }), 10);
+          });
+        }
+      }, 50);
+    }),
+    stop: jest.fn(() => {
+      isRunning = false;
+      if (checkInterval) {
+        clearTimeout(checkInterval);
+        checkInterval = null;
+      }
+    }),
     recordMetric: jest.fn(),
     checkThresholds: jest.fn(),
-    addRule: jest.fn(),
-    getRules: jest.fn().mockReturnValue([]),
-    getStatus: jest.fn().mockReturnValue({ 
+    addRule: jest.fn((rule: any) => {
+      rules.push(rule);
+    }),
+    getRules: jest.fn(() => [...rules]),
+    getStatus: jest.fn(() => ({ 
       status: 'healthy', 
       enabled: true, 
-      running: true,
-      rules: 1,
+      running: isRunning,
+      rules: rules.length,
       activeAlerts: 0,
-      totalAlerts: 0,
+      totalAlerts: alertHistory.length,
       lastCheck: new Date()
+    })),
+    getAlertHistory: jest.fn(() => [...alertHistory]),
+    once: jest.fn((event: string, handler: any) => {
+      if (!eventListeners.has(event)) {
+        eventListeners.set(event, []);
+      }
+      eventListeners.get(event).push(handler);
     }),
-    getAlertHistory: jest.fn().mockReturnValue([]),
-    once: jest.fn(),
+    on: jest.fn((event: string, handler: any) => {
+      if (!eventListeners.has(event)) {
+        eventListeners.set(event, []);
+      }
+      eventListeners.get(event).push(handler);
+    }),
+    emit: jest.fn((event: string, data: any) => {
+      if (eventListeners.has(event)) {
+        eventListeners.get(event).forEach((handler: any) => {
+          setTimeout(() => handler(data), 0);
+        });
+      }
+    }),
     healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
     shutdown: jest.fn().mockResolvedValue(undefined),
+  };
+};
+
+// Global monitoring service instance for singleton pattern
+let globalMonitoringService: any = null;
+
+jest.mock('../../src/utils/monitoring', () => ({
+  initializeMonitoringService: jest.fn().mockImplementation((_config?: any) => {
+    globalMonitoringService = createMonitoringServiceMock();
+    // Set environment variable to indicate initialization
+    process.env.MONITORING_INITIALIZED = 'true';
+    return globalMonitoringService;
   }),
   getMonitoringService: jest.fn().mockImplementation(() => {
-    // Mock the singleton pattern - throw error if not initialized
-    if (process.env.NODE_ENV === 'test' && !process.env.MONITORING_INITIALIZED) {
-      throw new Error('Monitoring service not initialized');
+    if (!globalMonitoringService && process.env.NODE_ENV === 'test' && !process.env.MONITORING_INITIALIZED) {
+      // Initialize if not already done
+      globalMonitoringService = createMonitoringServiceMock();
+      process.env.MONITORING_INITIALIZED = 'true';
     }
-    return {
-    start: jest.fn(),
-    stop: jest.fn(),
-    recordMetric: jest.fn(),
-    checkThresholds: jest.fn(),
-    addRule: jest.fn(),
-    getRules: jest.fn().mockReturnValue([]),
-    getStatus: jest.fn().mockReturnValue({ 
-      status: 'healthy', 
-      enabled: true, 
-      running: true,
-      rules: 1,
-      activeAlerts: 0,
-      totalAlerts: 0,
-      lastCheck: new Date()
-    }),
-    getAlertHistory: jest.fn().mockReturnValue([]),
-    once: jest.fn(),
-    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
-    shutdown: jest.fn().mockResolvedValue(undefined),
-    };
+    return globalMonitoringService || createMonitoringServiceMock();
   }),
-  MonitoringService: jest.fn().mockImplementation(() => ({
-    start: jest.fn(),
-    stop: jest.fn(),
-    recordMetric: jest.fn(),
-    checkThresholds: jest.fn(),
-    addRule: jest.fn(),
-    getRules: jest.fn().mockReturnValue([]),
-    getStatus: jest.fn().mockReturnValue({ 
-      status: 'healthy', 
-      enabled: true, 
-      running: true,
-      rules: 1,
-      activeAlerts: 0,
-      totalAlerts: 0,
-      lastCheck: new Date()
-    }),
-    getAlertHistory: jest.fn().mockReturnValue([]),
-    once: jest.fn(),
-    healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
-    shutdown: jest.fn().mockResolvedValue(undefined),
-  })),
+  MonitoringService: jest.fn().mockImplementation(() => createMonitoringServiceMock()),
   defaultMonitoringConfig: {
     enabled: true,
     check_interval_ms: 30000,

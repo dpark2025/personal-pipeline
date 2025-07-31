@@ -142,10 +142,18 @@ jest.mock('express', () => {
       };
     }),
   };
+  const mockRouter = {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    use: jest.fn(),
+  };
   const express: any = jest.fn(() => mockApp);
   express.json = jest.fn(() => jest.fn());
   express.urlencoded = jest.fn(() => jest.fn());
   express.static = jest.fn(() => jest.fn());
+  express.Router = jest.fn(() => mockRouter);
   return express;
 });
 
