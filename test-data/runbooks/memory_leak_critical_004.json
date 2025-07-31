@@ -1,8 +1,8 @@
 {
   "id": "memory_leak_critical_004",
   "title": "Memory Leak - CRITICAL Alert Response",
-  "version": "1.2",
-  "description": "Runbook for responding to critical severity memory leak alerts on java-app systems",
+  "version": "1.5",
+  "description": "Runbook for responding to critical severity memory leak alerts on container systems",
   "triggers": [
     "memory_usage_high",
     "oom_killer",
@@ -52,9 +52,9 @@
     {
       "id": "emergency_procedure",
       "name": "Emergency Memory Leak Resolution",
-      "description": "Immediate actions to resolve critical memory leak on java-app",
+      "description": "Immediate actions to resolve critical memory leak on container",
       "command": "systemctl restart high-memory-service && docker system prune -f",
-      "expected_outcome": "Restore java-app to operational state within 5 minutes",
+      "expected_outcome": "Restore container to operational state within 5 minutes",
       "timeout_seconds": 300,
       "prerequisites": [
         "admin_access",
@@ -104,13 +104,13 @@
       ]
     }
   ],
-  "escalation_path": "dba",
+  "escalation_path": "l1_support",
   "metadata": {
-    "created_at": "2025-07-29T15:25:34.794Z",
-    "updated_at": "2025-07-29T15:25:34.794Z",
+    "created_at": "2025-07-31T22:23:36.690Z",
+    "updated_at": "2025-07-31T22:23:36.690Z",
     "author": "SRE Team",
-    "confidence_score": 0.8667823833943112,
-    "success_rate": 0.9921868872552538,
-    "avg_resolution_time_minutes": 67
+    "confidence_score": 0.7239439233026729,
+    "success_rate": 0.8420985145023715,
+    "avg_resolution_time_minutes": 18
   }
 }

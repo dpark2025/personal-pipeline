@@ -40,16 +40,16 @@ jest.mock('../../src/utils/cache', () => ({
     set: jest.fn().mockResolvedValue(undefined),
     del: jest.fn().mockResolvedValue(undefined),
     clear: jest.fn().mockResolvedValue(undefined),
-    getStats: jest.fn().mockReturnValue({ 
-      hits: 10, 
-      misses: 5, 
+    getStats: jest.fn().mockReturnValue({
+      hits: 10,
+      misses: 5,
       total_operations: 15,
-      hit_rate: 0.67 
+      hit_rate: 0.67,
     }),
-    healthCheck: jest.fn().mockResolvedValue({ 
+    healthCheck: jest.fn().mockResolvedValue({
       overall_healthy: true,
       memory_cache: { healthy: true, response_time_ms: 10 },
-      redis_cache: { healthy: true, response_time_ms: 50 }
+      redis_cache: { healthy: true, response_time_ms: 50 },
     }),
     shutdown: jest.fn().mockResolvedValue(undefined),
   }),
@@ -58,16 +58,16 @@ jest.mock('../../src/utils/cache', () => ({
     set: jest.fn().mockResolvedValue(undefined),
     del: jest.fn().mockResolvedValue(undefined),
     clear: jest.fn().mockResolvedValue(undefined),
-    getStats: jest.fn().mockReturnValue({ 
-      hits: 10, 
-      misses: 5, 
+    getStats: jest.fn().mockReturnValue({
+      hits: 10,
+      misses: 5,
       total_operations: 15,
-      hit_rate: 0.67 
+      hit_rate: 0.67,
     }),
-    healthCheck: jest.fn().mockResolvedValue({ 
+    healthCheck: jest.fn().mockResolvedValue({
       overall_healthy: true,
       memory_cache: { healthy: true, response_time_ms: 10 },
-      redis_cache: { healthy: true, response_time_ms: 50 }
+      redis_cache: { healthy: true, response_time_ms: 50 },
     }),
     shutdown: jest.fn().mockResolvedValue(undefined),
   })),
@@ -82,12 +82,12 @@ const createPerformanceMonitorMock = () => {
   let responseTimes: number[] = [];
   const callbacks: Array<(metrics: any) => void> = [];
   let currentExecutionSamples: number[] = [];
-  
+
   const mock = {
     // Window and sample configuration for tests
     windowSize: 60000,
     maxSamples: 1000,
-    
+
     recordResponseTime: jest.fn((timeMs: number) => {
       responseTimes.push(timeMs);
     }),
@@ -109,25 +109,25 @@ const createPerformanceMonitorMock = () => {
         toolMetrics.set(toolName, metrics);
         currentExecutionSamples = [];
       }
-      
+
       currentExecutionSamples.push(timeMs);
-      
+
       metrics.total_calls++;
       metrics.total_time_ms += timeMs;
       metrics.avg_time_ms = metrics.total_time_ms / metrics.total_calls;
       metrics.last_called = Date.now();
-      
+
       if (isError) {
         metrics.error_count++;
       }
       metrics.error_rate = metrics.error_count / metrics.total_calls;
-      
+
       // Calculate percentiles from actual execution samples
       const sortedSamples = [...currentExecutionSamples].sort((a, b) => a - b);
       const p50Index = Math.floor(sortedSamples.length * 0.5);
       const p95Index = Math.floor(sortedSamples.length * 0.95);
       const p99Index = Math.floor(sortedSamples.length * 0.99);
-      
+
       metrics.percentiles = {
         p50: sortedSamples[p50Index] || timeMs,
         p95: sortedSamples[p95Index] || timeMs,
@@ -142,10 +142,20 @@ const createPerformanceMonitorMock = () => {
       response_times: {
         count: responseTimes.length,
         total_ms: responseTimes.reduce((sum, t) => sum + t, 0),
-        avg_ms: responseTimes.length > 0 ? responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length : 0,
-        p50_ms: responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.5)] || 0 : 0,
-        p95_ms: responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.95)] || 0 : 0,
-        p99_ms: responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.99)] || 0 : 0,
+        avg_ms:
+          responseTimes.length > 0
+            ? responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length
+            : 0,
+        p50_ms:
+          responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.5)] || 0 : 0,
+        p95_ms:
+          responseTimes.length > 0
+            ? responseTimes[Math.floor(responseTimes.length * 0.95)] || 0
+            : 0,
+        p99_ms:
+          responseTimes.length > 0
+            ? responseTimes[Math.floor(responseTimes.length * 0.99)] || 0
+            : 0,
         max_ms: responseTimes.length > 0 ? Math.max(...responseTimes) : 0,
         min_ms: responseTimes.length > 0 ? Math.min(...responseTimes) : 0,
       },
@@ -156,7 +166,11 @@ const createPerformanceMonitorMock = () => {
       },
       error_tracking: {
         total_errors: Array.from(errorCounts.values()).reduce((sum, count) => sum + count, 0),
-        error_rate: responseTimes.length > 0 ? Array.from(errorCounts.values()).reduce((sum, count) => sum + count, 0) / responseTimes.length : 0,
+        error_rate:
+          responseTimes.length > 0
+            ? Array.from(errorCounts.values()).reduce((sum, count) => sum + count, 0) /
+              responseTimes.length
+            : 0,
         errors_by_type: Object.fromEntries(errorCounts),
       },
       resource_usage: {
@@ -175,9 +189,10 @@ const createPerformanceMonitorMock = () => {
     getToolMetrics: jest.fn(() => toolMetrics),
     getToolPerformance: jest.fn((toolName: string) => toolMetrics.get(toolName) || null),
     generateReport: jest.fn().mockReturnValue({
-      recommendations: Array.from(errorCounts.keys()).length > 0 
-        ? [`High error rate detected in ${Array.from(errorCounts.keys()).join(', ')}`]
-        : []
+      recommendations:
+        Array.from(errorCounts.keys()).length > 0
+          ? [`High error rate detected in ${Array.from(errorCounts.keys()).join(', ')}`]
+          : [],
     }),
     startRealtimeMonitoring: jest.fn((intervalMs = 5000) => {
       if (!monitoringInterval) {
@@ -222,9 +237,11 @@ const createPerformanceMonitorMock = () => {
     healthCheck: jest.fn().mockResolvedValue({ healthy: true }),
     shutdown: jest.fn().mockResolvedValue(undefined),
     // Expose private properties for testing
-    get monitoringInterval() { return monitoringInterval; },
+    get monitoringInterval() {
+      return monitoringInterval;
+    },
   };
-  
+
   return mock;
 };
 
@@ -278,7 +295,7 @@ const createMonitoringServiceMock = () => {
   const eventListeners = new Map();
   let isRunning = false;
   let checkInterval: NodeJS.Timeout | null = null;
-  
+
   return {
     start: jest.fn(() => {
       isRunning = true;
@@ -288,13 +305,17 @@ const createMonitoringServiceMock = () => {
         if (eventListeners.has('alert')) {
           const handlers = eventListeners.get('alert');
           handlers.forEach((handler: any) => {
-            setTimeout(() => handler({ 
-              id: 'test_alert',
-              title: 'Test Alert',
-              message: 'Test alert message',
-              severity: 'medium',
-              timestamp: new Date()
-            }), 10);
+            setTimeout(
+              () =>
+                handler({
+                  id: 'test_alert',
+                  title: 'Test Alert',
+                  message: 'Test alert message',
+                  severity: 'medium',
+                  timestamp: new Date(),
+                }),
+              10
+            );
           });
         }
       }, 50);
@@ -312,14 +333,14 @@ const createMonitoringServiceMock = () => {
       rules.push(rule);
     }),
     getRules: jest.fn(() => [...rules]),
-    getStatus: jest.fn(() => ({ 
-      status: 'healthy', 
-      enabled: true, 
+    getStatus: jest.fn(() => ({
+      status: 'healthy',
+      enabled: true,
       running: isRunning,
       rules: rules.length,
       activeAlerts: 0,
       totalAlerts: alertHistory.length,
-      lastCheck: new Date()
+      lastCheck: new Date(),
     })),
     getAlertHistory: jest.fn(() => [...alertHistory]),
     once: jest.fn((event: string, handler: any) => {
@@ -357,7 +378,11 @@ jest.mock('../../src/utils/monitoring', () => ({
     return globalMonitoringService;
   }),
   getMonitoringService: jest.fn().mockImplementation(() => {
-    if (!globalMonitoringService && process.env.NODE_ENV === 'test' && !process.env.MONITORING_INITIALIZED) {
+    if (
+      !globalMonitoringService &&
+      process.env.NODE_ENV === 'test' &&
+      !process.env.MONITORING_INITIALIZED
+    ) {
       // Initialize if not already done
       globalMonitoringService = createMonitoringServiceMock();
       process.env.MONITORING_INITIALIZED = 'true';
@@ -392,11 +417,21 @@ jest.mock('../../src/adapters/base', () => ({
   })),
   SourceAdapter: class MockSourceAdapter {
     constructor() {}
-    async search() { return []; }
-    async getDocument() { return null; }
-    async searchRunbooks() { return []; }
-    async healthCheck() { return { healthy: true }; }
-    async getMetadata() { return {}; }
+    async search() {
+      return [];
+    }
+    async getDocument() {
+      return null;
+    }
+    async searchRunbooks() {
+      return [];
+    }
+    async healthCheck() {
+      return { healthy: true };
+    }
+    async getMetadata() {
+      return {};
+    }
     async cleanup() {}
   },
 }));
@@ -437,17 +472,17 @@ jest.mock('express', () => {
     put: jest.fn(),
     delete: jest.fn(),
   });
-  
+
   const express: any = jest.fn(() => mockApp);
   express.json = jest.fn(() => jest.fn());
   express.urlencoded = jest.fn(() => jest.fn());
   express.static = jest.fn(() => jest.fn());
   express.Router = mockRouter;
-  
+
   // Also add as default export property for CommonJS compatibility
   express.default = express;
   express.default.Router = mockRouter;
-  
+
   return express;
 });
 
@@ -463,22 +498,22 @@ jest.mock('../../tests/helpers/test-data-generator', () => ({
       title: 'Test Runbook',
       triggers: ['test_trigger'],
       procedures: [],
-      metadata: { confidence_score: 0.9, last_updated: new Date().toISOString() }
+      metadata: { confidence_score: 0.9, last_updated: new Date().toISOString() },
     }),
     generateProcedure: jest.fn().mockReturnValue({
       name: 'Test Procedure',
       steps: ['Step 1'],
-      metadata: { complexity: 'medium' }
+      metadata: { complexity: 'medium' },
     }),
     generateCacheWarmupData: jest.fn().mockReturnValue([]),
     generateTestDataset: jest.fn().mockReturnValue({
       runbooks: [],
       procedures: [],
       decision_trees: [],
-      knowledge_base: []
+      knowledge_base: [],
     }),
-    saveTestDataset: jest.fn().mockResolvedValue(undefined)
-  }
+    saveTestDataset: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 // Export a default mock configuration for tests

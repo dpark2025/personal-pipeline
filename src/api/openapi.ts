@@ -1,6 +1,6 @@
 /**
  * OpenAPI 3.0 Specification Generator for Personal Pipeline REST API
- * 
+ *
  * Generates comprehensive API documentation from existing Zod schemas
  * and route definitions with realistic examples for all 11 endpoints.
  */
@@ -50,63 +50,64 @@ All endpoints return standardized error responses with:
     `,
     contact: {
       name: 'Personal Pipeline Team',
-      email: 'support@personal-pipeline.com'
+      email: 'support@personal-pipeline.com',
     },
     license: {
       name: 'MIT',
-      url: 'https://opensource.org/licenses/MIT'
-    }
+      url: 'https://opensource.org/licenses/MIT',
+    },
   },
   servers: [
     {
       url: 'http://localhost:3000',
-      description: 'Development server'
+      description: 'Development server',
     },
     {
       url: 'https://api.personal-pipeline.com',
-      description: 'Production server'
-    }
+      description: 'Production server',
+    },
   ],
   tags: [
     {
       name: 'Search',
-      description: 'General documentation search operations'
+      description: 'General documentation search operations',
     },
     {
       name: 'Runbooks',
-      description: 'Operational runbook management and retrieval'
+      description: 'Operational runbook management and retrieval',
     },
     {
       name: 'Decision Trees',
-      description: 'Conditional logic and decision support'
+      description: 'Conditional logic and decision support',
     },
     {
       name: 'Procedures',
-      description: 'Step-by-step procedure execution details'
+      description: 'Step-by-step procedure execution details',
     },
     {
       name: 'Escalation',
-      description: 'Incident escalation path management'
+      description: 'Incident escalation path management',
     },
     {
       name: 'Sources',
-      description: 'Documentation source management'
+      description: 'Documentation source management',
     },
     {
       name: 'Feedback',
-      description: 'Resolution feedback and analytics'
+      description: 'Resolution feedback and analytics',
     },
     {
       name: 'Monitoring',
-      description: 'API health and performance monitoring'
-    }
+      description: 'API health and performance monitoring',
+    },
   ],
   paths: {
     '/api/search': {
       post: {
         tags: ['Search'],
         summary: 'Search knowledge base',
-        description: 'General documentation search across all configured sources with intelligent ranking',
+        description:
+          'General documentation search across all configured sources with intelligent ranking',
         operationId: 'searchKnowledgeBase',
         requestBody: {
           required: true,
@@ -121,19 +122,19 @@ All endpoints return standardized error responses with:
                     minLength: 1,
                     maxLength: 500,
                     description: 'Search query with descriptive terms',
-                    example: 'database connection timeout troubleshooting'
+                    example: 'database connection timeout troubleshooting',
                   },
                   categories: {
                     type: 'array',
                     items: { type: 'string' },
                     description: 'Optional category filters',
-                    example: ['database', 'troubleshooting']
+                    example: ['database', 'troubleshooting'],
                   },
                   max_age_days: {
                     type: 'number',
                     minimum: 1,
                     description: 'Maximum age of documents in days',
-                    example: 30
+                    example: 30,
                   },
                   max_results: {
                     type: 'number',
@@ -141,12 +142,12 @@ All endpoints return standardized error responses with:
                     maximum: 100,
                     default: 10,
                     description: 'Maximum number of results to return',
-                    example: 10
-                  }
-                }
-              }
-            }
-          }
+                    example: 10,
+                  },
+                },
+              },
+            },
+          },
         },
         responses: {
           '200': {
@@ -161,7 +162,8 @@ All endpoints return standardized error responses with:
                       {
                         id: 'kb_001_database_timeout',
                         title: 'Database Connection Timeout Troubleshooting',
-                        content: 'When database connections timeout, first check connection pool settings...',
+                        content:
+                          'When database connections timeout, first check connection pool settings...',
                         source: 'confluence_ops',
                         source_type: 'confluence',
                         confidence_score: 0.92,
@@ -171,32 +173,33 @@ All endpoints return standardized error responses with:
                         last_updated: '2024-01-15T10:30:00Z',
                         metadata: {
                           author: 'ops-team',
-                          tags: ['database', 'troubleshooting', 'timeout']
-                        }
-                      }
+                          tags: ['database', 'troubleshooting', 'timeout'],
+                        },
+                      },
                     ],
                     total_results: 1,
-                    execution_time_ms: 156
+                    execution_time_ms: 156,
                   },
                   metadata: {
                     execution_time_ms: 156,
-                    correlation_id: 'req_20240130_143502_abc123'
-                  }
-                }
-              }
-            }
+                    correlation_id: 'req_20240130_143502_abc123',
+                  },
+                },
+              },
+            },
           },
           '400': { $ref: '#/components/responses/BadRequest' },
           '404': { $ref: '#/components/responses/NotFound' },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/runbooks/search': {
       post: {
         tags: ['Runbooks'],
         summary: 'Search runbooks by alert characteristics',
-        description: 'Find operational runbooks matching specific alert types, severity levels, and affected systems',
+        description:
+          'Find operational runbooks matching specific alert types, severity levels, and affected systems',
         operationId: 'searchRunbooks',
         requestBody: {
           required: true,
@@ -210,20 +213,20 @@ All endpoints return standardized error responses with:
                     type: 'string',
                     minLength: 1,
                     description: 'Type of alert triggering the search',
-                    example: 'database_connection_failure'
+                    example: 'database_connection_failure',
                   },
                   severity: {
                     type: 'string',
                     enum: ['critical', 'high', 'medium', 'low', 'info'],
                     description: 'Alert severity level',
-                    example: 'high'
+                    example: 'high',
                   },
                   affected_systems: {
                     type: 'array',
                     items: { type: 'string' },
                     minItems: 1,
                     description: 'List of affected systems or services',
-                    example: ['user-api', 'postgres-primary']
+                    example: ['user-api', 'postgres-primary'],
                   },
                   context: {
                     type: 'object',
@@ -232,13 +235,13 @@ All endpoints return standardized error responses with:
                     example: {
                       error_message: 'Connection timeout after 30s',
                       occurrence_count: 5,
-                      time_window: '5m'
-                    }
-                  }
-                }
-              }
-            }
-          }
+                      time_window: '5m',
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         responses: {
           '200': {
@@ -254,12 +257,13 @@ All endpoints return standardized error responses with:
                         id: 'rb_001_db_connection',
                         title: 'Database Connection Failure Response',
                         version: '2.1.0',
-                        description: 'Immediate response procedures for database connectivity issues',
+                        description:
+                          'Immediate response procedures for database connectivity issues',
                         triggers: ['database_connection_failure', 'connection_timeout'],
                         severity_mapping: {
                           critical: 'critical',
                           high: 'high',
-                          medium: 'medium'
+                          medium: 'medium',
                         },
                         decision_tree: {
                           id: 'dt_db_connection',
@@ -272,10 +276,10 @@ All endpoints return standardized error responses with:
                               description: 'Check if connection pool is exhausted',
                               action: 'Restart connection pool service',
                               next_step: 'verify_connections',
-                              confidence: 0.85
-                            }
+                              confidence: 0.85,
+                            },
                           ],
-                          default_action: 'escalate_to_dba'
+                          default_action: 'escalate_to_dba',
                         },
                         procedures: [
                           {
@@ -285,8 +289,8 @@ All endpoints return standardized error responses with:
                             command: 'sudo systemctl restart db-connection-pool',
                             expected_outcome: 'Service restarts within 30 seconds',
                             timeout_seconds: 60,
-                            prerequisites: ['sudo_access', 'service_account']
-                          }
+                            prerequisites: ['sudo_access', 'service_account'],
+                          },
                         ],
                         escalation_path: 'dba_on_call',
                         metadata: {
@@ -295,33 +299,34 @@ All endpoints return standardized error responses with:
                           author: 'ops-team',
                           confidence_score: 0.91,
                           success_rate: 0.87,
-                          avg_resolution_time_minutes: 12
-                        }
-                      }
+                          avg_resolution_time_minutes: 12,
+                        },
+                      },
                     ],
                     total_results: 1,
-                    confidence_scores: [0.91]
+                    confidence_scores: [0.91],
                   },
                   metadata: {
                     execution_time_ms: 89,
                     correlation_id: 'req_20240130_143503_def456',
-                    cached: true
-                  }
-                }
-              }
-            }
+                    cached: true,
+                  },
+                },
+              },
+            },
           },
           '400': { $ref: '#/components/responses/BadRequest' },
           '404': { $ref: '#/components/responses/NotFound' },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/runbooks/{id}': {
       get: {
         tags: ['Runbooks'],
         summary: 'Get specific runbook by ID',
-        description: 'Retrieve a specific runbook with all details including procedures and decision trees',
+        description:
+          'Retrieve a specific runbook with all details including procedures and decision trees',
         operationId: 'getRunbook',
         parameters: [
           {
@@ -330,22 +335,22 @@ All endpoints return standardized error responses with:
             required: true,
             schema: { type: 'string' },
             description: 'Unique runbook identifier',
-            example: 'rb_001_db_connection'
-          }
+            example: 'rb_001_db_connection',
+          },
         ],
         responses: {
           '200': {
             description: 'Runbook retrieved successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/RunbookResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/RunbookResponse' },
+              },
+            },
           },
           '404': { $ref: '#/components/responses/NotFound' },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/runbooks': {
       get: {
@@ -359,43 +364,43 @@ All endpoints return standardized error responses with:
             in: 'query',
             schema: { type: 'string' },
             description: 'Filter by runbook category',
-            example: 'database'
+            example: 'database',
           },
           {
             name: 'severity',
             in: 'query',
-            schema: { 
+            schema: {
               type: 'string',
-              enum: ['critical', 'high', 'medium', 'low', 'info']
+              enum: ['critical', 'high', 'medium', 'low', 'info'],
             },
             description: 'Filter by severity level',
-            example: 'high'
+            example: 'high',
           },
           {
             name: 'limit',
             in: 'query',
-            schema: { 
+            schema: {
               type: 'number',
               minimum: 1,
               maximum: 100,
-              default: 50
+              default: 50,
             },
             description: 'Maximum number of runbooks to return',
-            example: 20
-          }
+            example: 20,
+          },
         ],
         responses: {
           '200': {
             description: 'Runbooks listed successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/RunbookListResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/RunbookListResponse' },
+              },
+            },
           },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/decision-tree': {
       post: {
@@ -421,9 +426,9 @@ All endpoints return standardized error responses with:
                       affected_systems: ['user-api'],
                       metrics: {
                         connection_count: 0,
-                        error_rate: 0.95
-                      }
-                    }
+                        error_rate: 0.95,
+                      },
+                    },
                   },
                   current_agent_state: {
                     type: 'object',
@@ -431,27 +436,27 @@ All endpoints return standardized error responses with:
                     additionalProperties: true,
                     example: {
                       attempted_steps: ['check_service_status'],
-                      execution_time_seconds: 45
-                    }
-                  }
-                }
-              }
-            }
-          }
+                      execution_time_seconds: 45,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         responses: {
           '200': {
             description: 'Decision tree retrieved successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/DecisionTreeResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/DecisionTreeResponse' },
+              },
+            },
           },
           '400': { $ref: '#/components/responses/BadRequest' },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/procedures/{id}': {
       get: {
@@ -466,29 +471,30 @@ All endpoints return standardized error responses with:
             required: true,
             schema: { type: 'string' },
             description: 'Procedure identifier in format: runbook_id_step_name',
-            example: 'rb_001_restart_pool'
-          }
+            example: 'rb_001_restart_pool',
+          },
         ],
         responses: {
           '200': {
             description: 'Procedure retrieved successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/ProcedureResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/ProcedureResponse' },
+              },
+            },
           },
           '400': { $ref: '#/components/responses/BadRequest' },
           '404': { $ref: '#/components/responses/NotFound' },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/escalation': {
       post: {
         tags: ['Escalation'],
         summary: 'Get escalation path',
-        description: 'Determine appropriate escalation contacts and procedures based on severity and business hours',
+        description:
+          'Determine appropriate escalation contacts and procedures based on severity and business hours',
         operationId: 'getEscalationPath',
         requestBody: {
           required: true,
@@ -502,37 +508,37 @@ All endpoints return standardized error responses with:
                     type: 'string',
                     enum: ['critical', 'high', 'medium', 'low', 'info'],
                     description: 'Incident severity level',
-                    example: 'critical'
+                    example: 'critical',
                   },
                   business_hours: {
                     type: 'boolean',
                     description: 'Whether escalation is during business hours',
-                    example: false
+                    example: false,
                   },
                   failed_attempts: {
                     type: 'array',
                     items: { type: 'string' },
                     description: 'Previous escalation attempts that failed',
-                    example: ['primary_oncall', 'secondary_oncall']
-                  }
-                }
-              }
-            }
-          }
+                    example: ['primary_oncall', 'secondary_oncall'],
+                  },
+                },
+              },
+            },
+          },
         },
         responses: {
           '200': {
             description: 'Escalation path determined successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/EscalationResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/EscalationResponse' },
+              },
+            },
           },
           '400': { $ref: '#/components/responses/BadRequest' },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/sources': {
       get: {
@@ -545,19 +551,20 @@ All endpoints return standardized error responses with:
             description: 'Sources listed successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/SourcesResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/SourcesResponse' },
+              },
+            },
           },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/feedback': {
       post: {
         tags: ['Feedback'],
         summary: 'Record resolution feedback',
-        description: 'Record the outcome of incident resolution for system improvement and analytics',
+        description:
+          'Record the outcome of incident resolution for system improvement and analytics',
         operationId: 'recordFeedback',
         requestBody: {
           required: true,
@@ -571,49 +578,49 @@ All endpoints return standardized error responses with:
                     type: 'string',
                     minLength: 1,
                     description: 'ID of the runbook used',
-                    example: 'rb_001_db_connection'
+                    example: 'rb_001_db_connection',
                   },
                   procedure_id: {
                     type: 'string',
                     minLength: 1,
                     description: 'ID of the specific procedure executed',
-                    example: 'restart_pool'
+                    example: 'restart_pool',
                   },
                   outcome: {
                     type: 'string',
                     enum: ['success', 'partial_success', 'failure', 'escalated'],
                     description: 'Final outcome of the resolution attempt',
-                    example: 'success'
+                    example: 'success',
                   },
                   resolution_time_minutes: {
                     type: 'number',
                     minimum: 0,
                     description: 'Total time taken to resolve the incident',
-                    example: 15
+                    example: 15,
                   },
                   notes: {
                     type: 'string',
                     description: 'Additional notes about the resolution process',
-                    example: 'Required additional database restart after connection pool restart'
-                  }
-                }
-              }
-            }
-          }
+                    example: 'Required additional database restart after connection pool restart',
+                  },
+                },
+              },
+            },
+          },
         },
         responses: {
           '200': {
             description: 'Feedback recorded successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/FeedbackResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/FeedbackResponse' },
+              },
+            },
           },
           '400': { $ref: '#/components/responses/BadRequest' },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
     },
     '/api/health': {
       get: {
@@ -626,20 +633,20 @@ All endpoints return standardized error responses with:
             description: 'API is healthy',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/HealthResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/HealthResponse' },
+              },
+            },
           },
           '503': {
             description: 'API is unhealthy or degraded',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/HealthResponse' }
-              }
-            }
-          }
-        }
-      }
+                schema: { $ref: '#/components/schemas/HealthResponse' },
+              },
+            },
+          },
+        },
+      },
     },
     '/api/performance': {
       get: {
@@ -652,14 +659,14 @@ All endpoints return standardized error responses with:
             description: 'Performance metrics retrieved successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/PerformanceResponse' }
-              }
-            }
+                schema: { $ref: '#/components/schemas/PerformanceResponse' },
+              },
+            },
           },
-          '500': { $ref: '#/components/responses/InternalServerError' }
-        }
-      }
-    }
+          '500': { $ref: '#/components/responses/InternalServerError' },
+        },
+      },
+    },
   },
   components: {
     schemas: {
@@ -672,13 +679,13 @@ All endpoints return standardized error responses with:
             properties: {
               results: {
                 type: 'array',
-                items: { $ref: '#/components/schemas/SearchResult' }
+                items: { $ref: '#/components/schemas/SearchResult' },
               },
-              total_results: { type: 'number' }
-            }
+              total_results: { type: 'number' },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       SearchResult: {
         type: 'object',
@@ -687,24 +694,24 @@ All endpoints return standardized error responses with:
           title: { type: 'string' },
           content: { type: 'string' },
           source: { type: 'string' },
-          source_type: { 
+          source_type: {
             type: 'string',
-            enum: ['confluence', 'notion', 'github', 'database', 'web', 'file']
+            enum: ['confluence', 'notion', 'github', 'database', 'web', 'file'],
           },
-          confidence_score: { 
+          confidence_score: {
             type: 'number',
             minimum: 0,
-            maximum: 1
+            maximum: 1,
           },
           match_reasons: {
             type: 'array',
-            items: { type: 'string' }
+            items: { type: 'string' },
           },
           retrieval_time_ms: { type: 'number' },
           url: { type: 'string' },
           last_updated: { type: 'string', format: 'date-time' },
-          metadata: { type: 'object', additionalProperties: true }
-        }
+          metadata: { type: 'object', additionalProperties: true },
+        },
       },
       RunbookSearchResponse: {
         type: 'object',
@@ -715,29 +722,29 @@ All endpoints return standardized error responses with:
             properties: {
               runbooks: {
                 type: 'array',
-                items: { $ref: '#/components/schemas/Runbook' }
+                items: { $ref: '#/components/schemas/Runbook' },
               },
               total_results: { type: 'number' },
               confidence_scores: {
                 type: 'array',
-                items: { 
+                items: {
                   type: 'number',
                   minimum: 0,
-                  maximum: 1
-                }
-              }
-            }
+                  maximum: 1,
+                },
+              },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       RunbookResponse: {
         type: 'object',
         properties: {
           success: { type: 'boolean' },
           data: { $ref: '#/components/schemas/Runbook' },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       RunbookListResponse: {
         type: 'object',
@@ -748,7 +755,7 @@ All endpoints return standardized error responses with:
             properties: {
               runbooks: {
                 type: 'array',
-                items: { $ref: '#/components/schemas/Runbook' }
+                items: { $ref: '#/components/schemas/Runbook' },
               },
               total_count: { type: 'number' },
               filters_applied: {
@@ -756,13 +763,13 @@ All endpoints return standardized error responses with:
                 properties: {
                   category: { type: 'string', nullable: true },
                   severity: { type: 'string', nullable: true },
-                  limit: { type: 'number' }
-                }
-              }
-            }
+                  limit: { type: 'number' },
+                },
+              },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       Runbook: {
         type: 'object',
@@ -773,19 +780,19 @@ All endpoints return standardized error responses with:
           description: { type: 'string' },
           triggers: {
             type: 'array',
-            items: { type: 'string' }
+            items: { type: 'string' },
           },
           severity_mapping: {
             type: 'object',
-            additionalProperties: { 
+            additionalProperties: {
               type: 'string',
-              enum: ['critical', 'high', 'medium', 'low', 'info']
-            }
+              enum: ['critical', 'high', 'medium', 'low', 'info'],
+            },
           },
           decision_tree: { $ref: '#/components/schemas/DecisionTree' },
           procedures: {
             type: 'array',
-            items: { $ref: '#/components/schemas/ProcedureStep' }
+            items: { $ref: '#/components/schemas/ProcedureStep' },
           },
           escalation_path: { type: 'string' },
           metadata: {
@@ -794,20 +801,20 @@ All endpoints return standardized error responses with:
               created_at: { type: 'string', format: 'date-time' },
               updated_at: { type: 'string', format: 'date-time' },
               author: { type: 'string' },
-              confidence_score: { 
+              confidence_score: {
                 type: 'number',
                 minimum: 0,
-                maximum: 1
+                maximum: 1,
               },
-              success_rate: { 
+              success_rate: {
                 type: 'number',
                 minimum: 0,
-                maximum: 1
+                maximum: 1,
               },
-              avg_resolution_time_minutes: { type: 'number' }
-            }
-          }
-        }
+              avg_resolution_time_minutes: { type: 'number' },
+            },
+          },
+        },
       },
       DecisionTree: {
         type: 'object',
@@ -817,11 +824,11 @@ All endpoints return standardized error responses with:
           description: { type: 'string' },
           branches: {
             type: 'array',
-            items: { $ref: '#/components/schemas/DecisionBranch' }
+            items: { $ref: '#/components/schemas/DecisionBranch' },
           },
           default_action: { type: 'string' },
-          metadata: { type: 'object', additionalProperties: true }
-        }
+          metadata: { type: 'object', additionalProperties: true },
+        },
       },
       DecisionBranch: {
         type: 'object',
@@ -831,13 +838,13 @@ All endpoints return standardized error responses with:
           description: { type: 'string' },
           action: { type: 'string' },
           next_step: { type: 'string' },
-          confidence: { 
+          confidence: {
             type: 'number',
             minimum: 0,
-            maximum: 1
+            maximum: 1,
           },
-          rollback_step: { type: 'string' }
-        }
+          rollback_step: { type: 'string' },
+        },
       },
       ProcedureStep: {
         type: 'object',
@@ -850,14 +857,14 @@ All endpoints return standardized error responses with:
           timeout_seconds: { type: 'number' },
           prerequisites: {
             type: 'array',
-            items: { type: 'string' }
+            items: { type: 'string' },
           },
           rollback_procedure: { type: 'string' },
           tools_required: {
             type: 'array',
-            items: { type: 'string' }
-          }
-        }
+            items: { type: 'string' },
+          },
+        },
       },
       DecisionTreeResponse: {
         type: 'object',
@@ -867,16 +874,16 @@ All endpoints return standardized error responses with:
             type: 'object',
             properties: {
               decision_tree: { $ref: '#/components/schemas/DecisionTree' },
-              confidence_score: { 
+              confidence_score: {
                 type: 'number',
                 minimum: 0,
-                maximum: 1
+                maximum: 1,
               },
-              context_applied: { type: 'boolean' }
-            }
+              context_applied: { type: 'boolean' },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       ProcedureResponse: {
         type: 'object',
@@ -888,17 +895,17 @@ All endpoints return standardized error responses with:
               procedure: { $ref: '#/components/schemas/ProcedureStep' },
               related_steps: {
                 type: 'array',
-                items: { $ref: '#/components/schemas/ProcedureStep' }
+                items: { $ref: '#/components/schemas/ProcedureStep' },
               },
-              confidence_score: { 
+              confidence_score: {
                 type: 'number',
                 minimum: 0,
-                maximum: 1
-              }
-            }
+                maximum: 1,
+              },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       EscalationResponse: {
         type: 'object',
@@ -915,16 +922,16 @@ All endpoints return standardized error responses with:
                     name: { type: 'string' },
                     role: { type: 'string' },
                     contact: { type: 'string' },
-                    availability: { type: 'string' }
-                  }
-                }
+                    availability: { type: 'string' },
+                  },
+                },
               },
               escalation_procedure: { type: 'string' },
-              estimated_response_time: { type: 'string' }
-            }
+              estimated_response_time: { type: 'string' },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       SourcesResponse: {
         type: 'object',
@@ -939,22 +946,22 @@ All endpoints return standardized error responses with:
                   type: 'object',
                   properties: {
                     name: { type: 'string' },
-                    type: { 
+                    type: {
                       type: 'string',
-                      enum: ['confluence', 'notion', 'github', 'database', 'web', 'file']
+                      enum: ['confluence', 'notion', 'github', 'database', 'web', 'file'],
                     },
                     healthy: { type: 'boolean' },
                     response_time_ms: { type: 'number' },
                     last_check: { type: 'string', format: 'date-time' },
                     error_message: { type: 'string' },
-                    metadata: { type: 'object', additionalProperties: true }
-                  }
-                }
-              }
-            }
+                    metadata: { type: 'object', additionalProperties: true },
+                  },
+                },
+              },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       FeedbackResponse: {
         type: 'object',
@@ -965,11 +972,11 @@ All endpoints return standardized error responses with:
             properties: {
               feedback_id: { type: 'string' },
               recorded_at: { type: 'string', format: 'date-time' },
-              acknowledgment: { type: 'string' }
-            }
+              acknowledgment: { type: 'string' },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       HealthResponse: {
         type: 'object',
@@ -978,9 +985,9 @@ All endpoints return standardized error responses with:
           data: {
             type: 'object',
             properties: {
-              api_status: { 
+              api_status: {
                 type: 'string',
-                enum: ['healthy', 'degraded', 'unhealthy']
+                enum: ['healthy', 'degraded', 'unhealthy'],
               },
               sources: {
                 type: 'array',
@@ -991,9 +998,9 @@ All endpoints return standardized error responses with:
                     healthy: { type: 'boolean' },
                     response_time_ms: { type: 'number' },
                     last_check: { type: 'string', format: 'date-time' },
-                    error_message: { type: 'string' }
-                  }
-                }
+                    error_message: { type: 'string' },
+                  },
+                },
               },
               cache: {
                 type: 'object',
@@ -1004,8 +1011,8 @@ All endpoints return standardized error responses with:
                       healthy: { type: 'boolean' },
                       keys_count: { type: 'number' },
                       memory_usage_mb: { type: 'number' },
-                      response_time_ms: { type: 'number' }
-                    }
+                      response_time_ms: { type: 'number' },
+                    },
                   },
                   redis_cache: {
                     type: 'object',
@@ -1013,19 +1020,19 @@ All endpoints return standardized error responses with:
                       healthy: { type: 'boolean' },
                       connected: { type: 'boolean' },
                       response_time_ms: { type: 'number' },
-                      error_message: { type: 'string' }
-                    }
+                      error_message: { type: 'string' },
+                    },
                   },
-                  overall_healthy: { type: 'boolean' }
-                }
+                  overall_healthy: { type: 'boolean' },
+                },
               },
               tools: { type: 'object', additionalProperties: true },
               uptime_seconds: { type: 'number' },
-              timestamp: { type: 'string', format: 'date-time' }
-            }
+              timestamp: { type: 'string', format: 'date-time' },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       PerformanceResponse: {
         type: 'object',
@@ -1041,14 +1048,14 @@ All endpoints return standardized error responses with:
                 properties: {
                   memory_usage_mb: { type: 'number' },
                   uptime_seconds: { type: 'number' },
-                  node_version: { type: 'string' }
-                }
+                  node_version: { type: 'string' },
+                },
               },
-              timestamp: { type: 'string', format: 'date-time' }
-            }
+              timestamp: { type: 'string', format: 'date-time' },
+            },
           },
-          metadata: { $ref: '#/components/schemas/ResponseMetadata' }
-        }
+          metadata: { $ref: '#/components/schemas/ResponseMetadata' },
+        },
       },
       ResponseMetadata: {
         type: 'object',
@@ -1056,28 +1063,28 @@ All endpoints return standardized error responses with:
           execution_time_ms: { type: 'number' },
           correlation_id: { type: 'string' },
           cached: { type: 'boolean' },
-          cache_hit_time: { type: 'string', format: 'date-time' }
-        }
+          cache_hit_time: { type: 'string', format: 'date-time' },
+        },
       },
       ErrorResponse: {
         type: 'object',
         properties: {
-          success: { 
+          success: {
             type: 'boolean',
-            example: false
+            example: false,
           },
           error: {
             type: 'object',
             properties: {
-              code: { 
+              code: {
                 type: 'string',
-                example: 'VALIDATION_ERROR'
+                example: 'VALIDATION_ERROR',
               },
-              message: { 
+              message: {
                 type: 'string',
-                example: 'Request validation failed'
+                example: 'Request validation failed',
               },
-              details: { 
+              details: {
                 type: 'object',
                 additionalProperties: true,
                 example: {
@@ -1085,15 +1092,15 @@ All endpoints return standardized error responses with:
                   correlation_id: 'req_20240130_143504_error123',
                   recovery_actions: [
                     'Check request format and required fields',
-                    'Verify data types'
+                    'Verify data types',
                   ],
-                  retry_recommended: false
-                }
-              }
-            }
-          }
-        }
-      }
+                  retry_recommended: false,
+                },
+              },
+            },
+          },
+        },
+      },
     },
     responses: {
       BadRequest: {
@@ -1111,14 +1118,14 @@ All endpoints return standardized error responses with:
                   correlation_id: 'req_20240130_143504_val456',
                   recovery_actions: [
                     'Check request format and required fields',
-                    'Verify data types match schema requirements'
+                    'Verify data types match schema requirements',
                   ],
-                  retry_recommended: false
-                }
-              }
-            }
-          }
-        }
+                  retry_recommended: false,
+                },
+              },
+            },
+          },
+        },
       },
       NotFound: {
         description: 'Resource not found',
@@ -1135,14 +1142,14 @@ All endpoints return standardized error responses with:
                   correlation_id: 'req_20240130_143505_nf789',
                   recovery_actions: [
                     'Verify the resource ID is correct',
-                    'Check if resource exists in the system'
+                    'Check if resource exists in the system',
                   ],
-                  retry_recommended: false
-                }
-              }
-            }
-          }
-        }
+                  retry_recommended: false,
+                },
+              },
+            },
+          },
+        },
       },
       InternalServerError: {
         description: 'Internal server error',
@@ -1157,18 +1164,15 @@ All endpoints return standardized error responses with:
                 details: {
                   execution_time_ms: 156,
                   correlation_id: 'req_20240130_143506_err999',
-                  recovery_actions: [
-                    'Retry the request',
-                    'Contact support if problem persists'
-                  ],
+                  recovery_actions: ['Retry the request', 'Contact support if problem persists'],
                   retry_recommended: true,
-                  escalation_required: false
-                }
-              }
-            }
-          }
-        }
-      }
+                  escalation_required: false,
+                },
+              },
+            },
+          },
+        },
+      },
     },
     parameters: {
       CorrelationId: {
@@ -1176,8 +1180,8 @@ All endpoints return standardized error responses with:
         in: 'header',
         description: 'Unique identifier for request tracking across systems',
         schema: { type: 'string' },
-        example: 'req_20240130_143507_corr123'
-      }
-    }
-  }
+        example: 'req_20240130_143507_corr123',
+      },
+    },
+  },
 };

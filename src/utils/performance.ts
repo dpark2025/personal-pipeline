@@ -1,6 +1,6 @@
 /**
  * Performance Monitoring Utilities
- * 
+ *
  * Comprehensive performance tracking and metrics collection for MCP tools,
  * caching, and system resources with real-time monitoring capabilities.
  */
@@ -65,7 +65,7 @@ export class PerformanceMonitor {
   private startTime: number = Date.now();
   private windowSize: number = 60000; // 1 minute sliding window
   private maxSamples: number = 1000; // Keep last 1000 samples
-  
+
   // Real-time monitoring
   private monitoringInterval: NodeJS.Timeout | null = null;
   private realtimeCallbacks: Array<(metrics: PerformanceMetrics) => void> = [];
@@ -79,16 +79,15 @@ export class PerformanceMonitor {
    * Record a tool execution time
    */
   recordToolExecution(toolName: string, executionTimeMs: number, isError: boolean = false): void {
-    
     // Record in sliding window
     const key = `tool_${toolName}`;
     if (!this.metrics.has(key)) {
       this.metrics.set(key, []);
     }
-    
+
     const samples = this.metrics.get(key)!;
     samples.push(executionTimeMs);
-    
+
     // Maintain sliding window
     this.pruneOldSamples(samples);
 
@@ -161,12 +160,16 @@ export class PerformanceMonitor {
 
     const sortedTimes = allResponseTimes.sort((a, b) => a - b);
     const uptime = (Date.now() - this.startTime) / 1000;
-    
+
     // Calculate throughput
-    const requestsPerSecond = totalRequests > 0 ? totalRequests / Math.min(uptime, this.windowSize / 1000) : 0;
+    const requestsPerSecond =
+      totalRequests > 0 ? totalRequests / Math.min(uptime, this.windowSize / 1000) : 0;
 
     // Calculate error metrics
-    const totalErrors = Array.from(this.errorCounts.values()).reduce((sum, count) => sum + count, 0);
+    const totalErrors = Array.from(this.errorCounts.values()).reduce(
+      (sum, count) => sum + count,
+      0
+    );
     const errorRate = totalRequests > 0 ? totalErrors / totalRequests : 0;
 
     // Get system resource metrics
@@ -183,7 +186,10 @@ export class PerformanceMonitor {
       response_times: {
         count: sortedTimes.length,
         total_ms: sortedTimes.reduce((sum, time) => sum + time, 0),
-        avg_ms: sortedTimes.length > 0 ? sortedTimes.reduce((sum, time) => sum + time, 0) / sortedTimes.length : 0,
+        avg_ms:
+          sortedTimes.length > 0
+            ? sortedTimes.reduce((sum, time) => sum + time, 0) / sortedTimes.length
+            : 0,
         p50_ms: this.getPercentile(sortedTimes, 50),
         p95_ms: this.getPercentile(sortedTimes, 95),
         p99_ms: this.getPercentile(sortedTimes, 99),
@@ -233,7 +239,7 @@ export class PerformanceMonitor {
 
     this.monitoringInterval = setInterval(() => {
       const metrics = this.getMetrics();
-      
+
       // Call all registered callbacks
       for (const callback of this.realtimeCallbacks) {
         try {
@@ -289,7 +295,7 @@ export class PerformanceMonitor {
     this.toolMetrics.clear();
     this.errorCounts.clear();
     this.startTime = Date.now();
-    
+
     logger.info('Performance metrics reset');
   }
 
@@ -313,7 +319,9 @@ export class PerformanceMonitor {
     }
 
     if (summary.error_tracking.error_rate > 0.05) {
-      recommendations.push(`Error rate of ${(summary.error_tracking.error_rate * 100).toFixed(1)}% is high - investigate error causes`);
+      recommendations.push(
+        `Error rate of ${(summary.error_tracking.error_rate * 100).toFixed(1)}% is high - investigate error causes`
+      );
     }
 
     if (summary.resource_usage.memory_mb > 1024) {
@@ -327,11 +335,15 @@ export class PerformanceMonitor {
     // Check for performance alerts
     for (const [toolName, toolData] of this.toolMetrics.entries()) {
       if (toolData.avg_time_ms > 2000) {
-        alerts.push(`Tool ${toolName} has high average response time: ${toolData.avg_time_ms.toFixed(0)}ms`);
+        alerts.push(
+          `Tool ${toolName} has high average response time: ${toolData.avg_time_ms.toFixed(0)}ms`
+        );
       }
-      
+
       if (toolData.error_rate > 0.1) {
-        alerts.push(`Tool ${toolName} has high error rate: ${(toolData.error_rate * 100).toFixed(1)}%`);
+        alerts.push(
+          `Tool ${toolName} has high error rate: ${(toolData.error_rate * 100).toFixed(1)}%`
+        );
       }
     }
 
@@ -356,7 +368,9 @@ export class PerformanceMonitor {
 
     // Error rate alerts
     if (metrics.error_tracking.error_rate > 0.1) {
-      alerts.push(`HIGH: Error rate is ${(metrics.error_tracking.error_rate * 100).toFixed(1)}% (>10%)`);
+      alerts.push(
+        `HIGH: Error rate is ${(metrics.error_tracking.error_rate * 100).toFixed(1)}% (>10%)`
+      );
     }
 
     // Memory alerts
@@ -366,7 +380,9 @@ export class PerformanceMonitor {
 
     // Throughput alerts
     if (metrics.throughput.requests_per_second > 0 && metrics.throughput.requests_per_second < 1) {
-      alerts.push(`MEDIUM: Low throughput: ${metrics.throughput.requests_per_second.toFixed(1)} req/s`);
+      alerts.push(
+        `MEDIUM: Low throughput: ${metrics.throughput.requests_per_second.toFixed(1)} req/s`
+      );
     }
 
     // Log alerts
@@ -390,7 +406,7 @@ export class PerformanceMonitor {
    */
   private getPercentile(sortedArray: number[], percentile: number): number {
     if (sortedArray.length === 0) return 0;
-    
+
     const index = Math.ceil((percentile / 100) * sortedArray.length) - 1;
     return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))] || 0;
   }
@@ -422,7 +438,10 @@ export function getPerformanceMonitor(): PerformanceMonitor {
 /**
  * Initialize performance monitor with custom options
  */
-export function initializePerformanceMonitor(options?: { windowSize?: number; maxSamples?: number }): PerformanceMonitor {
+export function initializePerformanceMonitor(options?: {
+  windowSize?: number;
+  maxSamples?: number;
+}): PerformanceMonitor {
   performanceMonitorInstance = new PerformanceMonitor(options);
   return performanceMonitorInstance;
 }

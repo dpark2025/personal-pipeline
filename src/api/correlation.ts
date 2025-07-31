@@ -1,6 +1,6 @@
 /**
  * Correlation ID Generation and Tracking Middleware
- * 
+ *
  * Implements correlation ID generation for request tracking across
  * the entire REST API with proper propagation and logging integration.
  */
@@ -24,106 +24,102 @@ declare global {
  */
 export function generateCorrelationId(): string {
   const now = new Date();
-  const timestamp = now.toISOString()
+  const timestamp = now
+    .toISOString()
     .replace(/[-T:.Z]/g, '')
     .substring(0, 15); // YYYYMMDDHHMMSS
-  
-  const random = randomUUID()
-    .split('-')[0]; // First 8 characters of UUID
-  
+
+  const random = randomUUID().split('-')[0]; // First 8 characters of UUID
+
   return `req_${timestamp}_${random}`;
 }
 
 /**
  * Middleware to add correlation ID to all requests
- * 
+ *
  * - Checks for existing X-Correlation-ID header
  * - Generates new ID if not present
  * - Adds to request object and response headers
  * - Integrates with Winston logger for structured logging
  */
-export function correlationMiddleware(
-  req: Request, 
-  res: Response, 
-  next: NextFunction
-): void {
+export function correlationMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Check for existing correlation ID in headers
   let correlationId = req.get('X-Correlation-ID') || req.get('x-correlation-id');
-  
+
   // Generate new ID if not provided
   if (!correlationId) {
     correlationId = generateCorrelationId();
   }
-  
+
   // Validate correlation ID format (basic sanity check)
   if (typeof correlationId !== 'string' || correlationId.length > 100) {
     logger.warn('Invalid correlation ID received, generating new one', {
       originalId: correlationId,
-      source: 'correlation-middleware'
+      source: 'correlation-middleware',
     });
     correlationId = generateCorrelationId();
   }
-  
+
   // Add to request object
   req.correlationId = correlationId;
-  
+
   // Add to response headers for client tracking
   res.set('X-Correlation-ID', correlationId);
-  
+
   // Add to logger context for structured logging
   logger.defaultMeta = {
     ...logger.defaultMeta,
-    correlationId
+    correlationId,
   };
-  
+
   // Log request initiation
   logger.info('Request initiated', {
     method: req.method,
     path: req.path,
     userAgent: req.get('User-Agent'),
     ip: req.ip || req.connection.remoteAddress,
-    correlationId
+    correlationId,
   });
-  
+
   // Track request completion
   const startTime = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     const statusClass = Math.floor(res.statusCode / 100);
-    
+
     logger.info('Request completed', {
       method: req.method,
       path: req.path,
       statusCode: res.statusCode,
       duration_ms: duration,
       correlationId,
-      success: statusClass === 2
+      success: statusClass === 2,
     });
-    
+
     // Clear correlation ID from logger context to prevent leakage
     if (logger.defaultMeta) {
       delete logger.defaultMeta.correlationId;
     }
   });
-  
-  res.on('error', (error) => {
+
+  res.on('error', error => {
     const duration = Date.now() - startTime;
-    
+
     logger.error('Request failed with error', {
       method: req.method,
       path: req.path,
       error: error.message,
       duration_ms: duration,
-      correlationId
+      correlationId,
     });
-    
+
     // Clear correlation ID from logger context
     if (logger.defaultMeta) {
       delete logger.defaultMeta.correlationId;
     }
   });
-  
+
   next();
 }
 
@@ -137,21 +133,21 @@ export function correlationErrorHandler(
   next: NextFunction
 ): void {
   const correlationId = req.correlationId;
-  
+
   // Log the error with correlation ID
   logger.error('Unhandled error occurred', {
     error: error.message,
     stack: error.stack,
     path: req.path,
     method: req.method,
-    correlationId
+    correlationId,
   });
-  
+
   // Ensure correlation ID is in response
   if (correlationId) {
     res.set('X-Correlation-ID', correlationId);
   }
-  
+
   // If response hasn't been sent, send error response
   if (!res.headersSent) {
     res.status(500).json({
@@ -164,19 +160,19 @@ export function correlationErrorHandler(
           timestamp: new Date().toISOString(),
           recovery_actions: [
             'Retry the request',
-            'Contact support with correlation ID if problem persists'
+            'Contact support with correlation ID if problem persists',
           ],
-          retry_recommended: true
-        }
-      }
+          retry_recommended: true,
+        },
+      },
     });
   }
-  
+
   // Clear correlation ID from logger context
   if (logger.defaultMeta) {
     delete logger.defaultMeta.correlationId;
   }
-  
+
   next(error);
 }
 
@@ -191,13 +187,13 @@ export function getCorrelationId(req: Request): string {
  * Helper function to create response metadata with correlation ID
  */
 export function createResponseMetadata(
-  req: Request, 
+  req: Request,
   additionalMeta: Record<string, any> = {}
 ): Record<string, any> {
   return {
     correlation_id: getCorrelationId(req),
     timestamp: new Date().toISOString(),
-    ...additionalMeta
+    ...additionalMeta,
   };
 }
 
@@ -212,7 +208,7 @@ export function createSuccessResponseWithCorrelation(
   return {
     success: true,
     data,
-    metadata: createResponseMetadata(req, metadata)
+    metadata: createResponseMetadata(req, metadata),
   };
 }
 
@@ -233,8 +229,8 @@ export function createErrorResponseWithCorrelation(
       details: {
         ...details,
         correlation_id: getCorrelationId(req),
-        timestamp: new Date().toISOString()
-      }
-    }
+        timestamp: new Date().toISOString(),
+      },
+    },
   };
 }

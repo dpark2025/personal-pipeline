@@ -1,8 +1,24 @@
-# Implementation Plan: Web Scraper & Discord Adapters
+# ⚠️ DEPRECATED: Implementation Plan: Web Scraper & Discord Adapters
 
-## Overview
+> **DEPRECATION NOTICE**: This document has been **deprecated** as of 2025-07-31 and integrated into the comprehensive Phase 2 planning documents. 
+> 
+> **Please refer to the updated Phase 2 documentation**:
+> - **Requirements**: [`planning/phase-2-requirements.md`](./phase-2-requirements.md)
+> - **Implementation Plans**: [`planning/phase-2-adapter-implementations.md`](./phase-2-adapter-implementations.md)
+> - **Timeline & Resources**: [`planning/phase-2-timeline-resources.md`](./phase-2-timeline-resources.md)
+>
+> All specifications from this document have been **fully incorporated** into the Phase 2 planning with:
+> - **WebAdapter**: Enhanced implementation of the original WebScraperAdapter specifications
+> - **DiscordAdapter**: Complete bi-directional integration as originally planned
+> - **Integration**: Full compatibility with the 6-adapter Phase 2 ecosystem
+>
+> This document is retained for historical reference only.
 
-This document outlines the implementation plan for two new source adapters for the Personal Pipeline MCP server:
+---
+
+## Original Overview (DEPRECATED)
+
+This document outlined the implementation plan for two new source adapters for the Personal Pipeline MCP server:
 
 1. **Generic Web Scraper Adapter** - Crawls and indexes web pages with configurable depth
 2. **Discord Adapter** - Bi-directional integration with Discord channels (read/write)

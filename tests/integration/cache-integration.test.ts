@@ -1,7 +1,7 @@
 /**
  * Integration Tests for Cache Service
  * End-to-end testing of caching with real MCP tool calls
- * 
+ *
  * QA Engineer: Integration testing for milestone 1.3 cache functionality
  * Coverage: Full cache workflow, performance validation, Redis integration
  */
@@ -27,7 +27,7 @@ jest.mock('../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 describe('Cache Integration Tests', () => {
@@ -50,9 +50,9 @@ describe('Cache Integration Tests', () => {
       procedures: [
         { step: 'Check database connectivity', timeout: '30s' },
         { step: 'Restart database service', timeout: '2m' },
-        { step: 'Verify data integrity', timeout: '5m' }
+        { step: 'Verify data integrity', timeout: '5m' },
       ],
-      metadata: { confidence_score: 0.95, last_updated: new Date().toISOString() }
+      metadata: { confidence_score: 0.95, last_updated: new Date().toISOString() },
     };
 
     const testRunbook2 = {
@@ -63,9 +63,9 @@ describe('Cache Integration Tests', () => {
       procedures: [
         { step: 'Identify memory-consuming processes', timeout: '1m' },
         { step: 'Scale resources if needed', timeout: '3m' },
-        { step: 'Monitor for stabilization', timeout: '10m' }
+        { step: 'Monitor for stabilization', timeout: '10m' },
       ],
-      metadata: { confidence_score: 0.88, last_updated: new Date().toISOString() }
+      metadata: { confidence_score: 0.88, last_updated: new Date().toISOString() },
     };
 
     await fs.writeFile(
@@ -86,9 +86,9 @@ describe('Cache Integration Tests', () => {
         'Connect to backup system',
         'Initiate database dump',
         'Verify backup integrity',
-        'Store in secure location'
+        'Store in secure location',
       ],
-      estimated_duration: '15 minutes'
+      estimated_duration: '15 minutes',
     };
 
     await fs.writeFile(
@@ -117,23 +117,25 @@ describe('Cache Integration Tests', () => {
 
     // Initialize test configuration
     const testConfig = {
-      sources: [{
-        name: 'test-filesystem',
-        type: 'filesystem',
-        enabled: true,
-        config: {
-          path: testDataDir,
-          watch: false,
-          extensions: ['.json', '.md']
-        }
-      }],
+      sources: [
+        {
+          name: 'test-filesystem',
+          type: 'filesystem',
+          enabled: true,
+          config: {
+            path: testDataDir,
+            watch: false,
+            extensions: ['.json', '.md'],
+          },
+        },
+      ],
       cache: {
         enabled: true,
         strategy: 'memory_with_redis' as const,
         memory: {
           max_keys: 100,
           ttl_seconds: 300,
-          check_period_seconds: 60
+          check_period_seconds: 60,
         },
         redis: {
           enabled: true,
@@ -142,20 +144,20 @@ describe('Cache Integration Tests', () => {
           key_prefix: 'pp:test:',
           connection_timeout_ms: 5000,
           retry_attempts: 3,
-          retry_delay_ms: 1000
+          retry_delay_ms: 1000,
         },
         content_types: {
           runbooks: { ttl_seconds: 300, warmup: true },
           procedures: { ttl_seconds: 180, warmup: false },
           decision_trees: { ttl_seconds: 240, warmup: true },
-          knowledge_base: { ttl_seconds: 90, warmup: false }
-        }
+          knowledge_base: { ttl_seconds: 90, warmup: false },
+        },
       },
       performance: {
         enabled: true,
         windowSize: 60000,
         maxSamples: 1000,
-        realtimeMonitoring: false
+        realtimeMonitoring: false,
       },
       monitoring: {
         enabled: true,
@@ -164,9 +166,9 @@ describe('Cache Integration Tests', () => {
         maxActiveAlerts: 50,
         notificationChannels: {
           console: true,
-          webhook: undefined
-        }
-      }
+          webhook: undefined,
+        },
+      },
     };
 
     // Initialize services
@@ -207,17 +209,17 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'database_down',
             severity: 'critical',
-            systems: ['database']
-          }
-        }
+            systems: ['database'],
+          },
+        },
       });
 
       expect(firstResponse.isError).toBe(false);
-      
+
       if (!firstResponse.isError) {
         const firstResult = firstResponse.result.content[0];
         expect(firstResult.type).toBe('text');
-        
+
         if (firstResult.type === 'text') {
           const firstData = JSON.parse(firstResult.text);
           expect(firstData.results).toHaveLength(1);
@@ -235,17 +237,17 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'database_down',
             severity: 'critical',
-            systems: ['database']
-          }
-        }
+            systems: ['database'],
+          },
+        },
       });
 
       expect(secondResponse.isError).toBe(false);
-      
+
       if (!secondResponse.isError) {
         const secondResult = secondResponse.result.content[0];
         expect(secondResult.type).toBe('text');
-        
+
         if (secondResult.type === 'text') {
           const secondData = JSON.parse(secondResult.text);
           expect(secondData.cache_hit).toBe(true);
@@ -264,18 +266,18 @@ describe('Cache Integration Tests', () => {
       const procedureCalls = [
         { procedure_id: 'proc-001', section: 'overview' },
         { procedure_id: 'proc-001', section: 'steps' },
-        { procedure_id: 'proc-001', section: 'overview' } // Duplicate to test cache hit
+        { procedure_id: 'proc-001', section: 'overview' }, // Duplicate to test cache hit
       ];
 
       const responses = [];
-      
+
       for (const callParams of procedureCalls) {
         const response = await server.handleRequest({
           method: 'tools/call',
           params: {
             name: 'get_procedure',
-            arguments: callParams
-          }
+            arguments: callParams,
+          },
         });
         responses.push(response);
       }
@@ -298,21 +300,21 @@ describe('Cache Integration Tests', () => {
     it('should handle cache warming during server initialization', async () => {
       // Restart server to trigger cache warming
       await server.close();
-      
+
       // Mock warm cache data
       const warmCacheData = [
         {
           key: createCacheKey('runbooks', 'critical-runbook-1'),
-          data: { id: 'critical-runbook-1', title: 'Critical System Response' }
+          data: { id: 'critical-runbook-1', title: 'Critical System Response' },
         },
         {
           key: createCacheKey('decision_trees', 'escalation-tree-1'),
-          data: { id: 'escalation-tree-1', name: 'Escalation Decision Tree' }
-        }
+          data: { id: 'escalation-tree-1', name: 'Escalation Decision Tree' },
+        },
       ];
 
       await cacheService.warmCache(warmCacheData);
-      
+
       // Verify warm data is cached
       for (const item of warmCacheData) {
         const cachedData = await cacheService.get(item.key);
@@ -322,16 +324,18 @@ describe('Cache Integration Tests', () => {
       // Reinitialize server
       server = new PersonalPipelineServer();
       await server.initialize({
-        sources: [{
-          name: 'test-filesystem',
-          type: 'filesystem',
-          enabled: true,
-          config: {
-            path: testDataDir,
-            watch: false,
-            extensions: ['.json', '.md']
-          }
-        }],
+        sources: [
+          {
+            name: 'test-filesystem',
+            type: 'filesystem',
+            enabled: true,
+            config: {
+              path: testDataDir,
+              watch: false,
+              extensions: ['.json', '.md'],
+            },
+          },
+        ],
         cache: {
           enabled: true,
           strategy: 'memory_with_redis' as const,
@@ -343,15 +347,15 @@ describe('Cache Integration Tests', () => {
             key_prefix: 'pp:test:',
             connection_timeout_ms: 5000,
             retry_attempts: 3,
-            retry_delay_ms: 1000
+            retry_delay_ms: 1000,
           },
           content_types: {
             runbooks: { ttl_seconds: 300, warmup: true },
             procedures: { ttl_seconds: 180, warmup: false },
             decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
+            knowledge_base: { ttl_seconds: 90, warmup: false },
+          },
+        },
       } as any);
     });
   });
@@ -366,17 +370,17 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'memory_alert',
             severity: 'high',
-            systems: ['application']
-          }
-        }
+            systems: ['application'],
+          },
+        },
       });
 
       // Measure cached response times
       const performanceResults = [];
-      
+
       for (let i = 0; i < 10; i++) {
         const startTime = Date.now();
-        
+
         const response = await server.handleRequest({
           method: 'tools/call',
           params: {
@@ -384,25 +388,26 @@ describe('Cache Integration Tests', () => {
             arguments: {
               alert_type: 'memory_alert',
               severity: 'high',
-              systems: ['application']
-            }
-          }
+              systems: ['application'],
+            },
+          },
         });
-        
+
         const endTime = Date.now();
         const responseTime = endTime - startTime;
-        
+
         expect(response.isError).toBe(false);
         performanceResults.push(responseTime);
       }
 
       // Verify performance requirements
-      const avgResponseTime = performanceResults.reduce((a, b) => a + b, 0) / performanceResults.length;
+      const avgResponseTime =
+        performanceResults.reduce((a, b) => a + b, 0) / performanceResults.length;
       const maxResponseTime = Math.max(...performanceResults);
-      
+
       expect(avgResponseTime).toBeLessThan(200); // Average under 200ms
       expect(maxResponseTime).toBeLessThan(500); // Max under 500ms
-      
+
       // Verify all were cache hits
       const performanceMonitor = getPerformanceMonitor();
       const toolMetrics = performanceMonitor.getToolPerformance('search_runbooks');
@@ -415,14 +420,14 @@ describe('Cache Integration Tests', () => {
       const testQueries = [
         { alert_type: 'database_down', severity: 'critical', systems: ['database'] },
         { alert_type: 'memory_alert', severity: 'high', systems: ['application'] },
-        { alert_type: 'disk_space', severity: 'medium', systems: ['storage'] }
+        { alert_type: 'disk_space', severity: 'medium', systems: ['storage'] },
       ];
 
       // Populate cache
       for (const query of testQueries) {
         await server.handleRequest({
           method: 'tools/call',
-          params: { name: 'search_runbooks', arguments: query }
+          params: { name: 'search_runbooks', arguments: query },
         });
       }
 
@@ -435,7 +440,7 @@ describe('Cache Integration Tests', () => {
         concurrentRequests.push(
           server.handleRequest({
             method: 'tools/call',
-            params: { name: 'search_runbooks', arguments: query }
+            params: { name: 'search_runbooks', arguments: query },
           })
         );
       }
@@ -450,7 +455,7 @@ describe('Cache Integration Tests', () => {
 
       // Verify performance under load
       expect(totalTime).toBeLessThan(5000); // All 20 requests in under 5 seconds
-      
+
       // Verify cache statistics show high hit rate
       const cacheStats = cacheService.getStats();
       expect(cacheStats.hit_rate).toBeGreaterThan(0.8); // 80%+ hit rate
@@ -472,13 +477,13 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'database_down',
             severity: 'critical',
-            systems: ['database']
-          }
-        }
+            systems: ['database'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
-      
+
       // Verify health check shows Redis issues but overall health OK
       const healthCheck = await cacheService.healthCheck();
       expect(healthCheck.memory_cache.healthy).toBe(true);
@@ -500,29 +505,29 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'memory_alert',
             severity: 'high',
-            systems: ['application']
-          }
-        }
+            systems: ['application'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
 
       // Verify Redis setex was called
       expect(mockRedisInstance.setex).toHaveBeenCalled();
-      
+
       // Mock Redis to return cached data for fallback test
       const cachedData = {
         data: { results: [{ title: 'Cached Result' }] },
         timestamp: Date.now(),
         ttl: 300,
-        content_type: 'runbooks'
+        content_type: 'runbooks',
       };
-      
+
       mockRedisInstance.get.mockResolvedValue(JSON.stringify(cachedData));
-      
+
       // Clear memory cache to force Redis fallback
       await cacheService.clearAll();
-      
+
       // Make same request - should get data from Redis
       const fallbackResponse = await server.handleRequest({
         method: 'tools/call',
@@ -531,9 +536,9 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'memory_alert',
             severity: 'high',
-            systems: ['application']
-          }
-        }
+            systems: ['application'],
+          },
+        },
       });
 
       expect(fallbackResponse.isError).toBe(false);
@@ -547,7 +552,7 @@ describe('Cache Integration Tests', () => {
       let alertTriggered = false;
 
       // Listen for cache-related alerts
-      monitoringService.on('alert', (alert) => {
+      monitoringService.on('alert', alert => {
         if (alert.title === 'Low Cache Hit Rate') {
           alertTriggered = true;
         }
@@ -565,9 +570,9 @@ describe('Cache Integration Tests', () => {
             arguments: {
               alert_type: `unique_alert_${i}`,
               severity: 'low',
-              systems: ['test']
-            }
-          }
+              systems: ['test'],
+            },
+          },
         });
       }
 
@@ -590,9 +595,9 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'test_alert',
             severity: 'medium',
-            systems: ['test']
-          }
-        }
+            systems: ['test'],
+          },
+        },
       });
 
       const healthCheck = await cacheService.healthCheck();
@@ -622,9 +627,9 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'database_down',
             severity: 'critical',
-            systems: ['database']
-          }
-        }
+            systems: ['database'],
+          },
+        },
       });
 
       expect(firstResponse.isError).toBe(false);
@@ -640,13 +645,13 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'database_down',
             severity: 'critical',
-            systems: ['database']
-          }
-        }
+            systems: ['database'],
+          },
+        },
       });
 
       expect(secondResponse.isError).toBe(false);
-      
+
       if (!secondResponse.isError) {
         const result = secondResponse.result.content[0];
         if (result.type === 'text') {
@@ -659,7 +664,7 @@ describe('Cache Integration Tests', () => {
     it('should handle cache corruption gracefully', async () => {
       // Manually corrupt cache data
       const corruptKey = createCacheKey('runbooks', 'corrupt-test');
-      
+
       // Set invalid JSON in Redis mock
       mockRedisInstance.get.mockResolvedValue('invalid-json-data');
 
@@ -671,9 +676,9 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'new_alert_type',
             severity: 'medium',
-            systems: ['test']
-          }
-        }
+            systems: ['test'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -681,10 +686,9 @@ describe('Cache Integration Tests', () => {
 
     it('should handle network timeouts and connection issues', async () => {
       // Configure Redis to timeout
-      mockRedisInstance.get.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout')), 100)
-        )
+      mockRedisInstance.get.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 100))
       );
 
       // Should still work with memory cache fallback
@@ -695,9 +699,9 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'timeout_test',
             severity: 'low',
-            systems: ['network']
-          }
-        }
+            systems: ['network'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -714,9 +718,9 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'invalidation_test',
             severity: 'medium',
-            systems: ['test']
-          }
-        }
+            systems: ['test'],
+          },
+        },
       });
 
       expect(response1.isError).toBe(false);
@@ -732,13 +736,13 @@ describe('Cache Integration Tests', () => {
           arguments: {
             alert_type: 'invalidation_test',
             severity: 'medium',
-            systems: ['test']
-          }
-        }
+            systems: ['test'],
+          },
+        },
       });
 
       expect(response2.isError).toBe(false);
-      
+
       if (!response2.isError) {
         const result = response2.result.content[0];
         if (result.type === 'text') {
@@ -754,16 +758,16 @@ describe('Cache Integration Tests', () => {
         method: 'tools/call',
         params: {
           name: 'search_runbooks',
-          arguments: { alert_type: 'runbook_test', severity: 'low', systems: ['test'] }
-        }
+          arguments: { alert_type: 'runbook_test', severity: 'low', systems: ['test'] },
+        },
       });
 
       await server.handleRequest({
         method: 'tools/call',
         params: {
           name: 'get_procedure',
-          arguments: { procedure_id: 'proc-001', section: 'overview' }
-        }
+          arguments: { procedure_id: 'proc-001', section: 'overview' },
+        },
       });
 
       // Clear only runbooks
@@ -774,8 +778,8 @@ describe('Cache Integration Tests', () => {
         method: 'tools/call',
         params: {
           name: 'search_runbooks',
-          arguments: { alert_type: 'runbook_test', severity: 'low', systems: ['test'] }
-        }
+          arguments: { alert_type: 'runbook_test', severity: 'low', systems: ['test'] },
+        },
       });
 
       // Procedure request should hit cache
@@ -783,8 +787,8 @@ describe('Cache Integration Tests', () => {
         method: 'tools/call',
         params: {
           name: 'get_procedure',
-          arguments: { procedure_id: 'proc-001', section: 'overview' }
-        }
+          arguments: { procedure_id: 'proc-001', section: 'overview' },
+        },
       });
 
       expect(runbookResponse.isError).toBe(false);

@@ -1,13 +1,20 @@
 /**
  * Comprehensive Monitoring Service Tests
  * Tests for monitoring, alerting, and health check functionality
- * 
+ *
  * QA Engineer: Testing monitoring infrastructure for milestone 1.3
  * Coverage: Alert rules, notifications, metrics collection, health monitoring
  */
 
 // Import the real MonitoringService for testing
-import { MonitoringService, MonitoringConfig, Alert, MonitoringRule, initializeMonitoringService, getMonitoringService } from '../../../src/utils/monitoring';
+import {
+  MonitoringService,
+  MonitoringConfig,
+  Alert,
+  MonitoringRule,
+  initializeMonitoringService,
+  getMonitoringService,
+} from '../../../src/utils/monitoring';
 
 // Unmock the monitoring service for this test file
 jest.unmock('../../../src/utils/monitoring');
@@ -19,7 +26,7 @@ jest.mock('../../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 jest.mock('../../../src/utils/performance', () => ({
@@ -34,7 +41,7 @@ jest.mock('../../../src/utils/performance', () => ({
       error_tracking: {
         error_rate: 0.02,
         total_errors: 5,
-        errors_by_type: { 'cache_error': 2, 'network_error': 3 }
+        errors_by_type: { cache_error: 2, network_error: 3 },
       },
       throughput: {
         requests_per_second: 10,
@@ -46,9 +53,9 @@ jest.mock('../../../src/utils/performance', () => ({
         cpu_percent: 25,
         active_handles: 10,
         active_requests: 2,
-      }
-    }))
-  }))
+      },
+    })),
+  })),
 }));
 
 jest.mock('../../../src/utils/cache', () => ({
@@ -58,12 +65,14 @@ jest.mock('../../../src/utils/cache', () => ({
       total_operations: 500,
       redis_connected: true,
     })),
-    healthCheck: jest.fn(() => Promise.resolve({
-      memory_cache: { healthy: true },
-      redis_cache: { healthy: true },
-      overall_healthy: true,
-    }))
-  }))
+    healthCheck: jest.fn(() =>
+      Promise.resolve({
+        memory_cache: { healthy: true },
+        redis_cache: { healthy: true },
+        overall_healthy: true,
+      })
+    ),
+  })),
 }));
 
 describe('MonitoringService - Comprehensive Testing', () => {
@@ -72,7 +81,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockConfig = {
       enabled: true,
       checkIntervalMs: 1000, // 1 second for faster testing
@@ -100,7 +109,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
   describe('Service Initialization and Configuration', () => {
     it('should initialize with default monitoring rules', () => {
       const rules = monitoringService.getRules();
-      
+
       expect(rules.length).toBeGreaterThan(0);
       expect(rules.some(rule => rule.id === 'system_down')).toBe(true);
       expect(rules.some(rule => rule.id === 'high_response_time')).toBe(true);
@@ -111,14 +120,14 @@ describe('MonitoringService - Comprehensive Testing', () => {
     it('should have all default rules enabled', () => {
       const rules = monitoringService.getRules();
       const enabledRules = rules.filter(rule => rule.enabled);
-      
+
       expect(enabledRules.length).toBe(rules.length);
     });
 
     it('should categorize rules by severity levels', () => {
       const rules = monitoringService.getRules();
       const severityLevels = ['critical', 'high', 'medium', 'low'];
-      
+
       severityLevels.forEach(severity => {
         const rulesOfSeverity = rules.filter(rule => rule.severity === severity);
         expect(rulesOfSeverity.length).toBeGreaterThan(0);
@@ -133,7 +142,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
         name: 'Custom Test Rule',
         description: 'A test rule for QA validation',
         severity: 'medium',
-        condition: (metrics) => metrics.test_value > 100,
+        condition: metrics => metrics.test_value > 100,
         cooldownMs: 60000,
         enabled: true,
       };
@@ -149,29 +158,31 @@ describe('MonitoringService - Comprehensive Testing', () => {
 
     it('should remove monitoring rules', () => {
       const initialRulesCount = monitoringService.getRules().length;
-      
+
       const success = monitoringService.removeRule('low_cache_hit_rate');
       const finalRulesCount = monitoringService.getRules().length;
 
       expect(success).toBe(true);
       expect(finalRulesCount).toBe(initialRulesCount - 1);
-      expect(monitoringService.getRules().find(rule => rule.id === 'low_cache_hit_rate')).toBeUndefined();
+      expect(
+        monitoringService.getRules().find(rule => rule.id === 'low_cache_hit_rate')
+      ).toBeUndefined();
     });
 
     it('should update rule enabled status', () => {
       const ruleId = 'high_response_time';
-      
+
       // Disable rule
       const disableSuccess = monitoringService.updateRuleStatus(ruleId, false);
       expect(disableSuccess).toBe(true);
-      
+
       const disabledRule = monitoringService.getRules().find(rule => rule.id === ruleId);
       expect(disabledRule?.enabled).toBe(false);
 
       // Re-enable rule
       const enableSuccess = monitoringService.updateRuleStatus(ruleId, true);
       expect(enableSuccess).toBe(true);
-      
+
       const enabledRule = monitoringService.getRules().find(rule => rule.id === ruleId);
       expect(enabledRule?.enabled).toBe(true);
     });
@@ -193,7 +204,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       expect(status.running).toBe(false);
 
       monitoringService.start();
-      
+
       const statusAfterStart = monitoringService.getStatus();
       expect(statusAfterStart.running).toBe(true);
     });
@@ -217,7 +228,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
 
     it('should handle stop when not running', () => {
       expect(monitoringService.getStatus().running).toBe(false);
-      
+
       // Should not throw error
       monitoringService.stop();
       expect(monitoringService.getStatus().running).toBe(false);
@@ -237,7 +248,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
   });
 
   describe('Alert Management', () => {
-    it('should trigger alerts when conditions are met', (done) => {
+    it('should trigger alerts when conditions are met', done => {
       const testRule: MonitoringRule = {
         id: 'test_alert_trigger',
         name: 'Test Alert Trigger',
@@ -261,9 +272,9 @@ describe('MonitoringService - Comprehensive Testing', () => {
       monitoringService.start();
     });
 
-    it('should auto-resolve alerts when conditions are no longer met', (done) => {
+    it('should auto-resolve alerts when conditions are no longer met', done => {
       let conditionMet = true;
-      
+
       const testRule: MonitoringRule = {
         id: 'test_alert_resolve',
         name: 'Test Alert Resolve',
@@ -278,10 +289,10 @@ describe('MonitoringService - Comprehensive Testing', () => {
 
       monitoringService.once('alert', (alert: Alert) => {
         expect(alert.resolved).toBe(false);
-        
+
         // Change condition to resolve alert
         conditionMet = false;
-        
+
         monitoringService.once('alert_resolved', (resolvedAlert: Alert) => {
           expect(resolvedAlert.resolved).toBe(true);
           expect(resolvedAlert.resolvedAt).toBeDefined();
@@ -292,9 +303,9 @@ describe('MonitoringService - Comprehensive Testing', () => {
       monitoringService.start();
     });
 
-    it('should respect cooldown periods for alerts', (done) => {
+    it('should respect cooldown periods for alerts', done => {
       let triggerCount = 0;
-      
+
       const testRule: MonitoringRule = {
         id: 'test_cooldown',
         name: 'Test Cooldown',
@@ -343,7 +354,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       }
 
       limitedService.start();
-      
+
       // Allow time for alerts to trigger
       setTimeout(() => {
         const activeAlerts = limitedService.getActiveAlerts();
@@ -366,16 +377,16 @@ describe('MonitoringService - Comprehensive Testing', () => {
       monitoringService.addRule(testRule);
       monitoringService.start();
 
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         monitoringService.once('alert', (alert: Alert) => {
           expect(alert.resolved).toBe(false);
-          
+
           const resolveSuccess = monitoringService.manuallyResolveAlert(alert.id);
           expect(resolveSuccess).toBe(true);
-          
+
           const activeAlerts = monitoringService.getActiveAlerts();
           expect(activeAlerts.find(a => a.id === alert.id)).toBeUndefined();
-          
+
           resolve();
         });
       });
@@ -383,7 +394,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
   });
 
   describe('Default Monitoring Rules Behavior', () => {
-    it('should trigger high response time alert', (done) => {
+    it('should trigger high response time alert', done => {
       // Mock high response time
       const { getPerformanceMonitor } = require('../../../src/utils/performance');
       getPerformanceMonitor.mockReturnValue({
@@ -392,7 +403,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
           error_tracking: { error_rate: 0.01 },
           throughput: { requests_per_second: 10 },
           resource_usage: { memory_mb: 512 },
-        })
+        }),
       });
 
       monitoringService.once('alert', (alert: Alert) => {
@@ -406,7 +417,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       monitoringService.start();
     });
 
-    it('should trigger high memory usage alert', (done) => {
+    it('should trigger high memory usage alert', done => {
       // Mock high memory usage
       const { getPerformanceMonitor } = require('../../../src/utils/performance');
       getPerformanceMonitor.mockReturnValue({
@@ -415,7 +426,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
           error_tracking: { error_rate: 0.01 },
           throughput: { requests_per_second: 10 },
           resource_usage: { memory_mb: 2500 }, // Above 2048MB threshold
-        })
+        }),
       });
 
       monitoringService.once('alert', (alert: Alert) => {
@@ -429,7 +440,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       monitoringService.start();
     });
 
-    it('should trigger low cache hit rate alert', (done) => {
+    it('should trigger low cache hit rate alert', done => {
       // Mock low cache hit rate
       const { getCacheService } = require('../../../src/utils/cache');
       getCacheService.mockReturnValue({
@@ -438,11 +449,12 @@ describe('MonitoringService - Comprehensive Testing', () => {
           total_operations: 500,
           redis_connected: true,
         }),
-        healthCheck: () => Promise.resolve({
-          memory_cache: { healthy: true },
-          redis_cache: { healthy: true },
-          overall_healthy: true,
-        })
+        healthCheck: () =>
+          Promise.resolve({
+            memory_cache: { healthy: true },
+            redis_cache: { healthy: true },
+            overall_healthy: true,
+          }),
       });
 
       let timeoutHandle: NodeJS.Timeout;
@@ -457,17 +469,17 @@ describe('MonitoringService - Comprehensive Testing', () => {
         }
       };
       monitoringService.on('alert', alertHandler);
-      
+
       // Timeout fallback
       timeoutHandle = setTimeout(() => {
         monitoringService.off('alert', alertHandler);
-        done();  // Don't fail, just complete
-      }, 3000);  // Shorter timeout
+        done(); // Don't fail, just complete
+      }, 3000); // Shorter timeout
 
       monitoringService.start();
     }, 5000);
 
-    it('should trigger high error rate alert', (done) => {
+    it('should trigger high error rate alert', done => {
       // Mock high error rate
       const { getPerformanceMonitor } = require('../../../src/utils/performance');
       getPerformanceMonitor.mockReturnValue({
@@ -476,7 +488,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
           error_tracking: { error_rate: 0.15 }, // Above 10% threshold
           throughput: { requests_per_second: 10 },
           resource_usage: { memory_mb: 512 },
-        })
+        }),
       });
 
       monitoringService.once('alert', (alert: Alert) => {
@@ -504,7 +516,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       expect(status.lastCheck).toBeInstanceOf(Date);
     });
 
-    it('should maintain alert history', (done) => {
+    it('should maintain alert history', done => {
       const testRule: MonitoringRule = {
         id: 'test_history_unique',
         name: 'Test History Unique',
@@ -532,12 +544,12 @@ describe('MonitoringService - Comprehensive Testing', () => {
         }
       };
       monitoringService.on('alert', alertHandler);
-      
+
       // Timeout fallback
       timeoutHandle = setTimeout(() => {
         monitoringService.off('alert', alertHandler);
         done(); // Don't fail, just complete
-      }, 2000);  // Shorter timeout
+      }, 2000); // Shorter timeout
 
       monitoringService.start();
     }, 4000);
@@ -549,7 +561,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       };
 
       const shortRetentionService = new MonitoringService(shortRetentionConfig);
-      
+
       // This would be tested with time manipulation in a real scenario
       // For now, we just verify the cleanup mechanism exists
       expect(shortRetentionService.getAlertHistory().length).toBe(0);
@@ -563,9 +575,9 @@ describe('MonitoringService - Comprehensive Testing', () => {
   });
 
   describe('Notification System', () => {
-    it('should handle console notifications', (done) => {
+    it('should handle console notifications', done => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
+
       const testRule: MonitoringRule = {
         id: 'test_console_notification',
         name: 'Test Console Notification',
@@ -582,11 +594,11 @@ describe('MonitoringService - Comprehensive Testing', () => {
         setTimeout(() => {
           expect(consoleSpy).toHaveBeenCalled();
           const calls = consoleSpy.mock.calls.flat();
-          const alertCall = calls.find(call => 
-            typeof call === 'string' && call.includes('🚨 ALERT [CRITICAL]')
+          const alertCall = calls.find(
+            call => typeof call === 'string' && call.includes('🚨 ALERT [CRITICAL]')
           );
           expect(alertCall).toBeDefined();
-          
+
           consoleSpy.mockRestore();
           done();
         }, 50);
@@ -620,14 +632,14 @@ describe('MonitoringService - Comprehensive Testing', () => {
       getPerformanceMonitor.mockReturnValue({
         getMetrics: () => {
           throw new Error('Metrics collection failed');
-        }
+        },
       });
 
       // Should not throw error when starting
       expect(() => monitoringService.start()).not.toThrow();
     });
 
-    it('should handle rule evaluation failures', (done) => {
+    it('should handle rule evaluation failures', done => {
       const faultyRule: MonitoringRule = {
         id: 'faulty_rule',
         name: 'Faulty Rule',
@@ -658,7 +670,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
       });
 
       monitoringService.start();
-      
+
       // Should still be running
       expect(monitoringService.getStatus().running).toBe(true);
     });
@@ -672,21 +684,23 @@ describe('MonitoringService - Comprehensive Testing', () => {
     it('should maintain singleton instance with initializeMonitoringService', () => {
       const service1 = initializeMonitoringService(mockConfig);
       const service2 = initializeMonitoringService(mockConfig);
-      
+
       expect(service1).toBe(service2);
     });
 
     it('should throw error when getting service before initialization', () => {
       // Reset the singleton instance by re-importing the module
       jest.resetModules();
-      const { getMonitoringService: freshGetMonitoringService } = require('../../../src/utils/monitoring');
+      const {
+        getMonitoringService: freshGetMonitoringService,
+      } = require('../../../src/utils/monitoring');
       expect(() => freshGetMonitoringService()).toThrow('Monitoring service not initialized');
     });
 
     it('should return initialized service with getMonitoringService', () => {
       const initializedService = initializeMonitoringService(mockConfig);
       const retrievedService = getMonitoringService();
-      
+
       expect(retrievedService).toBe(initializedService);
     });
   });
@@ -694,7 +708,7 @@ describe('MonitoringService - Comprehensive Testing', () => {
   describe('Performance and Scalability', () => {
     it('should handle large number of monitoring rules efficiently', () => {
       const startTime = Date.now();
-      
+
       // Add 100 monitoring rules
       for (let i = 0; i < 100; i++) {
         const rule: MonitoringRule = {
@@ -702,21 +716,21 @@ describe('MonitoringService - Comprehensive Testing', () => {
           name: `Performance Rule ${i}`,
           description: `Rule ${i} for performance testing`,
           severity: i % 2 === 0 ? 'low' : 'medium',
-          condition: (metrics) => metrics.test_value > i,
+          condition: metrics => metrics.test_value > i,
           cooldownMs: 1000,
           enabled: true,
         };
         monitoringService.addRule(rule);
       }
-      
+
       const addRulesTime = Date.now() - startTime;
       expect(addRulesTime).toBeLessThan(1000); // Should complete quickly
-      
+
       const rules = monitoringService.getRules();
       expect(rules.length).toBeGreaterThanOrEqual(100);
     });
 
-    it('should evaluate rules efficiently under load', (done) => {
+    it('should evaluate rules efficiently under load', done => {
       // Add multiple rules
       for (let i = 0; i < 50; i++) {
         const rule: MonitoringRule = {

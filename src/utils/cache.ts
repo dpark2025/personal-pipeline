@@ -1,6 +1,6 @@
 /**
  * Comprehensive caching service for Personal Pipeline MCP Server
- * 
+ *
  * Implements a hybrid caching strategy with both in-memory and Redis persistence.
  * Features cache-aside pattern, performance metrics, and graceful fallbacks.
  */
@@ -104,7 +104,7 @@ export class CacheService {
       // Fallback to Redis if available
       if (this.redisManager && this.config.strategy !== 'memory_only') {
         try {
-          const redisResult = await this.redisCircuitBreaker.execute(() => 
+          const redisResult = await this.redisCircuitBreaker.execute(() =>
             this.getFromRedis<T>(cacheKey)
           );
           if (redisResult) {
@@ -134,7 +134,6 @@ export class CacheService {
         responseTime: Date.now() - startTime,
       });
       return null;
-
     } catch (error) {
       logger.error('Cache GET error', {
         key: cacheKey,
@@ -169,9 +168,7 @@ export class CacheService {
       // Set in Redis if available and strategy allows
       if (this.redisManager && this.config.strategy !== 'memory_only') {
         try {
-          await this.redisCircuitBreaker.execute(() => 
-            this.setInRedis(cacheKey, entry, ttl)
-          );
+          await this.redisCircuitBreaker.execute(() => this.setInRedis(cacheKey, entry, ttl));
         } catch (error) {
           logger.debug('Redis cache write failed, data stored in memory cache only', {
             key: cacheKey,
@@ -185,7 +182,6 @@ export class CacheService {
         type: key.type,
         ttl,
       });
-
     } catch (error) {
       logger.error('Cache SET error', {
         key: cacheKey,
@@ -214,7 +210,6 @@ export class CacheService {
       }
 
       logger.debug('Cache DELETE', { key: cacheKey, type: key.type });
-
     } catch (error) {
       logger.error('Cache DELETE error', {
         key: cacheKey,
@@ -240,7 +235,7 @@ export class CacheService {
 
       // Clear from Redis if available
       if (this.redisManager && this.config.strategy !== 'memory_only') {
-        await this.redisManager.executeOperation(async (redis) => {
+        await this.redisManager.executeOperation(async redis => {
           const redisPattern = `${this.config.redis.key_prefix}${typePrefix}*`;
           const redisKeys = await redis.keys(redisPattern);
           if (redisKeys.length > 0) {
@@ -253,7 +248,6 @@ export class CacheService {
         contentType,
         memoryKeysDeleted: keysToDelete.length,
       });
-
     } catch (error) {
       logger.error('Cache clear by type error', {
         contentType,
@@ -276,7 +270,7 @@ export class CacheService {
 
       // Clear Redis if available
       if (this.redisManager && this.config.strategy !== 'memory_only') {
-        await this.redisManager.executeOperation(async (redis) => {
+        await this.redisManager.executeOperation(async redis => {
           const pattern = `${this.config.redis.key_prefix}*`;
           const keys = await redis.keys(pattern);
           if (keys.length > 0) {
@@ -289,7 +283,6 @@ export class CacheService {
       this.stats = this.initializeStats();
 
       logger.info('Cache cleared completely');
-
     } catch (error) {
       logger.error('Cache clear all error', {
         error: error instanceof Error ? error.message : String(error),
@@ -301,9 +294,8 @@ export class CacheService {
    * Get cache statistics
    */
   getStats(): CacheStats {
-    this.stats.hit_rate = this.stats.total_operations > 0 
-      ? this.stats.hits / this.stats.total_operations 
-      : 0;
+    this.stats.hit_rate =
+      this.stats.total_operations > 0 ? this.stats.hits / this.stats.total_operations : 0;
 
     // Get memory usage if available
     const keys = this.memoryCache.keys();
@@ -320,23 +312,23 @@ export class CacheService {
    */
   async healthCheck(): Promise<CacheHealthCheck> {
     const memoryStartTime = Date.now();
-    
+
     // Test memory cache
     const testKey = 'health_check_test';
     const testValue = { test: true, timestamp: Date.now() };
-    
+
     this.memoryCache.set(testKey, testValue, 60);
     const memoryResult = this.memoryCache.get(testKey);
     this.memoryCache.del(testKey);
-    
+
     const memoryResponseTime = Date.now() - memoryStartTime;
     const memoryStats = this.memoryCache.getStats();
-    
+
     const result: CacheHealthCheck = {
       memory_cache: {
         healthy: memoryResult !== undefined,
         keys_count: memoryStats.keys,
-        memory_usage_mb: Math.round((memoryStats.ksize || 0) / 1024 / 1024 * 100) / 100,
+        memory_usage_mb: Math.round(((memoryStats.ksize || 0) / 1024 / 1024) * 100) / 100,
         response_time_ms: memoryResponseTime,
       },
       overall_healthy: memoryResult !== undefined,
@@ -348,19 +340,18 @@ export class CacheService {
       try {
         const pingResult = await this.redisManager.executeOperation(redis => redis.ping());
         const redisResponseTime = Date.now() - redisStartTime;
-        
+
         if (pingResult === 'PONG') {
           result.redis_cache = {
             healthy: true,
             connected: this.redisManager.isAvailable(),
             response_time_ms: redisResponseTime,
           };
-          
+
           result.overall_healthy = result.overall_healthy && result.redis_cache.healthy;
         } else {
           throw new Error('Redis ping failed');
         }
-        
       } catch (error) {
         const stats = this.redisManager.getStats();
         result.redis_cache = {
@@ -369,7 +360,7 @@ export class CacheService {
           response_time_ms: Date.now() - redisStartTime,
           error_message: error instanceof Error ? error.message : `Redis ${stats.state}`,
         };
-        
+
         // Don't fail overall health if Redis is down but memory cache works
         if (this.config.strategy === 'redis_only') {
           result.overall_healthy = false;
@@ -463,7 +454,6 @@ export class CacheService {
           error: error instanceof Error ? error.message : String(error),
         });
       });
-
     } catch (error) {
       logger.error('Redis initialization failed', {
         error: error instanceof Error ? error.message : String(error),
@@ -477,7 +467,7 @@ export class CacheService {
       return null;
     }
 
-    const result = await this.redisManager.executeOperation(async (redis) => {
+    const result = await this.redisManager.executeOperation(async redis => {
       const data = await redis.get(key);
       if (!data) {
         return null;
@@ -493,7 +483,7 @@ export class CacheService {
       return;
     }
 
-    await this.redisManager.executeOperation(async (redis) => {
+    await this.redisManager.executeOperation(async redis => {
       const serialized = JSON.stringify(entry);
       await redis.setex(key, ttl, serialized);
     });
@@ -510,15 +500,15 @@ export class CacheService {
   private recordHit(contentType: CacheContentType): void {
     this.stats.hits++;
     this.stats.total_operations++;
-    
+
     if (!this.stats.by_content_type) {
       this.stats.by_content_type = {};
     }
-    
+
     if (!this.stats.by_content_type[contentType]) {
       this.stats.by_content_type[contentType] = { hits: 0, misses: 0, hit_rate: 0 };
     }
-    
+
     this.stats.by_content_type[contentType].hits++;
     const typeStats = this.stats.by_content_type[contentType];
     const typeTotal = typeStats.hits + typeStats.misses;
@@ -528,15 +518,15 @@ export class CacheService {
   private recordMiss(contentType: CacheContentType): void {
     this.stats.misses++;
     this.stats.total_operations++;
-    
+
     if (!this.stats.by_content_type) {
       this.stats.by_content_type = {};
     }
-    
+
     if (!this.stats.by_content_type[contentType]) {
       this.stats.by_content_type[contentType] = { hits: 0, misses: 0, hit_rate: 0 };
     }
-    
+
     this.stats.by_content_type[contentType].misses++;
     const typeStats = this.stats.by_content_type[contentType];
     const typeTotal = typeStats.hits + typeStats.misses;

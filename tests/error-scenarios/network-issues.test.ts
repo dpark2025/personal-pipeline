@@ -1,12 +1,17 @@
 /**
  * Network Issues Scenario Tests
  * Testing system behavior under various network failure conditions
- * 
+ *
  * QA Engineer: Network error scenario testing for milestone 1.3
  * Coverage: Network timeouts, connection drops, DNS failures, slow networks
  */
 
-import { createTestEnvironment, TestEnvironment, generateLoad, waitForCondition } from '../helpers/test-utils';
+import {
+  createTestEnvironment,
+  TestEnvironment,
+  generateLoad,
+  waitForCondition,
+} from '../helpers/test-utils';
 import { createCacheKey } from '../../src/utils/cache';
 import Redis from 'ioredis';
 
@@ -21,7 +26,7 @@ jest.mock('../../src/utils/logger', () => ({
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  }
+  },
 }));
 
 describe('Network Issues Scenarios', () => {
@@ -53,11 +58,11 @@ describe('Network Issues Scenarios', () => {
       generateTestData: {
         runbooks: 5,
         procedures: 3,
-        knowledgeBase: 4
+        knowledgeBase: 4,
       },
       performanceOptions: {
-        realtimeMonitoring: true
-      }
+        realtimeMonitoring: true,
+      },
     });
   });
 
@@ -69,22 +74,25 @@ describe('Network Issues Scenarios', () => {
   describe('Network Timeout Scenarios', () => {
     it('should handle Redis connection timeouts gracefully', async () => {
       // Simulate slow network with timeouts
-      mockRedisInstance.get.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 100)
-        )
-      );
-      
-      mockRedisInstance.setex.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 100)
-        )
+      mockRedisInstance.get.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 100)
+          )
       );
 
-      mockRedisInstance.ping.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 100)
-        )
+      mockRedisInstance.setex.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 100)
+          )
+      );
+
+      mockRedisInstance.ping.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 100)
+          )
       );
 
       // Operations should complete successfully despite timeouts
@@ -95,9 +103,9 @@ describe('Network Issues Scenarios', () => {
           arguments: {
             alert_type: 'network_timeout_test',
             severity: 'high',
-            systems: ['network']
-          }
-        }
+            systems: ['network'],
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -117,23 +125,19 @@ describe('Network Issues Scenarios', () => {
 
     it('should handle partial timeouts with some operations succeeding', async () => {
       let operationCount = 0;
-      
+
       // Simulate intermittent timeouts (every 3rd operation times out)
       mockRedisInstance.get.mockImplementation(() => {
         operationCount++;
         if (operationCount % 3 === 0) {
-          return new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 50)
-          );
+          return new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 50));
         }
         return Promise.resolve(null);
       });
 
       mockRedisInstance.setex.mockImplementation(() => {
         if (operationCount % 3 === 0) {
-          return new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 50)
-          );
+          return new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 50));
         }
         return Promise.resolve('OK');
       });
@@ -149,15 +153,15 @@ describe('Network Issues Scenarios', () => {
               arguments: {
                 alert_type: `partial_timeout_test_${i}`,
                 severity: 'medium',
-                systems: ['partial_timeout']
-              }
-            }
+                systems: ['partial_timeout'],
+              },
+            },
           })
         );
       }
 
       const responses = await Promise.all(operations);
-      
+
       // All operations should succeed despite some timeouts
       responses.forEach((response: any) => {
         expect(response.isError).toBe(false);
@@ -184,9 +188,9 @@ describe('Network Issues Scenarios', () => {
           name: 'get_procedure',
           arguments: {
             procedure_id: 'proc-001',
-            section: 'all'
-          }
-        }
+            section: 'all',
+          },
+        },
       });
 
       expect(response.isError).toBe(false);
@@ -213,9 +217,9 @@ describe('Network Issues Scenarios', () => {
           arguments: {
             alert_type: 'connection_drop_before',
             severity: 'medium',
-            systems: ['connection_test']
-          }
-        }
+            systems: ['connection_test'],
+          },
+        },
       });
 
       expect(response1.isError).toBe(false);
@@ -233,9 +237,9 @@ describe('Network Issues Scenarios', () => {
           arguments: {
             alert_type: 'connection_drop_after',
             severity: 'medium',
-            systems: ['connection_test']
-          }
-        }
+            systems: ['connection_test'],
+          },
+        },
       });
 
       expect(response2.isError).toBe(false);
@@ -269,27 +273,29 @@ describe('Network Issues Scenarios', () => {
       const loadResult = await generateLoad(testEnv.server, {
         requestCount: 15,
         concurrency: 3,
-        requestTypes: [{
-          name: 'search_runbooks',
-          arguments: {
-            alert_type: 'load_connection_drop',
-            severity: 'medium',
-            systems: ['load_test']
-          }
-        }]
+        requestTypes: [
+          {
+            name: 'search_runbooks',
+            arguments: {
+              alert_type: 'load_connection_drop',
+              severity: 'medium',
+              systems: ['load_test'],
+            },
+          },
+        ],
       });
 
       // All requests should succeed despite connection drop
       expect(loadResult.successCount).toBe(15);
       expect(loadResult.errorCount).toBe(0);
-      
+
       // Performance should be reasonable
       expect(loadResult.averageTimeMs).toBeLessThan(1000); // <1s average
     });
 
     it('should detect and report connection instability', async () => {
       let flipFlop = false;
-      
+
       // Simulate unstable connection (alternating success/failure)
       mockRedisInstance.get.mockImplementation(() => {
         flipFlop = !flipFlop;
@@ -322,9 +328,9 @@ describe('Network Issues Scenarios', () => {
             arguments: {
               alert_type: `instability_test_${i}`,
               severity: 'low',
-              systems: ['instability_test']
-            }
-          }
+              systems: ['instability_test'],
+            },
+          },
         });
 
         expect(response.isError).toBe(false);
@@ -340,27 +346,30 @@ describe('Network Issues Scenarios', () => {
   describe('Slow Network Scenarios', () => {
     it('should handle very slow Redis responses', async () => {
       // Simulate very slow network (but not timing out)
-      mockRedisInstance.get.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve(null), 1000) // 1 second delay
-        )
+      mockRedisInstance.get.mockImplementation(
+        () =>
+          new Promise(
+            resolve => setTimeout(() => resolve(null), 1000) // 1 second delay
+          )
       );
 
-      mockRedisInstance.setex.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve('OK'), 1000) // 1 second delay
-        )
+      mockRedisInstance.setex.mockImplementation(
+        () =>
+          new Promise(
+            resolve => setTimeout(() => resolve('OK'), 1000) // 1 second delay
+          )
       );
 
-      mockRedisInstance.ping.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve('PONG'), 500) // 0.5 second delay
-        )
+      mockRedisInstance.ping.mockImplementation(
+        () =>
+          new Promise(
+            resolve => setTimeout(() => resolve('PONG'), 500) // 0.5 second delay
+          )
       );
 
       // Operations should still complete but may be slower
       const startTime = Date.now();
-      
+
       const response = await testEnv.mcpExecutor.executeToolCall({
         method: 'tools/call',
         params: {
@@ -368,15 +377,15 @@ describe('Network Issues Scenarios', () => {
           arguments: {
             alert_type: 'slow_network_test',
             severity: 'medium',
-            systems: ['slow_network']
-          }
-        }
+            systems: ['slow_network'],
+          },
+        },
       });
 
       const responseTime = Date.now() - startTime;
 
       expect(response.isError).toBe(false);
-      
+
       // Response should complete despite slow Redis
       // (memory cache should make it faster than Redis delays)
       expect(responseTime).toBeLessThan(5000); // Should complete in <5s
@@ -388,16 +397,18 @@ describe('Network Issues Scenarios', () => {
 
     it('should maintain performance with degraded network conditions', async () => {
       // Simulate degraded network with variable delays
-      mockRedisInstance.get.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve(null), Math.random() * 800 + 200) // 200-1000ms delay
-        )
+      mockRedisInstance.get.mockImplementation(
+        () =>
+          new Promise(
+            resolve => setTimeout(() => resolve(null), Math.random() * 800 + 200) // 200-1000ms delay
+          )
       );
 
-      mockRedisInstance.setex.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve('OK'), Math.random() * 800 + 200) // 200-1000ms delay
-        )
+      mockRedisInstance.setex.mockImplementation(
+        () =>
+          new Promise(
+            resolve => setTimeout(() => resolve('OK'), Math.random() * 800 + 200) // 200-1000ms delay
+          )
       );
 
       // Perform concurrent operations under degraded conditions
@@ -411,9 +422,9 @@ describe('Network Issues Scenarios', () => {
               arguments: {
                 alert_type: `degraded_network_${i}`,
                 severity: 'medium',
-                systems: ['degraded_test']
-              }
-            }
+                systems: ['degraded_test'],
+              },
+            },
           })
         );
       }
@@ -429,7 +440,7 @@ describe('Network Issues Scenarios', () => {
 
       // Performance should be reasonable despite network degradation
       expect(totalTime).toBeLessThan(15000); // <15s for all operations
-      
+
       const avgTime = totalTime / operations.length;
       expect(avgTime).toBeLessThan(2000); // <2s average per operation
     });
@@ -444,8 +455,8 @@ describe('Network Issues Scenarios', () => {
         if (Math.random() < packetLossRate) {
           return Promise.reject(new Error('Packet lost'));
         }
-        return new Promise(resolve => 
-          setTimeout(() => resolve(null), Math.random() * 300 + 100) // 100-400ms delay
+        return new Promise(
+          resolve => setTimeout(() => resolve(null), Math.random() * 300 + 100) // 100-400ms delay
         );
       });
 
@@ -453,9 +464,7 @@ describe('Network Issues Scenarios', () => {
         if (Math.random() < packetLossRate) {
           return Promise.reject(new Error('Packet lost'));
         }
-        return new Promise(resolve => 
-          setTimeout(() => resolve('OK'), Math.random() * 300 + 100)
-        );
+        return new Promise(resolve => setTimeout(() => resolve('OK'), Math.random() * 300 + 100));
       });
 
       // System should handle packet loss gracefully
@@ -469,9 +478,9 @@ describe('Network Issues Scenarios', () => {
               arguments: {
                 alert_type: `packet_loss_test_${i}`,
                 severity: 'low',
-                systems: ['packet_loss']
-              }
-            }
+                systems: ['packet_loss'],
+              },
+            },
           })
         );
       }
@@ -507,15 +516,15 @@ describe('Network Issues Scenarios', () => {
               arguments: {
                 alert_type: `outage_test_${i}`,
                 severity: 'medium',
-                systems: ['outage_test']
-              }
-            }
+                systems: ['outage_test'],
+              },
+            },
           })
         );
       }
 
       const outageResponses = await Promise.all(outageOperations);
-      
+
       // All should succeed with memory cache
       outageResponses.forEach((response: any) => {
         expect(response.isError).toBe(false);
@@ -540,15 +549,15 @@ describe('Network Issues Scenarios', () => {
               arguments: {
                 alert_type: `recovery_test_${i}`,
                 severity: 'medium',
-                systems: ['recovery_test']
-              }
-            }
+                systems: ['recovery_test'],
+              },
+            },
           })
         );
       }
 
       const recoveryResponses = await Promise.all(recoveryOperations);
-      
+
       // All should succeed after recovery
       recoveryResponses.forEach((response: any) => {
         expect(response.isError).toBe(false);
@@ -563,30 +572,26 @@ describe('Network Issues Scenarios', () => {
 
     it('should handle gradual network quality improvement', async () => {
       let networkQuality = 0; // Start with poor quality
-      
+
       // Simulate gradually improving network
       mockRedisInstance.get.mockImplementation(() => {
         networkQuality += 0.1; // Improve by 10% each call
-        
+
         if (Math.random() > networkQuality) {
           return Promise.reject(new Error('Network quality poor'));
         }
-        
+
         const delay = Math.max(50, 1000 * (1 - networkQuality)); // Decreasing delay
-        return new Promise(resolve => 
-          setTimeout(() => resolve(null), delay)
-        );
+        return new Promise(resolve => setTimeout(() => resolve(null), delay));
       });
 
       mockRedisInstance.setex.mockImplementation(() => {
         if (Math.random() > networkQuality) {
           return Promise.reject(new Error('Network quality poor'));
         }
-        
+
         const delay = Math.max(50, 1000 * (1 - networkQuality));
-        return new Promise(resolve => 
-          setTimeout(() => resolve('OK'), delay)
-        );
+        return new Promise(resolve => setTimeout(() => resolve('OK'), delay));
       });
 
       // Perform operations as network improves
@@ -600,12 +605,12 @@ describe('Network Issues Scenarios', () => {
               arguments: {
                 alert_type: `quality_improvement_${i}`,
                 severity: 'low',
-                systems: ['quality_test']
-              }
-            }
+                systems: ['quality_test'],
+              },
+            },
           })
         );
-        
+
         // Small delay between operations to allow quality improvement
         await new Promise(resolve => setTimeout(resolve, 10));
       }
@@ -636,21 +641,20 @@ describe('Network Issues Scenarios', () => {
       await generateLoad(testEnv.server, {
         requestCount: 10,
         concurrency: 2,
-        requestTypes: [{
-          name: 'search_runbooks',
-          arguments: {
-            alert_type: 'network_monitoring',
-            severity: 'medium',
-            systems: ['monitoring_test']
-          }
-        }]
+        requestTypes: [
+          {
+            name: 'search_runbooks',
+            arguments: {
+              alert_type: 'network_monitoring',
+              severity: 'medium',
+              systems: ['monitoring_test'],
+            },
+          },
+        ],
       });
 
       // Wait for monitoring cycle
-      await waitForCondition(
-        () => testEnv.monitoringService.getAlertHistory().length > 0,
-        3000
-      );
+      await waitForCondition(() => testEnv.monitoringService.getAlertHistory().length > 0, 3000);
 
       // Check if any network-related monitoring occurred
       const status = testEnv.monitoringService.getStatus();
@@ -663,19 +667,18 @@ describe('Network Issues Scenarios', () => {
     it('should track network performance metrics', async () => {
       // Simulate varying network performance
       let responseTime = 100;
-      
-      mockRedisInstance.get.mockImplementation(() => 
-        new Promise(resolve => {
-          responseTime += Math.random() * 100 - 50; // Vary response time
-          responseTime = Math.max(50, Math.min(500, responseTime)); // Keep in range
-          setTimeout(() => resolve(null), responseTime);
-        })
+
+      mockRedisInstance.get.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            responseTime += Math.random() * 100 - 50; // Vary response time
+            responseTime = Math.max(50, Math.min(500, responseTime)); // Keep in range
+            setTimeout(() => resolve(null), responseTime);
+          })
       );
 
-      mockRedisInstance.setex.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve('OK'), responseTime)
-        )
+      mockRedisInstance.setex.mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve('OK'), responseTime))
       );
 
       // Generate operations to collect metrics
@@ -687,9 +690,9 @@ describe('Network Issues Scenarios', () => {
             arguments: {
               alert_type: `metrics_test_${i}`,
               severity: 'low',
-              systems: ['metrics_test']
-            }
-          }
+              systems: ['metrics_test'],
+            },
+          },
         });
       }
 
@@ -697,7 +700,7 @@ describe('Network Issues Scenarios', () => {
       const metrics = testEnv.performanceMonitor.getMetrics();
       expect(metrics.response_times.count).toBeGreaterThan(0);
       expect(metrics.response_times.avg_ms).toBeGreaterThan(0);
-      
+
       // Check cache health includes response times
       const health = await testEnv.cacheService.healthCheck();
       expect(health.redis_cache?.response_time_ms).toBeGreaterThan(0);
@@ -707,19 +710,17 @@ describe('Network Issues Scenarios', () => {
   describe('Mixed Network Conditions', () => {
     it('should handle mixed success and failure conditions', async () => {
       let operationCount = 0;
-      
+
       // Create complex network simulation with multiple failure modes
       mockRedisInstance.get.mockImplementation(() => {
         operationCount++;
         const scenario = operationCount % 5;
-        
+
         switch (scenario) {
           case 0: // Success
             return Promise.resolve(null);
           case 1: // Timeout
-            return new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout')), 100)
-            );
+            return new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100));
           case 2: // Connection refused
             return Promise.reject(new Error('Connection refused'));
           case 3: // DNS failure
@@ -727,9 +728,7 @@ describe('Network Issues Scenarios', () => {
             (dnsError as any).code = 'ENOTFOUND';
             return Promise.reject(dnsError);
           case 4: // Slow response
-            return new Promise(resolve => 
-              setTimeout(() => resolve(null), 800)
-            );
+            return new Promise(resolve => setTimeout(() => resolve(null), 800));
           default:
             return Promise.resolve(null);
         }
@@ -738,14 +737,12 @@ describe('Network Issues Scenarios', () => {
       // Similar pattern for setex
       mockRedisInstance.setex.mockImplementation(() => {
         const scenario = operationCount % 5;
-        
+
         switch (scenario) {
           case 0:
             return Promise.resolve('OK');
           case 1:
-            return new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout')), 100)
-            );
+            return new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100));
           case 2:
             return Promise.reject(new Error('Connection refused'));
           case 3:
@@ -753,9 +750,7 @@ describe('Network Issues Scenarios', () => {
             (dnsError as any).code = 'ENOTFOUND';
             return Promise.reject(dnsError);
           case 4:
-            return new Promise(resolve => 
-              setTimeout(() => resolve('OK'), 800)
-            );
+            return new Promise(resolve => setTimeout(() => resolve('OK'), 800));
           default:
             return Promise.resolve('OK');
         }
@@ -772,9 +767,9 @@ describe('Network Issues Scenarios', () => {
               arguments: {
                 alert_type: `mixed_conditions_${i}`,
                 severity: 'medium',
-                systems: ['mixed_test']
-              }
-            }
+                systems: ['mixed_test'],
+              },
+            },
           })
         );
       }

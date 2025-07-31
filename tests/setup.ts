@@ -27,8 +27,8 @@ jest.mock('redis', () => ({
     off: jest.fn(),
     quit: jest.fn().mockResolvedValue('OK'),
     isReady: true,
-    isOpen: true
-  }))
+    isOpen: true,
+  })),
 }));
 
 jest.mock('ioredis', () => {
@@ -46,7 +46,7 @@ jest.mock('ioredis', () => {
     on: jest.fn(),
     off: jest.fn(),
     quit: jest.fn().mockResolvedValue('OK'),
-    status: 'ready'
+    status: 'ready',
   }));
   return mockRedis;
 });
@@ -58,22 +58,22 @@ jest.mock('./helpers/test-data-generator', () => ({
       title: 'Test Runbook',
       triggers: ['test_trigger'],
       procedures: [],
-      metadata: { confidence_score: 0.9, last_updated: new Date().toISOString() }
+      metadata: { confidence_score: 0.9, last_updated: new Date().toISOString() },
     }),
     generateProcedure: jest.fn().mockReturnValue({
       name: 'Test Procedure',
       steps: ['Step 1'],
-      metadata: { complexity: 'medium' }
+      metadata: { complexity: 'medium' },
     }),
     generateCacheWarmupData: jest.fn().mockReturnValue([]),
     generateTestDataset: jest.fn().mockReturnValue({
       runbooks: [],
       procedures: [],
       decision_trees: [],
-      knowledge_base: []
+      knowledge_base: [],
     }),
-    saveTestDataset: jest.fn().mockResolvedValue(undefined)
-  }
+    saveTestDataset: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 // Global test timeout

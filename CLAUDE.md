@@ -6,9 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal Pipeline (PP) is an intelligent Model Context Protocol (MCP) server designed for automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management. **Phase 1 is complete** with a fully operational TypeScript/Node.js MCP server implementation and comprehensive REST API access layer.
 
-The project planning and milestone document is located at: `planning/project-milestones.md`
+The project planning and milestone documents are located in: `planning/` directory
+
+**📋 Planning Directory Organization**:
+- `project-milestones.md` - Main project roadmap
+- `MILESTONE-*.md` - Individual milestone documentation
+- `*-plan.md` - Implementation and strategy plans
+- All project goal-related documents
 
 ## Development Commands
+
+**⚠️ IMPORTANT**: Always stop services when done working:
+```bash
+# Stop demo environment
+npm run demo:stop
+
+# Stop any remaining processes
+pkill -f "node.*personal-pipeline"
+pkill -f "redis-server.*6379"
+```
 
 The project is now operational with complete build and development tooling:
 

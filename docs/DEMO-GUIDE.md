@@ -99,6 +99,12 @@ INTERACTIVE_MODE=true      # Enable step-by-step mode
 - Displays cache statistics and hit rates
 - Validates sub-200ms cached response targets
 
+##### 🔍 Search Endpoints Demo ⭐⭐⭐
+- Compares general search vs specialized runbook search endpoints
+- Shows `/api/search` vs `/api/runbooks/search` performance differences
+- Demonstrates proper usage patterns for each endpoint
+- Validates search accuracy and response times
+
 ##### ❤️ Health Monitoring Demo ⭐⭐
 - Comprehensive system health checks
 - Real-time health metrics display
@@ -111,11 +117,11 @@ INTERACTIVE_MODE=true      # Enable step-by-step mode
 - Performance degradation monitoring
 - Recovery time validation
 
-##### ⚡ Circuit Breaker Demo ⭐⭐
-- Circuit breaker status monitoring
-- Failure threshold tracking
-- State transition visualization
-- Recovery behavior demonstration
+##### ⚡ Circuit Breaker Demo - Understanding System Resilience ⭐⭐
+- **Educational**: Learn what circuit breakers are and why they matter
+- **Interactive Status Report**: Clear explanations of circuit breaker states (CLOSED/OPEN/HALF_OPEN)
+- **Actionable Insights**: Understand what each metric means and what actions to take
+- **Real-world Context**: How to interpret circuit breaker data during incident response
 
 ##### 📊 Performance Metrics Demo ⭐⭐
 - Comprehensive performance analytics
@@ -123,11 +129,11 @@ INTERACTIVE_MODE=true      # Enable step-by-step mode
 - Resource usage monitoring
 - Performance recommendations
 
-##### 📡 Real-time Monitoring
-- Live system metrics updating every 5 seconds
-- Dynamic performance visualization
-- Resource usage tracking
-- Cache performance monitoring
+##### 📡 System Monitoring Dashboard
+- **Purpose-Driven**: Clear explanation of what monitoring is for (incident response)
+- **Two Modes**: Quick snapshot or brief live demo (10 seconds, no confusing instructions)
+- **Educational Context**: Explains what each metric means and why it matters
+- **Operational Insights**: How to use monitoring data during real incidents
 
 #### Interactive Features
 - **Menu-driven navigation**: Easy selection of demo scenarios
@@ -277,10 +283,15 @@ curl http://localhost:3000/circuit-breakers/cache | jq
 
 ### Functional Testing
 ```bash
-# Search runbooks
+# General search (supports categories)
 curl -X POST http://localhost:3000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "disk space critical", "type": "runbooks", "limit": 5}' | jq
+  -d '{"query": "disk space critical", "categories": ["runbooks"], "max_results": 5}' | jq
+
+# Specialized runbook search (for operational scenarios)
+curl -X POST http://localhost:3000/api/runbooks/search \
+  -H "Content-Type: application/json" \
+  -d '{"alert_type": "disk_space_critical", "severity": "critical", "affected_systems": ["filesystem"]}' | jq
 
 # Get specific runbook
 curl http://localhost:3000/api/runbook/disk_space_critical_001 | jq
@@ -398,10 +409,10 @@ npm run generate-sample-data
 ls -la test-data/runbooks/
 ls -la test-data/knowledge-base/
 
-# Test data search
+# Test data search with categories
 curl -X POST http://localhost:3000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "test", "type": "runbooks"}' | jq
+  -d '{"query": "test", "categories": ["runbooks"], "max_results": 10}' | jq
 ```
 
 ### Log Files

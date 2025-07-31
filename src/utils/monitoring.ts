@@ -1,9 +1,9 @@
 /**
  * Monitoring and Alerting Infrastructure
- * 
+ *
  * Comprehensive monitoring system with alerting capabilities, health checks,
  * and operational intelligence for the Personal Pipeline MCP server.
- * 
+ *
  * Authored by: DevOps Engineer (Hank)
  * Date: 2025-07-29
  */
@@ -79,7 +79,7 @@ export class MonitoringService extends EventEmitter {
       name: 'System Down',
       description: 'MCP server is not responding',
       severity: 'critical',
-      condition: (metrics) => !metrics.server_healthy,
+      condition: metrics => !metrics.server_healthy,
       cooldownMs: 60000, // 1 minute
       enabled: true,
     });
@@ -90,7 +90,7 @@ export class MonitoringService extends EventEmitter {
       name: 'Cache Service Down',
       description: 'Cache service is completely unavailable',
       severity: 'critical',
-      condition: (metrics) => 
+      condition: metrics =>
         metrics.cache && !metrics.cache.memory_healthy && !metrics.cache.redis_healthy,
       cooldownMs: 300000, // 5 minutes
       enabled: true,
@@ -102,8 +102,7 @@ export class MonitoringService extends EventEmitter {
       name: 'High Response Time',
       description: 'P95 response time exceeds 2 seconds',
       severity: 'high',
-      condition: (metrics) => 
-        metrics.performance?.response_times?.p95_ms > 2000,
+      condition: metrics => metrics.performance?.response_times?.p95_ms > 2000,
       cooldownMs: 300000, // 5 minutes
       enabled: true,
     });
@@ -114,8 +113,7 @@ export class MonitoringService extends EventEmitter {
       name: 'High Memory Usage',
       description: 'Memory usage exceeds 2GB',
       severity: 'high',
-      condition: (metrics) => 
-        metrics.system?.memory_mb > 2048,
+      condition: metrics => metrics.system?.memory_mb > 2048,
       cooldownMs: 600000, // 10 minutes
       enabled: true,
     });
@@ -126,8 +124,7 @@ export class MonitoringService extends EventEmitter {
       name: 'High Error Rate',
       description: 'Error rate exceeds 10%',
       severity: 'high',
-      condition: (metrics) => 
-        metrics.performance?.error_rate > 0.1,
+      condition: metrics => metrics.performance?.error_rate > 0.1,
       cooldownMs: 300000, // 5 minutes
       enabled: true,
     });
@@ -138,8 +135,7 @@ export class MonitoringService extends EventEmitter {
       name: 'Low Cache Hit Rate',
       description: 'Cache hit rate below 50%',
       severity: 'medium',
-      condition: (metrics) => 
-        metrics.cache?.hit_rate < 0.5,
+      condition: metrics => metrics.cache?.hit_rate < 0.5,
       cooldownMs: 900000, // 15 minutes
       enabled: true,
     });
@@ -150,8 +146,7 @@ export class MonitoringService extends EventEmitter {
       name: 'Source Adapters Degraded',
       description: 'More than 50% of source adapters are unhealthy',
       severity: 'medium',
-      condition: (metrics) => 
-        metrics.sources && metrics.sources.healthy_percentage < 50,
+      condition: metrics => metrics.sources && metrics.sources.healthy_percentage < 50,
       cooldownMs: 600000, // 10 minutes
       enabled: true,
     });
@@ -162,7 +157,7 @@ export class MonitoringService extends EventEmitter {
       name: 'Low Throughput',
       description: 'Request throughput below 1 req/s with active traffic',
       severity: 'medium',
-      condition: (metrics) => 
+      condition: metrics =>
         metrics.performance?.throughput?.requests_per_second > 0 &&
         metrics.performance.throughput.requests_per_second < 1,
       cooldownMs: 900000, // 15 minutes
@@ -175,8 +170,7 @@ export class MonitoringService extends EventEmitter {
       name: 'Redis Connection Issues',
       description: 'Redis cache is not connected',
       severity: 'low',
-      condition: (metrics) => 
-        metrics.cache?.redis_enabled && !metrics.cache.redis_connected,
+      condition: metrics => metrics.cache?.redis_enabled && !metrics.cache.redis_connected,
       cooldownMs: 1800000, // 30 minutes
       enabled: true,
     });
@@ -255,7 +249,7 @@ export class MonitoringService extends EventEmitter {
     if (!this.isRunning) return;
 
     this.isRunning = false;
-    
+
     if (this.monitoringTimer) {
       clearInterval(this.monitoringTimer);
       this.monitoringTimer = null;
@@ -450,9 +444,9 @@ export class MonitoringService extends EventEmitter {
   private sendConsoleNotification(alert: Alert): void {
     const severityColors = {
       critical: '\x1b[1;31m', // Bright red
-      high: '\x1b[1;33m',     // Bright yellow
-      medium: '\x1b[1;36m',   // Bright cyan
-      low: '\x1b[1;37m',      // Bright white
+      high: '\x1b[1;33m', // Bright yellow
+      medium: '\x1b[1;36m', // Bright cyan
+      low: '\x1b[1;37m', // Bright white
     };
 
     const color = severityColors[alert.severity];

@@ -161,6 +161,7 @@ export const SourceConfig = z.object({
   enabled: z.boolean().default(true),
   timeout_ms: z.number().default(30000),
   max_retries: z.number().default(3),
+  categories: z.array(z.string()).optional(),
   metadata: z.record(z.any()).optional(),
 });
 export type SourceConfig = z.infer<typeof SourceConfig>;
@@ -300,11 +301,15 @@ export const CacheStats = z.object({
   memory_usage_bytes: z.number().optional(),
   redis_connected: z.boolean().optional(),
   last_reset: z.string(),
-  by_content_type: z.record(z.object({
-    hits: z.number(),
-    misses: z.number(),
-    hit_rate: z.number(),
-  })).optional(),
+  by_content_type: z
+    .record(
+      z.object({
+        hits: z.number(),
+        misses: z.number(),
+        hit_rate: z.number(),
+      })
+    )
+    .optional(),
 });
 export type CacheStats = z.infer<typeof CacheStats>;
 
@@ -318,12 +323,14 @@ export const CacheHealthCheck = z.object({
     memory_usage_mb: z.number(),
     response_time_ms: z.number(),
   }),
-  redis_cache: z.object({
-    healthy: z.boolean(),
-    connected: z.boolean(),
-    response_time_ms: z.number(),
-    error_message: z.string().optional(),
-  }).optional(),
+  redis_cache: z
+    .object({
+      healthy: z.boolean(),
+      connected: z.boolean(),
+      response_time_ms: z.number(),
+      error_message: z.string().optional(),
+    })
+    .optional(),
   overall_healthy: z.boolean(),
 });
 export type CacheHealthCheck = z.infer<typeof CacheHealthCheck>;

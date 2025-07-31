@@ -22,8 +22,8 @@ const MCP_TOOLS = {
     description: 'Context-aware operational runbook retrieval',
     parameters: {
       alert_type: { type: 'string', required: true, description: 'Type of alert (disk_space, memory_leak, cpu_high, etc.)' },
-      severity: { type: 'string', required: false, description: 'Alert severity (critical, high, medium, low)' },
-      affected_systems: { type: 'array', required: false, description: 'List of affected system names' },
+      severity: { type: 'string', required: true, description: 'Alert severity (critical, high, medium, low, info)' },
+      affected_systems: { type: 'array', required: true, description: 'List of affected system names' },
     },
   },
   get_decision_tree: {
@@ -169,6 +169,25 @@ class MCPClient {
   }
 
   /**
+   * Connect to existing server or use mock mode
+   */
+  async connectToExistingServer(port = 3000) {
+    try {
+      // Try to connect to existing server
+      const response = await fetch(`http://localhost:${port}/health`);
+      if (response.ok) {
+        this.isConnected = true;
+        console.log('✅ Connected to existing MCP server');
+        return;
+      }
+    } catch (error) {
+      // Server not available, use mock mode
+      console.log('⚠️  MCP server not available, using mock mode');
+      this.isConnected = false; // Use mock responses
+    }
+  }
+
+  /**
    * Stop the MCP server
    */
   async stopServer() {
@@ -184,28 +203,19 @@ class MCPClient {
    * Send MCP request to server
    */
   async sendRequest(method, params = {}) {
-    if (!this.isConnected) {
-      throw new Error('MCP server not connected');
-    }
-
     const requestId = ++this.requestId;
     const startTime = Date.now();
 
     try {
-      // Create MCP request
-      const request = {
-        jsonrpc: '2.0',
-        id: requestId,
-        method: `tools/call`,
-        params: {
-          name: method,
-          arguments: params,
-        },
-      };
-
-      // For this implementation, we'll simulate the MCP call
-      // In a real implementation, this would use the MCP protocol
-      const result = await this.simulateMCPCall(method, params);
+      let result;
+      
+      if (this.isConnected) {
+        // Try to make real API call to the server
+        result = await this.makeRealAPICall(method, params);
+      } else {
+        // Use mock responses
+        result = await this.simulateMCPCall(method, params);
+      }
       
       const responseTime = Date.now() - startTime;
       
@@ -226,6 +236,48 @@ class MCPClient {
         requestId,
       };
     }
+  }
+
+  /**
+   * Make real API call to the running server
+   */
+  async makeRealAPICall(method, params) {
+    const baseUrl = 'http://localhost:3000/api';
+    
+    // Map MCP tool names to REST API endpoints
+    const endpointMap = {
+      'search_runbooks': { method: 'POST', path: '/runbooks/search' },
+      'get_decision_tree': { method: 'POST', path: '/decision-tree' },
+      'get_procedure': { method: 'GET', path: `/procedures/${params.procedure_id || 'default'}` },
+      'get_escalation_path': { method: 'POST', path: '/escalation' },
+      'list_sources': { method: 'GET', path: '/sources' },
+      'search_knowledge_base': { method: 'POST', path: '/search' },
+      'record_resolution_feedback': { method: 'POST', path: '/feedback' },
+    };
+    
+    const endpoint = endpointMap[method];
+    if (!endpoint) {
+      throw new Error(`Unknown tool: ${method}`);
+    }
+    
+    const url = `${baseUrl}${endpoint.path}`;
+    const options = {
+      method: endpoint.method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+    
+    if (endpoint.method === 'POST') {
+      options.body = JSON.stringify(params);
+    }
+    
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
   }
 
   /**
@@ -347,8 +399,9 @@ class MCPTester {
     console.log('🔧 Personal Pipeline MCP Client Tester - Interactive Mode\\n');
     
     try {
-      // Connect to server (or use mock mode)
-      console.log('📡 Connecting to MCP server...\\n');
+      // Check if server is already running, otherwise use mock mode
+      console.log('📡 Checking MCP server connection...\\n');
+      await this.client.connectToExistingServer();
       
       while (true) {
         // List available tools
@@ -360,7 +413,14 @@ class MCPTester {
         console.log('0. Exit\\n');
         
         // Get user selection
-        const selection = await this.askQuestion('Select tool (0-7): ');
+        let selection;
+        try {
+          selection = await this.askQuestion('Select tool (0-7): ');
+        } catch (error) {
+          console.log('\\n👋 Goodbye!');
+          break;
+        }
+        
         const toolIndex = parseInt(selection) - 1;
         
         if (selection === '0') {
@@ -408,14 +468,23 @@ class MCPTester {
       console.log(`- ${paramName}${required}: ${paramDef.description}`);
       
       if (paramDef.required) {
-        const value = await this.askQuestion(`Enter ${paramName}: `);
-        if (value.trim()) {
-          params[paramName] = this.parseParameterValue(value, paramDef.type);
+        try {
+          const value = await this.askQuestion(`Enter ${paramName}: `);
+          if (value.trim()) {
+            params[paramName] = this.parseParameterValue(value, paramDef.type);
+          }
+        } catch (error) {
+          console.log('\\n⚠️  Input cancelled, using default value');
+          params[paramName] = this.getDefaultValue(paramName, paramDef.type);
         }
       } else {
-        const value = await this.askQuestion(`Enter ${paramName} (press Enter to skip): `);
-        if (value.trim()) {
-          params[paramName] = this.parseParameterValue(value, paramDef.type);
+        try {
+          const value = await this.askQuestion(`Enter ${paramName} (press Enter to skip): `);
+          if (value.trim()) {
+            params[paramName] = this.parseParameterValue(value, paramDef.type);
+          }
+        } catch (error) {
+          console.log('\\n⚠️  Input cancelled, skipping optional parameter');
         }
       }
     }
@@ -451,6 +520,41 @@ class MCPTester {
   }
 
   /**
+   * Get default value for parameter type
+   */
+  getDefaultValue(paramName, type) {
+    // Provide meaningful defaults based on parameter name
+    const defaults = {
+      alert_type: 'disk_space',
+      severity: 'high',
+      affected_systems: ['web-server-01', 'app-server-01'],
+      scenario_type: 'disk_space',
+      procedure_id: 'emergency_procedure',
+      query: 'test query',
+      incident_id: 'INC-TEST-001',
+      resolution_successful: true,
+    };
+    
+    if (defaults[paramName]) {
+      return defaults[paramName];
+    }
+    
+    // Fallback to type-based defaults
+    switch (type) {
+      case 'boolean':
+        return false;
+      case 'number':
+        return 0;
+      case 'array':
+        return [];
+      case 'object':
+        return {};
+      default:
+        return 'default';
+    }
+  }
+
+  /**
    * Display response
    */
   displayResponse(response) {
@@ -471,6 +575,9 @@ class MCPTester {
    */
   async runTestSuite() {
     console.log('🧪 Running automated test suite...\\n');
+    
+    // Check server connection first
+    await this.client.connectToExistingServer();
     
     const results = {
       total: 0,
@@ -536,6 +643,9 @@ class MCPTester {
   async validateTools() {
     console.log('✅ Validating all MCP tools...\\n');
     
+    // Check server connection first
+    await this.client.connectToExistingServer();
+    
     const tools = await this.client.listTools();
     const results = [];
     
@@ -589,8 +699,20 @@ class MCPTester {
    * Ask question and return answer
    */
   askQuestion(question) {
-    return new Promise(resolve => {
-      this.rl.question(question, resolve);
+    return new Promise((resolve, reject) => {
+      if (this.rl.closed) {
+        reject(new Error('Readline interface closed'));
+        return;
+      }
+      
+      this.rl.question(question, (answer) => {
+        resolve(answer);
+      });
+      
+      // Handle readline close events
+      this.rl.once('close', () => {
+        reject(new Error('Readline interface closed'));
+      });
     });
   }
 
@@ -641,6 +763,8 @@ Examples:
       const toolIndex = args.indexOf('--tool');
       const toolName = args[toolIndex + 1];
       if (toolName && MCP_TOOLS[toolName]) {
+        // Connect to server first
+        await tester.client.connectToExistingServer();
         await tester.testToolInteractively(toolName);
       } else {
         console.error('❌ Invalid or missing tool name');

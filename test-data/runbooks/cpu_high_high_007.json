@@ -1,8 +1,8 @@
 {
-  "id": "cpu_high_low_006",
-  "title": "Cpu High - LOW Alert Response",
-  "version": "1.5",
-  "description": "Runbook for responding to low severity cpu high alerts on web-server systems",
+  "id": "cpu_high_high_007",
+  "title": "Cpu High - HIGH Alert Response",
+  "version": "1.2",
+  "description": "Runbook for responding to high severity cpu high alerts on batch-processor systems",
   "triggers": [
     "cpu_usage_high",
     "load_average_high",
@@ -77,13 +77,13 @@
       ]
     }
   ],
-  "escalation_path": "sre_oncall",
+  "escalation_path": "dba",
   "metadata": {
-    "created_at": "2025-07-29T15:25:34.795Z",
-    "updated_at": "2025-07-29T15:25:34.795Z",
+    "created_at": "2025-07-31T22:23:36.691Z",
+    "updated_at": "2025-07-31T22:23:36.691Z",
     "author": "SRE Team",
-    "confidence_score": 0.8260079427835026,
-    "success_rate": 0.8807442770740659,
-    "avg_resolution_time_minutes": 128
+    "confidence_score": 0.805490841058767,
+    "success_rate": 0.9457218838220959,
+    "avg_resolution_time_minutes": 101
   }
 }

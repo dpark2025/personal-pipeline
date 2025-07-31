@@ -133,6 +133,68 @@ stop_monitoring() {
     fi
 }
 
+# Clean up cache data
+cleanup_cache() {
+    log_step "Cleaning up cache data..."
+    
+    local cleaned=false
+    
+    # Check if Redis is running and clean cache
+    if redis-cli -p "$REDIS_PORT" ping &> /dev/null; then
+        log_info "Flushing Redis cache data..."
+        
+        # Get cache stats before cleanup
+        local cache_keys=$(redis-cli -p "$REDIS_PORT" eval "return #redis.call('keys', 'pp_demo:*')" 0 2>/dev/null || echo "0")
+        
+        # Clear demo-specific cache keys
+        if redis-cli -p "$REDIS_PORT" eval "
+            local keys = redis.call('keys', 'pp_demo:*')
+            if #keys > 0 then
+                return redis.call('del', unpack(keys))
+            else
+                return 0
+            end
+        " 0 &> /dev/null; then
+            log_success "Cleared $cache_keys demo cache keys from Redis"
+            cleaned=true
+        fi
+        
+        # Optional: Full cache flush for clean demo environment
+        if [ "${1:-}" = "--clean-data" ]; then
+            log_info "Performing full Redis cache flush..."
+            if redis-cli -p "$REDIS_PORT" flushall &> /dev/null; then
+                log_success "Redis cache completely flushed"
+                cleaned=true
+            fi
+        fi
+    else
+        log_info "Redis not running - skipping cache cleanup"
+    fi
+    
+    # Clean up server-side memory cache via API (if server is running)
+    if curl -s "http://localhost:${SERVER_PORT}/health" &> /dev/null; then
+        log_info "Resetting server performance metrics and memory cache..."
+        
+        # Reset performance metrics
+        if curl -X POST -s "http://localhost:${SERVER_PORT}/api/performance/reset" &> /dev/null; then
+            log_success "Server performance metrics reset"
+            cleaned=true
+        fi
+        
+        # If there's a cache reset endpoint, use it
+        if curl -X POST -s "http://localhost:${SERVER_PORT}/api/cache/reset" &> /dev/null 2>&1; then
+            log_success "Server memory cache reset"
+            cleaned=true
+        fi
+    fi
+    
+    if $cleaned; then
+        log_success "Cache cleanup completed"
+    else
+        log_info "No cache data to clean"
+    fi
+}
+
 # Stop Redis (if we started it)
 stop_redis() {
     log_step "Stopping demo Redis instance..."
@@ -192,7 +254,7 @@ cleanup_files() {
 
 # Clean up test data (optional)
 cleanup_test_data() {
-    if [ "$1" = "--clean-data" ]; then
+    if [ "${1:-}" = "--clean-data" ]; then
         log_step "Cleaning up test data..."
         
         if [ -d "${DEMO_DIR}/test-data" ]; then
@@ -242,16 +304,23 @@ main() {
     echo -e "${PURPLE}==========================================================${NC}"
     echo
     
+    # Clean cache before stopping services (so we can use API endpoints)
+    cleanup_cache "$@"
+    
+    # Stop services
     stop_server
     stop_monitoring
     stop_redis
+    
+    # Clean up files and data
     cleanup_files
     cleanup_test_data "$@"
+    
     show_status
     
     echo -e "${GREEN}🎉 Demo environment cleanup completed!${NC}"
     echo
-    echo -e "${BLUE}ℹ️  To restart the demo: ./scripts/setup-demo.sh${NC}"
+    echo -e "${BLUE}ℹ️  To restart the demo: npm run demo:start${NC}"
 }
 
 # Parse command line arguments
@@ -259,8 +328,13 @@ if [[ "$#" -gt 0 && "$1" == "--help" ]]; then
     echo "Usage: $0 [OPTIONS]"
     echo
     echo "Options:"
-    echo "  --clean-data    Also remove generated test data"
+    echo "  --clean-data    Also remove generated test data and perform full cache flush"
     echo "  --help          Show this help message"
+    echo
+    echo "Cache Cleanup:"
+    echo "  • Always clears demo-specific Redis cache keys (pp_demo:*)"
+    echo "  • Resets server performance metrics and memory cache"
+    echo "  • With --clean-data: performs complete Redis cache flush"
     echo
     echo "Environment Variables:"
     echo "  SERVER_PORT     Server port to check (default: 3000)" 

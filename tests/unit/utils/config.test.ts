@@ -169,7 +169,7 @@ embedding:
   describe('Error Handling Coverage', () => {
     it('should throw error when getting config before loading (line 65)', () => {
       const newConfigManager = new ConfigManager('./test-config.yaml');
-      
+
       expect(() => newConfigManager.getConfig()).toThrow(
         'Configuration not loaded. Call loadConfig() first.'
       );
@@ -177,61 +177,103 @@ embedding:
 
     it('should handle file write errors in saveConfig (lines 103-107)', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Load config first
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: 3001, host: 'localhost', log_level: 'info', cache_ttl_seconds: 300, max_concurrent_requests: 100, request_timeout_ms: 30000, health_check_interval_ms: 60000 },
-        cache: { 
-          enabled: true, 
-          strategy: 'memory_only', 
-          memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
-          redis: { enabled: false, url: 'redis://localhost:6379', ttl_seconds: 600, key_prefix: 'pp:', connection_timeout_ms: 5000, retry_attempts: 3, retry_delay_ms: 1000, max_retry_delay_ms: 10000, backoff_multiplier: 2, connection_retry_limit: 5 },
-          content_types: {
-            runbooks: { ttl_seconds: 300, warmup: true },
-            procedures: { ttl_seconds: 180, warmup: false },
-            decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: {
+            port: 3001,
+            host: 'localhost',
+            log_level: 'info',
+            cache_ttl_seconds: 300,
+            max_concurrent_requests: 100,
+            request_timeout_ms: 30000,
+            health_check_interval_ms: 60000,
+          },
+          cache: {
+            enabled: true,
+            strategy: 'memory_only',
+            memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
+            redis: {
+              enabled: false,
+              url: 'redis://localhost:6379',
+              ttl_seconds: 600,
+              key_prefix: 'pp:',
+              connection_timeout_ms: 5000,
+              retry_attempts: 3,
+              retry_delay_ms: 1000,
+              max_retry_delay_ms: 10000,
+              backoff_multiplier: 2,
+              connection_retry_limit: 5,
+            },
+            content_types: {
+              runbooks: { ttl_seconds: 300, warmup: true },
+              procedures: { ttl_seconds: 180, warmup: false },
+              decision_trees: { ttl_seconds: 240, warmup: true },
+              knowledge_base: { ttl_seconds: 90, warmup: false },
+            },
+          },
+        })
+      );
+
       await configManager.loadConfig();
-      
+
       // Mock writeFile to throw error
       const writeError = new Error('Write permission denied');
       mockFs.writeFile.mockRejectedValue(writeError);
-      
+
       await expect(configManager.saveConfig()).rejects.toThrow('Write permission denied');
     });
 
     it('should handle mkdir errors in saveConfig (lines 74-75)', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Load config first
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: 3001, host: 'localhost', log_level: 'info', cache_ttl_seconds: 300, max_concurrent_requests: 100, request_timeout_ms: 30000, health_check_interval_ms: 60000 },
-        cache: { 
-          enabled: true, 
-          strategy: 'memory_only', 
-          memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
-          redis: { enabled: false, url: 'redis://localhost:6379', ttl_seconds: 600, key_prefix: 'pp:', connection_timeout_ms: 5000, retry_attempts: 3, retry_delay_ms: 1000, max_retry_delay_ms: 10000, backoff_multiplier: 2, connection_retry_limit: 5 },
-          content_types: {
-            runbooks: { ttl_seconds: 300, warmup: true },
-            procedures: { ttl_seconds: 180, warmup: false },
-            decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: {
+            port: 3001,
+            host: 'localhost',
+            log_level: 'info',
+            cache_ttl_seconds: 300,
+            max_concurrent_requests: 100,
+            request_timeout_ms: 30000,
+            health_check_interval_ms: 60000,
+          },
+          cache: {
+            enabled: true,
+            strategy: 'memory_only',
+            memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
+            redis: {
+              enabled: false,
+              url: 'redis://localhost:6379',
+              ttl_seconds: 600,
+              key_prefix: 'pp:',
+              connection_timeout_ms: 5000,
+              retry_attempts: 3,
+              retry_delay_ms: 1000,
+              max_retry_delay_ms: 10000,
+              backoff_multiplier: 2,
+              connection_retry_limit: 5,
+            },
+            content_types: {
+              runbooks: { ttl_seconds: 300, warmup: true },
+              procedures: { ttl_seconds: 180, warmup: false },
+              decision_trees: { ttl_seconds: 240, warmup: true },
+              knowledge_base: { ttl_seconds: 90, warmup: false },
+            },
+          },
+        })
+      );
+
       await configManager.loadConfig();
-      
+
       // Mock mkdir to throw error (line 84)
       const mkdirError = new Error('Cannot create directory');
       mockFs.mkdir.mockRejectedValue(mkdirError);
-      
+
       await expect(configManager.saveConfig()).rejects.toThrow('Cannot create directory');
     });
   });
@@ -239,47 +281,89 @@ embedding:
   describe('Additional Methods Coverage', () => {
     it('should reload configuration (lines 74-75)', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Initial load
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: 3001, host: 'localhost', log_level: 'info', cache_ttl_seconds: 300, max_concurrent_requests: 100, request_timeout_ms: 30000, health_check_interval_ms: 60000 },
-        cache: { 
-          enabled: true, 
-          strategy: 'memory_only', 
-          memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
-          redis: { enabled: false, url: 'redis://localhost:6379', ttl_seconds: 600, key_prefix: 'pp:', connection_timeout_ms: 5000, retry_attempts: 3, retry_delay_ms: 1000, max_retry_delay_ms: 10000, backoff_multiplier: 2, connection_retry_limit: 5 },
-          content_types: {
-            runbooks: { ttl_seconds: 300, warmup: true },
-            procedures: { ttl_seconds: 180, warmup: false },
-            decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: {
+            port: 3001,
+            host: 'localhost',
+            log_level: 'info',
+            cache_ttl_seconds: 300,
+            max_concurrent_requests: 100,
+            request_timeout_ms: 30000,
+            health_check_interval_ms: 60000,
+          },
+          cache: {
+            enabled: true,
+            strategy: 'memory_only',
+            memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
+            redis: {
+              enabled: false,
+              url: 'redis://localhost:6379',
+              ttl_seconds: 600,
+              key_prefix: 'pp:',
+              connection_timeout_ms: 5000,
+              retry_attempts: 3,
+              retry_delay_ms: 1000,
+              max_retry_delay_ms: 10000,
+              backoff_multiplier: 2,
+              connection_retry_limit: 5,
+            },
+            content_types: {
+              runbooks: { ttl_seconds: 300, warmup: true },
+              procedures: { ttl_seconds: 180, warmup: false },
+              decision_trees: { ttl_seconds: 240, warmup: true },
+              knowledge_base: { ttl_seconds: 90, warmup: false },
+            },
+          },
+        })
+      );
+
       await configManager.loadConfig();
-      
+
       // Change mock to return different config
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: 4001, host: 'test-host', log_level: 'debug', cache_ttl_seconds: 600, max_concurrent_requests: 200, request_timeout_ms: 45000, health_check_interval_ms: 90000 },
-        cache: { 
-          enabled: false, 
-          strategy: 'memory_only', 
-          memory: { max_keys: 200, ttl_seconds: 600, check_period_seconds: 120 },
-          redis: { enabled: false, url: 'redis://localhost:6379', ttl_seconds: 600, key_prefix: 'pp:', connection_timeout_ms: 5000, retry_attempts: 3, retry_delay_ms: 1000, max_retry_delay_ms: 10000, backoff_multiplier: 2, connection_retry_limit: 5 },
-          content_types: {
-            runbooks: { ttl_seconds: 300, warmup: true },
-            procedures: { ttl_seconds: 180, warmup: false },
-            decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: {
+            port: 4001,
+            host: 'test-host',
+            log_level: 'debug',
+            cache_ttl_seconds: 600,
+            max_concurrent_requests: 200,
+            request_timeout_ms: 45000,
+            health_check_interval_ms: 90000,
+          },
+          cache: {
+            enabled: false,
+            strategy: 'memory_only',
+            memory: { max_keys: 200, ttl_seconds: 600, check_period_seconds: 120 },
+            redis: {
+              enabled: false,
+              url: 'redis://localhost:6379',
+              ttl_seconds: 600,
+              key_prefix: 'pp:',
+              connection_timeout_ms: 5000,
+              retry_attempts: 3,
+              retry_delay_ms: 1000,
+              max_retry_delay_ms: 10000,
+              backoff_multiplier: 2,
+              connection_retry_limit: 5,
+            },
+            content_types: {
+              runbooks: { ttl_seconds: 300, warmup: true },
+              procedures: { ttl_seconds: 180, warmup: false },
+              decision_trees: { ttl_seconds: 240, warmup: true },
+              knowledge_base: { ttl_seconds: 90, warmup: false },
+            },
+          },
+        })
+      );
+
       const reloadedConfig = await configManager.reloadConfig();
-      
+
       expect(reloadedConfig.server.port).toBe(4001);
       expect(reloadedConfig.server.host).toBe('test-host');
       expect(reloadedConfig.server.log_level).toBe('debug');
@@ -287,52 +371,83 @@ embedding:
 
     it('should successfully save config (lines 86-108)', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Load config first
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: 3001, host: 'localhost', log_level: 'info', cache_ttl_seconds: 300, max_concurrent_requests: 100, request_timeout_ms: 30000, health_check_interval_ms: 60000 },
-        cache: { 
-          enabled: true, 
-          strategy: 'memory_only', 
-          memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
-          redis: { enabled: false, url: 'redis://localhost:6379', ttl_seconds: 600, key_prefix: 'pp:', connection_timeout_ms: 5000, retry_attempts: 3, retry_delay_ms: 1000, max_retry_delay_ms: 10000, backoff_multiplier: 2, connection_retry_limit: 5 },
-          content_types: {
-            runbooks: { ttl_seconds: 300, warmup: true },
-            procedures: { ttl_seconds: 180, warmup: false },
-            decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: {
+            port: 3001,
+            host: 'localhost',
+            log_level: 'info',
+            cache_ttl_seconds: 300,
+            max_concurrent_requests: 100,
+            request_timeout_ms: 30000,
+            health_check_interval_ms: 60000,
+          },
+          cache: {
+            enabled: true,
+            strategy: 'memory_only',
+            memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
+            redis: {
+              enabled: false,
+              url: 'redis://localhost:6379',
+              ttl_seconds: 600,
+              key_prefix: 'pp:',
+              connection_timeout_ms: 5000,
+              retry_attempts: 3,
+              retry_delay_ms: 1000,
+              max_retry_delay_ms: 10000,
+              backoff_multiplier: 2,
+              connection_retry_limit: 5,
+            },
+            content_types: {
+              runbooks: { ttl_seconds: 300, warmup: true },
+              procedures: { ttl_seconds: 180, warmup: false },
+              decision_trees: { ttl_seconds: 240, warmup: true },
+              knowledge_base: { ttl_seconds: 90, warmup: false },
+            },
+          },
+        })
+      );
+
       await configManager.loadConfig();
-      
+
       // Mock successful write operations
       mockFs.mkdir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue();
-      
+
       await expect(configManager.saveConfig()).resolves.not.toThrow();
-      
+
       expect(mockFs.writeFile).toHaveBeenCalled();
     });
 
     it('should handle updateServerConfig (line 156)', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Load initial config
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: 3001, host: 'localhost', log_level: 'info', cache_ttl_seconds: 300, max_concurrent_requests: 100, request_timeout_ms: 30000, health_check_interval_ms: 60000 }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: {
+            port: 3001,
+            host: 'localhost',
+            log_level: 'info',
+            cache_ttl_seconds: 300,
+            max_concurrent_requests: 100,
+            request_timeout_ms: 30000,
+            health_check_interval_ms: 60000,
+          },
+        })
+      );
+
       await configManager.loadConfig();
 
       const serverUpdate = {
         port: 4001,
         host: 'updated-host',
         log_level: 'debug' as const,
-        max_concurrent_requests: 200
+        max_concurrent_requests: 200,
       };
 
       configManager.updateServerConfig(serverUpdate);
@@ -348,82 +463,116 @@ embedding:
   describe('Validation Edge Cases', () => {
     it('should handle file access errors (line 157-162)', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Mock access to throw error
       mockFs.access.mockRejectedValue(new Error('File not accessible'));
-      
+
       // Should create default config when file is not accessible
       const config = await configManager.loadConfig();
-      
+
       expect(config).toBeDefined();
       expect(config.sources).toEqual([]);
     });
 
     it('should handle YAML parsing errors with invalid content', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Mock reading invalid YAML
       mockFs.readFile.mockResolvedValue('invalid: yaml: content: [unclosed');
-      
+
       await expect(configManager.loadConfig()).rejects.toThrow();
     });
 
     it('should handle validation errors for malformed config', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Mock reading config with invalid server structure
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: "invalid-port" }, // Invalid port type
-        cache: {
-          enabled: true,
-          strategy: 'memory_only',
-          memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
-          redis: { enabled: false, url: 'redis://localhost:6379', ttl_seconds: 600, key_prefix: 'pp:', connection_timeout_ms: 5000, retry_attempts: 3, retry_delay_ms: 1000, max_retry_delay_ms: 10000, backoff_multiplier: 2, connection_retry_limit: 5 },
-          content_types: {
-            runbooks: { ttl_seconds: 300, warmup: true },
-            procedures: { ttl_seconds: 180, warmup: false },
-            decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: { port: 'invalid-port' }, // Invalid port type
+          cache: {
+            enabled: true,
+            strategy: 'memory_only',
+            memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
+            redis: {
+              enabled: false,
+              url: 'redis://localhost:6379',
+              ttl_seconds: 600,
+              key_prefix: 'pp:',
+              connection_timeout_ms: 5000,
+              retry_attempts: 3,
+              retry_delay_ms: 1000,
+              max_retry_delay_ms: 10000,
+              backoff_multiplier: 2,
+              connection_retry_limit: 5,
+            },
+            content_types: {
+              runbooks: { ttl_seconds: 300, warmup: true },
+              procedures: { ttl_seconds: 180, warmup: false },
+              decision_trees: { ttl_seconds: 240, warmup: true },
+              knowledge_base: { ttl_seconds: 90, warmup: false },
+            },
+          },
+        })
+      );
+
       await expect(configManager.loadConfig()).rejects.toThrow();
     });
 
     it('should create directory structure if needed (line 84)', async () => {
       const mockFs = fs as jest.Mocked<typeof fs>;
-      
+
       // Load config first
-      mockFs.readFile.mockResolvedValue(JSON.stringify({
-        sources: [],
-        server: { port: 3001, host: 'localhost', log_level: 'info', cache_ttl_seconds: 300, max_concurrent_requests: 100, request_timeout_ms: 30000, health_check_interval_ms: 60000 },
-        cache: { 
-          enabled: true, 
-          strategy: 'memory_only', 
-          memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
-          redis: { enabled: false, url: 'redis://localhost:6379', ttl_seconds: 600, key_prefix: 'pp:', connection_timeout_ms: 5000, retry_attempts: 3, retry_delay_ms: 1000, max_retry_delay_ms: 10000, backoff_multiplier: 2, connection_retry_limit: 5 },
-          content_types: {
-            runbooks: { ttl_seconds: 300, warmup: true },
-            procedures: { ttl_seconds: 180, warmup: false },
-            decision_trees: { ttl_seconds: 240, warmup: true },
-            knowledge_base: { ttl_seconds: 90, warmup: false }
-          }
-        }
-      }));
-      
+      mockFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          sources: [],
+          server: {
+            port: 3001,
+            host: 'localhost',
+            log_level: 'info',
+            cache_ttl_seconds: 300,
+            max_concurrent_requests: 100,
+            request_timeout_ms: 30000,
+            health_check_interval_ms: 60000,
+          },
+          cache: {
+            enabled: true,
+            strategy: 'memory_only',
+            memory: { max_keys: 100, ttl_seconds: 300, check_period_seconds: 60 },
+            redis: {
+              enabled: false,
+              url: 'redis://localhost:6379',
+              ttl_seconds: 600,
+              key_prefix: 'pp:',
+              connection_timeout_ms: 5000,
+              retry_attempts: 3,
+              retry_delay_ms: 1000,
+              max_retry_delay_ms: 10000,
+              backoff_multiplier: 2,
+              connection_retry_limit: 5,
+            },
+            content_types: {
+              runbooks: { ttl_seconds: 300, warmup: true },
+              procedures: { ttl_seconds: 180, warmup: false },
+              decision_trees: { ttl_seconds: 240, warmup: true },
+              knowledge_base: { ttl_seconds: 90, warmup: false },
+            },
+          },
+        })
+      );
+
       await configManager.loadConfig();
-      
+
       // Mock mkdir to succeed
       mockFs.mkdir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue();
-      
+
       // ConfigManager with nested path
       const nestedConfigManager = new ConfigManager('./nested/path/config.yaml');
       await nestedConfigManager.loadConfig();
       await nestedConfigManager.saveConfig();
-      
+
       expect(mockFs.mkdir).toHaveBeenCalledWith('./nested/path', { recursive: true });
     });
   });

@@ -1,7 +1,7 @@
 /**
  * Test Utilities
  * Common utilities and helpers for testing
- * 
+ *
  * QA Engineer: Testing utilities for milestone 1.3
  * Coverage: Test setup, teardown, mocking, and validation helpers
  */
@@ -34,8 +34,8 @@ export const createMockRedis = () => {
       get: jest.fn(),
       setex: jest.fn(),
       del: jest.fn(),
-      exec: jest.fn().mockResolvedValue([])
-    }))
+      exec: jest.fn().mockResolvedValue([]),
+    })),
   } as any;
 
   return mockRedisInstance;
@@ -77,10 +77,12 @@ export interface TestEnvironmentOptions {
 /**
  * Create a complete test environment with all services initialized
  */
-export async function createTestEnvironment(options: TestEnvironmentOptions = {}): Promise<TestEnvironment> {
+export async function createTestEnvironment(
+  options: TestEnvironmentOptions = {}
+): Promise<TestEnvironment> {
   const testId = `test-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   const testDataDir = path.join(__dirname, '../fixtures', testId);
-  
+
   // Create test data directory
   await fs.mkdir(testDataDir, { recursive: true });
 
@@ -92,23 +94,25 @@ export async function createTestEnvironment(options: TestEnvironmentOptions = {}
 
   // Create test configuration
   const testConfig = {
-    sources: [{
-      name: `test-filesystem-${testId}`,
-      type: 'filesystem',
-      enabled: true,
-      config: {
-        path: testDataDir,
-        watch: false,
-        extensions: ['.json', '.md']
-      }
-    }],
+    sources: [
+      {
+        name: `test-filesystem-${testId}`,
+        type: 'filesystem',
+        enabled: true,
+        config: {
+          path: testDataDir,
+          watch: false,
+          extensions: ['.json', '.md'],
+        },
+      },
+    ],
     cache: {
       enabled: options.enableCache !== false,
-      strategy: options.cacheStrategy || 'memory_only' as const,
+      strategy: options.cacheStrategy || ('memory_only' as const),
       memory: {
         max_keys: 1000,
         ttl_seconds: 300,
-        check_period_seconds: 60
+        check_period_seconds: 60,
       },
       redis: {
         enabled: options.cacheStrategy !== 'memory_only',
@@ -120,20 +124,20 @@ export async function createTestEnvironment(options: TestEnvironmentOptions = {}
         retry_delay_ms: 1000,
         max_retry_delay_ms: 30000,
         backoff_multiplier: 2,
-        connection_retry_limit: 5
+        connection_retry_limit: 5,
       },
       content_types: {
         runbooks: { ttl_seconds: 300, warmup: true },
         procedures: { ttl_seconds: 180, warmup: false },
         decision_trees: { ttl_seconds: 240, warmup: true },
-        knowledge_base: { ttl_seconds: 90, warmup: false }
-      }
+        knowledge_base: { ttl_seconds: 90, warmup: false },
+      },
     },
     performance: {
       enabled: options.enablePerformanceMonitoring !== false,
       windowSize: options.performanceOptions?.windowSize || 60000,
       maxSamples: options.performanceOptions?.maxSamples || 1000,
-      realtimeMonitoring: options.performanceOptions?.realtimeMonitoring || false
+      realtimeMonitoring: options.performanceOptions?.realtimeMonitoring || false,
     },
     monitoring: {
       enabled: options.enableMonitoring !== false,
@@ -142,8 +146,8 @@ export async function createTestEnvironment(options: TestEnvironmentOptions = {}
       maxActiveAlerts: options.monitoringOptions?.maxActiveAlerts || 50,
       notificationChannels: {
         console: false, // Disable for clean test output
-      }
-    }
+      },
+    },
   };
 
   // Initialize services
@@ -153,7 +157,7 @@ export async function createTestEnvironment(options: TestEnvironmentOptions = {}
 
   // Initialize server with test environment
   const server = new PersonalPipelineServer();
-  
+
   // Create MCP tool executor for testing
   const mcpExecutor = createTestMCPExecutor();
 
@@ -187,7 +191,7 @@ export async function createTestEnvironment(options: TestEnvironmentOptions = {}
     monitoringService,
     testDataDir,
     mcpExecutor,
-    cleanup
+    cleanup,
   };
 }
 
@@ -200,7 +204,7 @@ export async function waitForCondition(
   intervalMs: number = 100
 ): Promise<boolean> {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeoutMs) {
     try {
       const result = await condition();
@@ -210,10 +214,10 @@ export async function waitForCondition(
     } catch (error) {
       // Continue waiting
     }
-    
+
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
-  
+
   return false;
 }
 
@@ -227,7 +231,7 @@ export async function measureExecutionTime<T>(
   const result = await fn();
   const endTime = process.hrtime.bigint();
   const executionTimeMs = Number(endTime - startTime) / 1_000_000;
-  
+
   return { result, executionTimeMs };
 }
 
@@ -236,45 +240,54 @@ export async function measureExecutionTime<T>(
  */
 function createMockMCPToolExecutor() {
   return {
-    async executeTool(toolName: string, args: any): Promise<{ isError: boolean; result?: any; error?: any }> {
+    async executeTool(
+      toolName: string,
+      args: any
+    ): Promise<{ isError: boolean; result?: any; error?: any }> {
       try {
         // Simulate successful tool execution with test data
         const result = {
           success: true,
           data: {
-            runbooks: toolName === 'search_runbooks' ? [
-              {
-                id: `test-runbook-${Date.now()}`,
-                title: `Test Runbook for ${args.alert_type || 'generic'}`,
-                severity: args.severity || 'medium',
-                confidence_score: 0.85,
-                match_reasons: ['exact match on alert type'],
-                retrieval_time_ms: Math.floor(Math.random() * 100) + 50
-              }
-            ] : [],
-            procedures: toolName === 'get_procedure' ? [
-              {
-                id: args.procedure_id || 'test-proc-001',
-                title: 'Test Procedure',
-                steps: ['Step 1', 'Step 2', 'Step 3'],
-                confidence_score: 0.9,
-                retrieval_time_ms: Math.floor(Math.random() * 50) + 25
-              }
-            ] : [],
+            runbooks:
+              toolName === 'search_runbooks'
+                ? [
+                    {
+                      id: `test-runbook-${Date.now()}`,
+                      title: `Test Runbook for ${args.alert_type || 'generic'}`,
+                      severity: args.severity || 'medium',
+                      confidence_score: 0.85,
+                      match_reasons: ['exact match on alert type'],
+                      retrieval_time_ms: Math.floor(Math.random() * 100) + 50,
+                    },
+                  ]
+                : [],
+            procedures:
+              toolName === 'get_procedure'
+                ? [
+                    {
+                      id: args.procedure_id || 'test-proc-001',
+                      title: 'Test Procedure',
+                      steps: ['Step 1', 'Step 2', 'Step 3'],
+                      confidence_score: 0.9,
+                      retrieval_time_ms: Math.floor(Math.random() * 50) + 25,
+                    },
+                  ]
+                : [],
             confidence_score: 0.85,
-            retrieval_time_ms: Math.floor(Math.random() * 100) + 50
+            retrieval_time_ms: Math.floor(Math.random() * 100) + 50,
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
-        
+
         // Add small random delay to simulate real processing
         await new Promise(resolve => setTimeout(resolve, Math.random() * 50));
-        
+
         return { isError: false, result };
       } catch (error) {
         return { isError: true, error };
       }
-    }
+    },
   };
 }
 
@@ -306,9 +319,9 @@ export async function generateLoad(
       arguments: {
         alert_type: 'test_load',
         severity: 'medium',
-        systems: ['load_test']
-      }
-    }
+        systems: ['load_test'],
+      },
+    },
   ];
 
   // Create mock MCP tool executor for testing
@@ -321,9 +334,9 @@ export async function generateLoad(
   for (let i = 0; i < requestCount; i++) {
     let randomWeight = Math.random() * totalWeight;
     let selectedType = requestTypes[0];
-    
+
     for (const type of requestTypes) {
-      randomWeight -= (type.weight || 1);
+      randomWeight -= type.weight || 1;
       if (randomWeight <= 0) {
         selectedType = type;
         break;
@@ -335,8 +348,8 @@ export async function generateLoad(
         toolName: selectedType.name,
         arguments: {
           ...selectedType.arguments,
-          request_id: `load_${i}` // Make each request unique
-        }
+          request_id: `load_${i}`, // Make each request unique
+        },
       });
     }
   }
@@ -350,13 +363,13 @@ export async function generateLoad(
   // Process requests in batches to control concurrency
   for (let i = 0; i < requests.length; i += concurrency) {
     const batch = requests.slice(i, i + concurrency);
-    const batchPromises = batch.map(request => 
+    const batchPromises = batch.map(request =>
       mockExecutor.executeTool(request.toolName, request.arguments)
     );
-    
+
     const batchResponses = await Promise.all(batchPromises);
     responses.push(...batchResponses);
-    
+
     // Count successes and errors
     batchResponses.forEach(response => {
       if (response.isError) {
@@ -375,7 +388,7 @@ export async function generateLoad(
     totalTimeMs,
     averageTimeMs,
     successCount,
-    errorCount
+    errorCount,
   };
 }
 
@@ -393,53 +406,61 @@ export function createTestMCPExecutor() {
     }): Promise<{ isError: boolean; content?: any; error?: any }> {
       try {
         const { name: toolName, arguments: args } = request.params;
-        
+
         // Simulate successful tool execution with test data
         const result = {
           success: true,
           data: {
-            runbooks: toolName === 'search_runbooks' ? [
-              {
-                id: `test-runbook-${Date.now()}`,
-                title: `Test Runbook for ${args.alert_type || 'generic'}`,
-                severity: args.severity || 'medium',
-                confidence_score: 0.85,
-                match_reasons: ['exact match on alert type'],
-                retrieval_time_ms: Math.floor(Math.random() * 100) + 50
-              }
-            ] : [],
-            procedures: toolName === 'get_procedure' ? [
-              {
-                id: args.procedure_id || 'test-proc-001',
-                title: 'Test Procedure',
-                steps: ['Step 1', 'Step 2', 'Step 3'],
-                confidence_score: 0.9,
-                retrieval_time_ms: Math.floor(Math.random() * 50) + 25
-              }
-            ] : [],
+            runbooks:
+              toolName === 'search_runbooks'
+                ? [
+                    {
+                      id: `test-runbook-${Date.now()}`,
+                      title: `Test Runbook for ${args.alert_type || 'generic'}`,
+                      severity: args.severity || 'medium',
+                      confidence_score: 0.85,
+                      match_reasons: ['exact match on alert type'],
+                      retrieval_time_ms: Math.floor(Math.random() * 100) + 50,
+                    },
+                  ]
+                : [],
+            procedures:
+              toolName === 'get_procedure'
+                ? [
+                    {
+                      id: args.procedure_id || 'test-proc-001',
+                      title: 'Test Procedure',
+                      steps: ['Step 1', 'Step 2', 'Step 3'],
+                      confidence_score: 0.9,
+                      retrieval_time_ms: Math.floor(Math.random() * 50) + 25,
+                    },
+                  ]
+                : [],
             confidence_score: 0.85,
-            retrieval_time_ms: Math.floor(Math.random() * 100) + 50
+            retrieval_time_ms: Math.floor(Math.random() * 100) + 50,
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
-        
+
         // Add small random delay to simulate real processing
         await new Promise(resolve => setTimeout(resolve, Math.random() * 50));
-        
-        return { 
-          isError: false, 
-          content: [{ 
-            type: 'text', 
-            text: JSON.stringify(result, null, 2) 
-          }] 
+
+        return {
+          isError: false,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
         };
       } catch (error) {
-        return { 
-          isError: true, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        return {
+          isError: true,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
-    }
+    },
   };
 }
 
@@ -483,12 +504,12 @@ export class PerformanceTestHelper {
     if (!this.startTime) {
       throw new Error('Performance measurement not started');
     }
-    
+
     const endTime = process.hrtime.bigint();
     const measurementMs = Number(endTime - this.startTime) / 1_000_000;
     this.measurements.push(measurementMs);
     this.startTime = null;
-    
+
     return measurementMs;
   }
 
@@ -501,12 +522,12 @@ export class PerformanceTestHelper {
         max: 0,
         p50: 0,
         p95: 0,
-        p99: 0
+        p99: 0,
       };
     }
 
     const sorted = [...this.measurements].sort((a, b) => a - b);
-    
+
     return {
       count: this.measurements.length,
       average: this.measurements.reduce((sum, val) => sum + val, 0) / this.measurements.length,
@@ -514,7 +535,7 @@ export class PerformanceTestHelper {
       max: sorted[sorted.length - 1],
       p50: sorted[Math.floor(sorted.length * 0.5)],
       p95: sorted[Math.floor(sorted.length * 0.95)],
-      p99: sorted[Math.floor(sorted.length * 0.99)]
+      p99: sorted[Math.floor(sorted.length * 0.99)],
     };
   }
 
@@ -532,10 +553,10 @@ export class CacheTestHelper {
 
   async warmCache(contentType: string, count: number = 5): Promise<void> {
     const warmupData = [];
-    
+
     for (let i = 0; i < count; i++) {
       let data;
-      
+
       switch (contentType) {
         case 'runbooks':
           data = testDataGenerator.generateRunbook({ id: `warm-rb-${i}` });
@@ -555,7 +576,7 @@ export class CacheTestHelper {
 
       warmupData.push({
         key: { type: contentType as any, identifier: `warm-${contentType}-${i}` },
-        data
+        data,
       });
     }
 
@@ -570,7 +591,7 @@ export class CacheTestHelper {
   async getCacheStatistics() {
     const stats = this.cacheService.getStats();
     const health = await this.cacheService.healthCheck();
-    
+
     return {
       stats,
       health,
@@ -578,8 +599,8 @@ export class CacheTestHelper {
         hit_rate: stats.hit_rate,
         total_operations: stats.total_operations,
         memory_healthy: health.memory_cache.healthy,
-        redis_healthy: health.redis_cache?.healthy || false
-      }
+        redis_healthy: health.redis_cache?.healthy || false,
+      },
     };
   }
 }
@@ -598,20 +619,17 @@ export class MonitoringTestHelper {
       severity: 'medium' as const,
       condition: () => true, // Always triggers
       cooldownMs: 100,
-      enabled: true
+      enabled: true,
     };
 
     this.monitoringService.addRule(testRule);
-    
+
     if (!this.monitoringService.getStatus().running) {
       this.monitoringService.start();
     }
 
     // Wait for alert to be generated
-    await waitForCondition(
-      () => this.monitoringService.getActiveAlerts().length > 0,
-      2000
-    );
+    await waitForCondition(() => this.monitoringService.getActiveAlerts().length > 0, 2000);
   }
 
   async waitForAlertResolution(maxWaitMs: number = 5000): Promise<boolean> {
@@ -625,15 +643,15 @@ export class MonitoringTestHelper {
     const status = this.monitoringService.getStatus();
     const activeAlerts = this.monitoringService.getActiveAlerts();
     const alertHistory = this.monitoringService.getAlertHistory();
-    
+
     return {
       status,
       activeCount: activeAlerts.length,
       totalCount: alertHistory.length,
       alerts: {
         active: activeAlerts,
-        history: alertHistory
-      }
+        history: alertHistory,
+      },
     };
   }
 }
@@ -643,23 +661,25 @@ export class MonitoringTestHelper {
  */
 export function createTestConfig(overrides: any = {}) {
   const baseConfig = {
-    sources: [{
-      name: 'test-filesystem',
-      type: 'filesystem',
-      enabled: true,
-      config: {
-        path: path.join(__dirname, '../fixtures/default-test-data'),
-        watch: false,
-        extensions: ['.json', '.md']
-      }
-    }],
+    sources: [
+      {
+        name: 'test-filesystem',
+        type: 'filesystem',
+        enabled: true,
+        config: {
+          path: path.join(__dirname, '../fixtures/default-test-data'),
+          watch: false,
+          extensions: ['.json', '.md'],
+        },
+      },
+    ],
     cache: {
       enabled: true,
       strategy: 'memory_only' as const,
       memory: {
         max_keys: 100,
         ttl_seconds: 300,
-        check_period_seconds: 60
+        check_period_seconds: 60,
       },
       redis: {
         enabled: false,
@@ -668,20 +688,20 @@ export function createTestConfig(overrides: any = {}) {
         key_prefix: 'pp:test:',
         connection_timeout_ms: 5000,
         retry_attempts: 3,
-        retry_delay_ms: 1000
+        retry_delay_ms: 1000,
       },
       content_types: {
         runbooks: { ttl_seconds: 300, warmup: true },
         procedures: { ttl_seconds: 180, warmup: false },
         decision_trees: { ttl_seconds: 240, warmup: true },
-        knowledge_base: { ttl_seconds: 90, warmup: false }
-      }
+        knowledge_base: { ttl_seconds: 90, warmup: false },
+      },
     },
     performance: {
       enabled: true,
       windowSize: 60000,
       maxSamples: 1000,
-      realtimeMonitoring: false
+      realtimeMonitoring: false,
     },
     monitoring: {
       enabled: true,
@@ -689,9 +709,9 @@ export function createTestConfig(overrides: any = {}) {
       alertRetentionHours: 1,
       maxActiveAlerts: 50,
       notificationChannels: {
-        console: false
-      }
-    }
+        console: false,
+      },
+    },
   };
 
   return mergeDeep(baseConfig, overrides);
@@ -702,7 +722,7 @@ export function createTestConfig(overrides: any = {}) {
  */
 function mergeDeep(target: any, source: any): any {
   const output = { ...target };
-  
+
   for (const key in source) {
     if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
       output[key] = mergeDeep(target[key] || {}, source[key]);
@@ -710,11 +730,9 @@ function mergeDeep(target: any, source: any): any {
       output[key] = source[key];
     }
   }
-  
+
   return output;
 }
 
 // Export commonly used test utilities
-export {
-  testDataGenerator
-};
+export { testDataGenerator };

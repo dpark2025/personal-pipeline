@@ -24,6 +24,7 @@ interface FileDocument {
   path: string;
   name: string;
   content: string;
+  searchableContent?: string; // Extracted searchable content for better Fuse.js matching
   lastModified: Date;
   size: number;
   type: string;
@@ -59,19 +60,51 @@ export class FileSystemAdapter extends SourceAdapter {
       return [];
     }
 
+    // Check if this adapter supports the requested categories
+    if (filters?.categories && filters.categories.length > 0) {
+      const sourceCategories = this.config.categories || [];
+      const hasMatchingCategory = filters.categories.some(category =>
+        sourceCategories.includes(category)
+      );
+
+      if (!hasMatchingCategory) {
+        // This source doesn't match the requested categories, return empty results
+        return [];
+      }
+    }
+
     const searchOptions = {
       includeScore: true,
-      threshold: filters?.confidence_threshold ? 1 - filters.confidence_threshold : 0.4,
-      keys: ['name', 'content'],
+      threshold: filters?.confidence_threshold ? 1 - filters.confidence_threshold : 0.5, // Balanced threshold
+      keys: [
+        { name: 'name', weight: 0.2 },
+        { name: 'searchableContent', weight: 0.8 }, // Prioritize searchable content more
+        { name: 'content', weight: 0.1 },
+      ],
       limit: 50,
     };
 
-    const results = this.searchIndex.search(query, searchOptions);
+    let results = this.searchIndex.search(query, searchOptions);
+
+    // If no fuzzy results, try exact substring matching for better recall
+    if (results.length === 0) {
+      const allDocuments = Array.from(this.documents.values());
+      const exactMatches = allDocuments.filter(doc => {
+        const searchContent = (doc.searchableContent || doc.content).toLowerCase();
+        return searchContent.includes(query.toLowerCase());
+      });
+
+      results = exactMatches.map((doc, index) => ({
+        item: doc,
+        score: 0.1, // High confidence for exact matches
+        refIndex: index,
+      }));
+    }
 
     return results.map(result => ({
       id: result.item.id,
       title: result.item.name,
-      content: this.truncateContent(result.item.content),
+      content: result.item.content, // Don't truncate - let consumers decide when to truncate
       source: this.config.name,
       source_type: 'file' as const,
       confidence_score: Math.max(0, 1 - (result.score || 0)) as ConfidenceScore,
@@ -116,32 +149,125 @@ export class FileSystemAdapter extends SourceAdapter {
     affectedSystems: string[],
     _context?: Record<string, any>
   ): Promise<Runbook[]> {
+    console.log(`[FileSystemAdapter] searchRunbooks called:`, {
+      alertType,
+      severity,
+      affectedSystems,
+      sourceName: this.config.name,
+      documentsCount: this.documents.size,
+      searchIndexExists: !!this.searchIndex,
+    });
+
+    // Check if this source has runbook category support
+    const sourceCategories = this.config.categories || [];
+    const supportsRunbooks = sourceCategories.includes('runbooks');
+
+    console.log(`[FileSystemAdapter] Category check:`, {
+      sourceCategories,
+      supportsRunbooks,
+      sourceName: this.config.name,
+    });
+
+    if (!supportsRunbooks) {
+      // This source doesn't contain runbooks, return empty results
+      console.log(
+        `[FileSystemAdapter] Source ${this.config.name} doesn't support runbooks category`
+      );
+      return [];
+    }
+
     // Search for runbook files that might contain relevant information
-    const runbookQuery = `runbook ${alertType} ${severity} ${affectedSystems.join(' ')}`;
-    const searchResults = await this.search(runbookQuery);
+    // Try multiple search strategies for better recall
+    const searchQueries = [
+      // Exact alert type
+      alertType,
+      // Alert type with underscores replaced by spaces
+      alertType.replace(/_/g, ' '),
+      // Severity-focused search
+      `${severity} ${alertType.replace(/_/g, ' ')}`,
+      // Combined terms
+      `${alertType.replace(/_/g, ' ')} ${severity}`,
+      // Broader search if systems specified
+      affectedSystems.length > 0
+        ? `${alertType.replace(/_/g, ' ')} ${affectedSystems.join(' ')}`
+        : alertType,
+    ];
+
+    const allResults: any[] = [];
+
+    // Execute all search queries and combine results with runbook category filter
+    for (const query of searchQueries) {
+      console.log(`[FileSystemAdapter] Executing search query: "${query}"`);
+      const results = await this.search(query, { categories: ['runbooks'] });
+      console.log(`[FileSystemAdapter] Search query "${query}" returned ${results.length} results`);
+      allResults.push(...results);
+    }
+
+    console.log(
+      `[FileSystemAdapter] Total search results before deduplication: ${allResults.length}`
+    );
+
+    // Remove duplicates based on id
+    const uniqueResults = Array.from(
+      new Map(allResults.map(result => [result.id, result])).values()
+    );
+
+    console.log(
+      `[FileSystemAdapter] Unique search results after deduplication: ${uniqueResults.length}`
+    );
 
     const runbooks: Runbook[] = [];
 
-    for (const result of searchResults) {
+    for (const result of uniqueResults) {
       try {
+        console.log(`[FileSystemAdapter] Processing result:`, {
+          id: result.id,
+          title: result.title,
+          fileType: result.metadata?.file_type,
+          contentLength: result.content?.length,
+        });
+
         // Try to parse JSON runbooks
         if (result.metadata?.file_type === '.json') {
+          console.log(`[FileSystemAdapter] Parsing JSON runbook: ${result.title}`);
           const runbook = JSON.parse(result.content);
-          if (this.isValidRunbook(runbook)) {
+          const isValid = this.isValidRunbook(runbook);
+          console.log(`[FileSystemAdapter] JSON runbook validation:`, {
+            title: result.title,
+            isValid,
+            hasId: !!runbook.id,
+            hasTitle: !!runbook.title,
+            hasTriggers: Array.isArray(runbook.triggers),
+            hasDecisionTree: !!runbook.decision_tree,
+            hasProcedures: Array.isArray(runbook.procedures),
+          });
+
+          if (isValid) {
             runbooks.push(runbook);
+            console.log(`[FileSystemAdapter] Added valid runbook: ${runbook.id}`);
+          } else {
+            console.log(`[FileSystemAdapter] Rejected invalid runbook: ${result.title}`);
           }
         } else {
           // Create synthetic runbook from markdown/text content
+          console.log(`[FileSystemAdapter] Creating synthetic runbook from: ${result.title}`);
           const syntheticRunbook = this.createSyntheticRunbook(result, alertType, severity);
           if (syntheticRunbook) {
             runbooks.push(syntheticRunbook);
+            console.log(`[FileSystemAdapter] Added synthetic runbook: ${syntheticRunbook.id}`);
           }
         }
       } catch (error) {
+        console.log(`[FileSystemAdapter] Error processing result:`, {
+          title: result.title,
+          error: error instanceof Error ? error.message : String(error),
+        });
         // Skip invalid documents
         continue;
       }
     }
+
+    console.log(`[FileSystemAdapter] Final runbooks count: ${runbooks.length}`);
 
     return runbooks;
   }
@@ -180,11 +306,15 @@ export class FileSystemAdapter extends SourceAdapter {
       this.documents.clear();
       await this.indexDirectory(this.baseDirectory);
 
-      // Create search index
+      // Create search index with better keys including extracted searchable content
       this.searchIndex = new Fuse(Array.from(this.documents.values()), {
-        keys: ['name', 'content'],
+        keys: [
+          { name: 'name', weight: 0.2 },
+          { name: 'searchableContent', weight: 0.8 }, // Prioritize extracted searchable content
+          { name: 'content', weight: 0.1 }, // Keep original content as fallback
+        ],
         includeScore: true,
-        threshold: 0.4,
+        threshold: 0.5, // Balanced threshold
       });
 
       return true;
@@ -237,11 +367,15 @@ export class FileSystemAdapter extends SourceAdapter {
       const content = await fs.readFile(filePath, 'utf-8');
       const id = createHash('md5').update(filePath).digest('hex');
 
+      // Extract searchable content based on file type
+      const searchableContent = this.extractSearchableContent(content, path.extname(filePath));
+
       const document: FileDocument = {
         id,
         path: filePath,
         name: path.basename(filePath),
         content,
+        searchableContent, // Add searchable content for better Fuse.js indexing
         lastModified: stats.mtime,
         size: stats.size,
         type: path.extname(filePath),
@@ -253,15 +387,46 @@ export class FileSystemAdapter extends SourceAdapter {
     }
   }
 
-  private isSupportedFile(filename: string): boolean {
-    return this.supportedExtensions.some(ext => filename.endsWith(ext));
-  }
+  /**
+   * Extract searchable content from files based on their type
+   */
+  private extractSearchableContent(content: string, fileType: string): string {
+    try {
+      if (fileType === '.json') {
+        const parsed = JSON.parse(content);
 
-  private truncateContent(content: string, maxLength: number = 2000): string {
-    if (content.length <= maxLength) {
+        // For runbook JSON files, extract key searchable fields
+        const searchableFields = [];
+
+        if (parsed.id) searchableFields.push(parsed.id);
+        if (parsed.title) searchableFields.push(parsed.title);
+        if (parsed.description) searchableFields.push(parsed.description);
+        if (parsed.triggers && Array.isArray(parsed.triggers)) {
+          searchableFields.push(...parsed.triggers);
+        }
+
+        // Add any procedure names
+        if (parsed.procedures && Array.isArray(parsed.procedures)) {
+          parsed.procedures.forEach((proc: any) => {
+            if (proc.name) searchableFields.push(proc.name);
+            if (proc.description) searchableFields.push(proc.description);
+          });
+        }
+
+        // Return searchable fields joined with spaces for better fuzzy matching
+        return searchableFields.join(' ');
+      }
+
+      // For other file types, return content as-is
+      return content;
+    } catch (error) {
+      // If JSON parsing fails, return raw content
       return content;
     }
-    return content.substring(0, maxLength) + '...';
+  }
+
+  private isSupportedFile(filename: string): boolean {
+    return this.supportedExtensions.some(ext => filename.endsWith(ext));
   }
 
   private generateMatchReasons(query: string, document: FileDocument): string[] {

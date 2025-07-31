@@ -1,7 +1,7 @@
 {
-  "id": "database_slow_medium_011",
+  "id": "database_slow_medium_009",
   "title": "Database Slow - MEDIUM Alert Response",
-  "version": "1.7",
+  "version": "1.1",
   "description": "Runbook for responding to medium severity database slow alerts on mongodb systems",
   "triggers": [
     "query_timeout",
@@ -77,13 +77,13 @@
       ]
     }
   ],
-  "escalation_path": "l1_support",
+  "escalation_path": "security",
   "metadata": {
-    "created_at": "2025-07-28T23:57:02.594Z",
-    "updated_at": "2025-07-28T23:57:02.594Z",
+    "created_at": "2025-07-31T22:23:36.691Z",
+    "updated_at": "2025-07-31T22:23:36.691Z",
     "author": "SRE Team",
-    "confidence_score": 0.9074567869153862,
-    "success_rate": 0.9656345080291613,
-    "avg_resolution_time_minutes": 10
+    "confidence_score": 0.7138572752559154,
+    "success_rate": 0.9389226838392655,
+    "avg_resolution_time_minutes": 129
   }
 }

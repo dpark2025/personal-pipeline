@@ -4,7 +4,9 @@ This document provides project overrides for claude should consider when doing w
 
 ## Project Planning Strategies
 
-* Planning documents should all be placed into the `planning` directory at the root of the repository.
+* **ALL project goal-related documents** should be placed into the `planning` directory at the root of the repository.
+* This includes: milestones, roadmaps, implementation plans, project strategies, and any documents related to project objectives.
+* The `docs` directory is reserved for: technical documentation, API docs, user guides, architecture docs, and operational procedures.
 * Agent role files should be placed into the `agents` directory at the root of the repository.
 * Claude command markdown files should be placed into the `claude/commands` directory located at the root of the repository.
 * When creating the Agent description markdowns we should always check:
