@@ -35,6 +35,11 @@ import {
   requestSizeLimiter, 
   globalErrorHandler 
 } from '../api/middleware.js';
+import { 
+  correlationMiddleware,
+  correlationErrorHandler
+} from '../api/correlation.js';
+import { createSwaggerRouter } from '../api/swagger.js';
 import { intelligentCaching, warmCriticalCache } from '../api/caching-middleware.js';
 
 export class PersonalPipelineServer {
@@ -233,6 +238,9 @@ export class PersonalPipelineServer {
     this.expressApp.use(helmet());
     this.expressApp.use(cors());
     this.expressApp.use(securityHeaders());
+
+    // Correlation ID middleware (must be early in the chain)
+    this.expressApp.use(correlationMiddleware);
 
     // Request parsing with size limits
     this.expressApp.use(express.json({ limit: '10mb' }));
@@ -761,12 +769,20 @@ export class PersonalPipelineServer {
         ...(this.cacheService && { cacheService: this.cacheService })
       });
 
+      // Create Swagger UI documentation router
+      const swaggerRouter = createSwaggerRouter();
+
       // Mount API routes at /api prefix
       this.expressApp.use('/api', apiRoutes);
+      
+      // Mount Swagger UI at /api/docs
+      this.expressApp.use('/api/docs', swaggerRouter);
 
       logger.info('REST API routes initialized successfully', {
         prefix: '/api',
         total_routes: this.countRoutes(apiRoutes),
+        documentation: '/api/docs',
+        openapi_spec: '/api/docs/openapi.json',
         components: {
           mcp_tools: !!this.mcpTools,
           source_registry: !!this.sourceRegistry,
@@ -783,7 +799,8 @@ export class PersonalPipelineServer {
         });
       });
 
-      // Global error handler for API (must be last)
+      // Global error handlers for API (must be last)
+      this.expressApp.use(correlationErrorHandler);
       this.expressApp.use(globalErrorHandler());
 
     } catch (error) {

@@ -9,6 +9,7 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger.js';
 import { getPerformanceMonitor } from '../utils/performance.js';
 import { performance } from 'perf_hooks';
+import { getCorrelationId } from './correlation.js';
 
 // ============================================================================
 // Type Definitions
@@ -72,7 +73,8 @@ export function validateRequest(schema: ValidationSchema) {
           path: req.path,
           method: req.method,
           errors: validationResult.errors,
-          body: JSON.stringify(req.body).substring(0, 200)
+          body: JSON.stringify(req.body).substring(0, 200),
+          correlation_id: getCorrelationId(req)
         });
 
         res.status(400).json(createErrorResponse(
@@ -81,7 +83,8 @@ export function validateRequest(schema: ValidationSchema) {
           { 
             validation_errors: validationResult.errors,
             received_fields: Object.keys(req.body || {})
-          }
+          },
+          req
         ));
         return;
       }
@@ -94,12 +97,15 @@ export function validateRequest(schema: ValidationSchema) {
       logger.error('Request validation error', {
         path: req.path,
         method: req.method,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        correlation_id: getCorrelationId(req)
       });
 
       res.status(500).json(createErrorResponse(
         'VALIDATION_ERROR',
-        'Request validation failed due to internal error'
+        'Request validation failed due to internal error',
+        {},
+        req
       ));
     }
   };
@@ -280,16 +286,13 @@ function validateType(value: any, schema: any): {
  */
 export function handleAsyncRoute(handler: AsyncRouteHandler) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const requestId = generateRequestId();
     const startTime = performance.now();
-    
-    // Add request ID for tracking
-    req.headers['x-request-id'] = requestId;
+    const correlationId = getCorrelationId(req);
     
     logger.info('REST API request started', {
       method: req.method,
       path: req.path,
-      request_id: requestId,
+      correlation_id: correlationId,
       user_agent: req.get('User-Agent'),
       content_length: req.get('Content-Length')
     });
@@ -302,7 +305,7 @@ export function handleAsyncRoute(handler: AsyncRouteHandler) {
         logger.error('REST API request failed', {
           method: req.method,
           path: req.path,
-          request_id: requestId,
+          correlation_id: correlationId,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
           execution_time_ms: Math.round(executionTime)
@@ -318,9 +321,9 @@ export function handleAsyncRoute(handler: AsyncRouteHandler) {
             'INTERNAL_SERVER_ERROR',
             'An unexpected error occurred',
             { 
-              request_id: requestId,
               execution_time_ms: Math.round(executionTime)
-            }
+            },
+            req
           ));
         }
       })
@@ -340,7 +343,7 @@ export function handleAsyncRoute(handler: AsyncRouteHandler) {
         logger.info('REST API request completed', {
           method: req.method,
           path: req.path,
-          request_id: requestId,
+          correlation_id: correlationId,
           status_code: res.statusCode,
           execution_time_ms: Math.round(executionTime)
         });
@@ -353,41 +356,59 @@ export function handleAsyncRoute(handler: AsyncRouteHandler) {
 // ============================================================================
 
 /**
- * Creates a standardized success response
+ * Creates a standardized success response with correlation ID support
  */
 export function createSuccessResponse<T>(
   data: T, 
-  metadata: Record<string, any> = {}
+  metadata: Record<string, any> = {},
+  req?: Request
 ): APIResponse<T> {
+  const baseMetadata: Record<string, any> = {
+    timestamp: new Date().toISOString(),
+    ...metadata
+  };
+  
+  // Add correlation ID if request is provided
+  if (req) {
+    baseMetadata.correlation_id = getCorrelationId(req);
+  }
+  
   return {
     success: true,
     data,
-    metadata: {
-      timestamp: new Date().toISOString(),
-      ...metadata
-    },
+    metadata: baseMetadata,
     timestamp: new Date().toISOString()
   };
 }
 
 /**
- * Creates a standardized error response
+ * Creates a standardized error response with correlation ID support
  */
 export function createErrorResponse(
   code: string,
   message: string,
-  details: Record<string, any> = {}
+  details: Record<string, any> = {},
+  req?: Request
 ): APIResponse {
+  const baseDetails: Record<string, any> = {
+    timestamp: new Date().toISOString(),
+    ...details
+  };
+  
+  // Add correlation ID if request is provided
+  if (req) {
+    baseDetails.correlation_id = getCorrelationId(req);
+  }
+  
   return {
     success: false,
     error: {
       code,
       message,
-      details
+      details: baseDetails
     },
     metadata: {
-      timestamp: new Date().toISOString(),
-      ...details
+      ...baseDetails
     },
     timestamp: new Date().toISOString()
   };
@@ -403,7 +424,7 @@ export function createErrorResponse(
 export function performanceMonitoring() {
   return (req: Request, res: Response, next: NextFunction): void => {
     const startTime = performance.now();
-    const requestId = req.headers['x-request-id'] as string || generateRequestId();
+    const correlationId = getCorrelationId(req);
     
     // Track request characteristics for optimization
     const requestMetrics = {
@@ -425,7 +446,7 @@ export function performanceMonitoring() {
       // Add performance headers
       res.setHeader('X-Response-Time', `${Math.round(executionTime)}ms`);
       res.setHeader('X-Performance-Tier', getPerformanceTier(executionTime, req.path));
-      res.setHeader('X-Request-ID', requestId);
+      res.setHeader('X-Correlation-ID', correlationId);
       
       // Add caching hints based on performance
       if (executionTime > 1000) {
@@ -447,7 +468,7 @@ export function performanceMonitoring() {
       // Enhanced performance logging with optimization hints
       const performanceData = {
         ...requestMetrics,
-        request_id: requestId,
+        correlation_id: correlationId,
         status_code: res.statusCode,
         execution_time_ms: Math.round(executionTime),
         response_size_bytes: responseSize,
@@ -496,10 +517,9 @@ export function securityHeaders() {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     
-    // Add request ID if not present
-    if (!req.headers['x-request-id']) {
-      req.headers['x-request-id'] = generateRequestId();
-    }
+    // Add correlation ID if not present (handled by correlation middleware)
+    const correlationId = getCorrelationId(req);
+    res.setHeader('X-Correlation-ID', correlationId);
 
     next();
   };
@@ -518,7 +538,8 @@ export function requestSizeLimiter(maxSizeMB: number = 10) {
         path: req.path,
         method: req.method,
         content_length: contentLength,
-        max_size_bytes: maxSizeBytes
+        max_size_bytes: maxSizeBytes,
+        correlation_id: getCorrelationId(req)
       });
 
       res.status(413).json(createErrorResponse(
@@ -527,7 +548,8 @@ export function requestSizeLimiter(maxSizeMB: number = 10) {
         { 
           content_length: contentLength,
           max_size_bytes: maxSizeBytes
-        }
+        },
+        req
       ));
       return;
     }
@@ -540,12 +562,7 @@ export function requestSizeLimiter(maxSizeMB: number = 10) {
 // Utility Functions
 // ============================================================================
 
-/**
- * Generates a unique request ID for tracking
- */
-function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-}
+// Removed generateRequestId function - using correlation ID system instead
 
 /**
  * Analyze request complexity for performance optimization
@@ -807,12 +824,12 @@ function calculateOptimizationScore(performanceData: any): number {
  */
 export function globalErrorHandler() {
   return (error: any, req: Request, res: Response, _next: NextFunction): void => {
-    const requestId = req.headers['x-request-id'] as string || generateRequestId();
+    const correlationId = getCorrelationId(req);
     
     logger.error('Unhandled API error', {
       method: req.method,
       path: req.path,
-      request_id: requestId,
+      correlation_id: correlationId,
       error: error.message,
       stack: error.stack
     });
@@ -822,7 +839,8 @@ export function globalErrorHandler() {
       res.status(500).json(createErrorResponse(
         'INTERNAL_SERVER_ERROR',
         'An unexpected error occurred',
-        { request_id: requestId }
+        {},
+        req
       ));
     }
   };

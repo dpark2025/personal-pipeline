@@ -5,7 +5,7 @@
  * to all Personal Pipeline functionality with proper error handling and validation.
  */
 
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { PPMCPTools } from '../tools/index.js';
 import { SourceAdapterRegistry } from '../adapters/base.js';
 import { CacheService } from '../utils/cache.js';
@@ -16,6 +16,10 @@ import {
   createSuccessResponse, 
   createErrorResponse 
 } from './middleware.js';
+import { 
+  createSuccessResponseWithCorrelation,
+  createErrorResponseWithCorrelation
+} from './correlation.js';
 import { transformMCPResponse, transformRestRequest } from './transforms.js';
 import { performance } from 'perf_hooks';
 
@@ -350,7 +354,7 @@ function handleProcedureError(
  * Create and configure all REST API routes
  */
 export function createAPIRoutes(options: APIRouteOptions): Router {
-  const router = Router();
+  const router = express.Router();
   const { mcpTools, sourceRegistry, cacheService } = options;
 
   // ========================================================================
@@ -466,7 +470,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           cached: restResponse.data?.cached || false
         });
 
-        res.json(createSuccessResponse(restResponse.data, {
+        res.json(createSuccessResponseWithCorrelation(restResponse.data, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -488,12 +492,12 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           request_id: requestId
         });
 
-        res.status(errorDetails.httpStatus).json(createErrorResponse(
+        res.status(errorDetails.httpStatus).json(createErrorResponseWithCorrelation(
           errorDetails.code,
           errorDetails.message,
+          req,
           { 
             execution_time_ms: Math.round(executionTime),
-            request_id: requestId,
             recovery_actions: errorDetails.recoveryActions,
             retry_recommended: errorDetails.retryRecommended
           }
@@ -627,7 +631,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           execution_time_ms: Math.round(executionTime)
         });
 
-        res.json(createSuccessResponse(restResponse.data, {
+        res.json(createSuccessResponseWithCorrelation(restResponse.data, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -656,12 +660,12 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
         });
 
         // Use appropriate HTTP status based on error type
-        res.status(errorDetails.httpStatus).json(createErrorResponse(
+        res.status(errorDetails.httpStatus).json(createErrorResponseWithCorrelation(
           errorDetails.code,
           errorDetails.message,
+          req,
           { 
             execution_time_ms: Math.round(executionTime),
-            request_id: requestId,
             recovery_actions: errorDetails.recoveryActions,
             retry_recommended: errorDetails.retryRecommended,
             escalation_required: errorDetails.escalationRequired,
@@ -708,9 +712,10 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
         const specificRunbook = runbooks.find((r: any) => r.id === runbookId);
 
         if (!specificRunbook) {
-          res.status(404).json(createErrorResponse(
+          res.status(404).json(createErrorResponseWithCorrelation(
             'RUNBOOK_NOT_FOUND',
             `Runbook with ID '${runbookId}' not found`,
+            req,
             { execution_time_ms: Math.round(executionTime) }
           ));
           return;
@@ -721,7 +726,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           execution_time_ms: Math.round(executionTime)
         });
 
-        res.json(createSuccessResponse(specificRunbook, {
+        res.json(createSuccessResponseWithCorrelation(specificRunbook, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -733,9 +738,10 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           execution_time_ms: Math.round(executionTime)
         });
 
-        res.status(500).json(createErrorResponse(
+        res.status(500).json(createErrorResponseWithCorrelation(
           'RUNBOOK_RETRIEVAL_FAILED',
           'Runbook retrieval operation failed',
+          req,
           { execution_time_ms: Math.round(executionTime) }
         ));
       }
@@ -785,7 +791,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           execution_time_ms: Math.round(executionTime)
         });
 
-        res.json(createSuccessResponse({
+        res.json(createSuccessResponseWithCorrelation({
           runbooks: restResponse.data?.runbooks || [],
           total_count: restResponse.data?.total_results || 0,
           filters_applied: {
@@ -793,7 +799,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
             severity: severity || null,
             limit: parseInt(limit as string) || 50
           }
-        }, {
+        }, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -804,9 +810,10 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           execution_time_ms: Math.round(executionTime)
         });
 
-        res.status(500).json(createErrorResponse(
+        res.status(500).json(createErrorResponseWithCorrelation(
           'RUNBOOK_LISTING_FAILED',
           'Runbook listing operation failed',
+          req,
           { execution_time_ms: Math.round(executionTime) }
         ));
       }
@@ -855,7 +862,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
         const restResponse = transformMCPResponse(mcpResult);
         const executionTime = performance.now() - startTime;
 
-        res.json(createSuccessResponse(restResponse.data, {
+        res.json(createSuccessResponseWithCorrelation(restResponse.data, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -917,7 +924,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
         const restResponse = transformMCPResponse(mcpResult);
         const executionTime = performance.now() - startTime;
 
-        res.json(createSuccessResponse(restResponse.data, {
+        res.json(createSuccessResponseWithCorrelation(restResponse.data, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -975,7 +982,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
         const restResponse = transformMCPResponse(mcpResult);
         const executionTime = performance.now() - startTime;
 
-        res.json(createSuccessResponse(restResponse.data, {
+        res.json(createSuccessResponseWithCorrelation(restResponse.data, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -996,7 +1003,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
    * Maps to: list_sources MCP tool
    */
   router.get('/sources',
-    handleAsyncRoute(async (_req, res) => {
+    handleAsyncRoute(async (req, res) => {
       const startTime = performance.now();
       
       try {
@@ -1017,7 +1024,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
         const restResponse = transformMCPResponse(mcpResult);
         const executionTime = performance.now() - startTime;
 
-        res.json(createSuccessResponse(restResponse.data, {
+        res.json(createSuccessResponseWithCorrelation(restResponse.data, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
@@ -1080,15 +1087,16 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
           execution_time_ms: Math.round(executionTime)
         });
 
-        res.json(createSuccessResponse(restResponse.data, {
+        res.json(createSuccessResponseWithCorrelation(restResponse.data, req, {
           execution_time_ms: Math.round(executionTime)
         }));
 
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        res.status(500).json(createErrorResponse(
+        res.status(500).json(createErrorResponseWithCorrelation(
           'FEEDBACK_RECORDING_FAILED',
           'Feedback recording failed',
+          req,
           { execution_time_ms: Math.round(executionTime) }
         ));
       }
@@ -1104,7 +1112,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
    * Get consolidated API health status
    */
   router.get('/health',
-    handleAsyncRoute(async (_req, res) => {
+    handleAsyncRoute(async (req, res) => {
       const startTime = performance.now();
       
       try {
@@ -1145,9 +1153,10 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
 
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        res.status(500).json(createErrorResponse(
+        res.status(500).json(createErrorResponseWithCorrelation(
           'HEALTH_CHECK_FAILED',
           'API health check failed',
+          req,
           { execution_time_ms: Math.round(executionTime) }
         ));
       }
@@ -1159,7 +1168,7 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
    * Get API performance metrics and statistics
    */
   router.get('/performance',
-    handleAsyncRoute(async (_req, res) => {
+    handleAsyncRoute(async (req, res) => {
       const startTime = performance.now();
       
       try {
@@ -1184,14 +1193,27 @@ export function createAPIRoutes(options: APIRouteOptions): Router {
 
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        res.status(500).json(createErrorResponse(
+        res.status(500).json(createErrorResponseWithCorrelation(
           'PERFORMANCE_METRICS_FAILED',
           'Performance metrics retrieval failed',
+          req,
           { execution_time_ms: Math.round(executionTime) }
         ));
       }
     })
   );
+
+  // ========================================================================
+  // API Documentation Endpoints
+  // ========================================================================
+
+  /**
+   * GET /api/docs
+   * Interactive API documentation using Swagger UI
+   */
+  router.get('/docs', (_req, res) => {
+    res.redirect('/api/docs/');
+  });
 
   return router;
 }

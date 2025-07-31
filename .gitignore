@@ -153,3 +153,4 @@ docs/build/
 test-results/
 playwright-report/
 validation-report.json
+.aider*
