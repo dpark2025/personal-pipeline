@@ -280,7 +280,7 @@ curl http://localhost:3000/circuit-breakers/cache | jq
 # Search runbooks
 curl -X POST http://localhost:3000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "disk space critical", "type": "runbooks", "limit": 5}' | jq
+  -d '{"query": "disk space critical", "max_results": 5}' | jq
 
 # Get specific runbook
 curl http://localhost:3000/api/runbook/disk_space_critical_001 | jq
@@ -401,7 +401,7 @@ ls -la test-data/knowledge-base/
 # Test data search
 curl -X POST http://localhost:3000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "test", "type": "runbooks"}' | jq
+  -d '{"query": "test", "max_results": 10}' | jq
 ```
 
 ### Log Files

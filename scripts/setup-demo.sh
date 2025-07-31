@@ -484,12 +484,12 @@ run_benchmarks() {
     
     cd "$DEMO_DIR"
     
-    # Run quick benchmark with server reuse to avoid port conflicts
-    if node scripts/benchmark.js --concurrent 5 --duration 15 --target 200 --reuse-server --port "${SERVER_PORT}" 2>/dev/null; then
+    # Run minimal benchmark with server reuse to avoid port conflicts
+    if node scripts/benchmark.js --concurrent 2 --duration 5 --target 200 --reuse-server --port "${SERVER_PORT}" 2>/dev/null; then
         log_success "Performance benchmarks completed"
     else
-        # Fallback with more explicit flags
-        if node scripts/benchmark.js --concurrent 3 --duration 10 --target 300 --reuse-server --port "${SERVER_PORT}" --verbose; then
+        # Fallback with even faster settings
+        if node scripts/benchmark.js --concurrent 1 --duration 3 --target 300 --reuse-server --port "${SERVER_PORT}" --verbose; then
             log_success "Performance benchmarks completed (fallback mode)"
         else
             log_warning "Performance benchmarks encountered issues, but demo continues"

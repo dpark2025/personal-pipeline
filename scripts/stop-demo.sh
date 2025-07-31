@@ -192,7 +192,7 @@ cleanup_files() {
 
 # Clean up test data (optional)
 cleanup_test_data() {
-    if [ "$1" = "--clean-data" ]; then
+    if [ "${1:-}" = "--clean-data" ]; then
         log_step "Cleaning up test data..."
         
         if [ -d "${DEMO_DIR}/test-data" ]; then

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-30T04:45:08.481Z",
+  "timestamp": "2025-07-31T14:26:08.685Z",
   "summary": {
     "totalTests": 8,
     "passedTests": 7,
@@ -25,30 +25,30 @@
       "passed": true,
       "message": "Server is healthy",
       "details": {
-        "responseTime": 23,
+        "responseTime": 20,
         "health": {
           "status": "healthy",
-          "timestamp": "2025-07-30T04:45:04.556Z",
+          "timestamp": "2025-07-31T14:26:04.958Z",
           "version": "0.1.0",
           "sources": [
             {
               "source_name": "local-docs",
               "healthy": true,
               "response_time_ms": 0,
-              "last_check": "2025-07-30T04:45:04.556Z",
+              "last_check": "2025-07-31T14:26:04.957Z",
               "metadata": {
-                "document_count": 21,
+                "document_count": 24,
                 "directory_exists": true,
-                "last_modified": "2025-07-30T04:19:05.466Z"
+                "last_modified": "2025-07-31T03:46:06.639Z"
               }
             }
           ],
           "cache": {
             "memory_cache": {
               "healthy": true,
-              "keys_count": 0,
+              "keys_count": 4,
               "memory_usage_mb": 0,
-              "response_time_ms": 0
+              "response_time_ms": 1
             },
             "overall_healthy": true,
             "redis_cache": {
@@ -57,19 +57,19 @@
               "response_time_ms": 0
             }
           },
-          "uptime": 104.768265042
+          "uptime": 298.883744
         }
       },
-      "timestamp": "2025-07-30T04:45:04.560Z"
+      "timestamp": "2025-07-31T14:26:04.961Z"
     },
     {
       "name": "Health Check Response Time",
       "passed": true,
-      "message": "Health check responded in 23ms (target: <30000ms)",
+      "message": "Health check responded in 20ms (target: <30000ms)",
       "details": {
-        "responseTime": 23
+        "responseTime": 20
       },
-      "timestamp": "2025-07-30T04:45:04.560Z"
+      "timestamp": "2025-07-31T14:26:04.961Z"
     },
     {
       "name": "Cold Response Time",
@@ -79,7 +79,7 @@
         "avgColdTime": 0,
         "target": 500
       },
-      "timestamp": "2025-07-30T04:45:07.124Z"
+      "timestamp": "2025-07-31T14:26:07.533Z"
     },
     {
       "name": "Cached Response Time",
@@ -89,7 +89,7 @@
         "avgCachedTime": 0,
         "target": 200
       },
-      "timestamp": "2025-07-30T04:45:07.124Z"
+      "timestamp": "2025-07-31T14:26:07.533Z"
     },
     {
       "name": "Cache Statistics",
@@ -97,7 +97,7 @@
       "message": "Cache statistics not available or invalid format",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-30T04:45:07.126Z"
+      "timestamp": "2025-07-31T14:26:07.535Z"
     },
     {
       "name": "server Health",
@@ -105,7 +105,7 @@
       "message": "No health data available for server",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-30T04:45:07.128Z"
+      "timestamp": "2025-07-31T14:26:07.545Z"
     },
     {
       "name": "cache Health",
@@ -113,7 +113,7 @@
       "message": "No health data available for cache",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-30T04:45:07.128Z"
+      "timestamp": "2025-07-31T14:26:07.545Z"
     },
     {
       "name": "sources Health",
@@ -121,7 +121,7 @@
       "message": "No health data available for sources",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-30T04:45:07.128Z"
+      "timestamp": "2025-07-31T14:26:07.545Z"
     },
     {
       "name": "performance Health",
@@ -129,7 +129,7 @@
       "message": "No health data available for performance",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-30T04:45:07.128Z"
+      "timestamp": "2025-07-31T14:26:07.545Z"
     },
     {
       "name": "monitoring Health",
@@ -137,7 +137,7 @@
       "message": "No health data available for monitoring",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-30T04:45:07.128Z"
+      "timestamp": "2025-07-31T14:26:07.545Z"
     },
     {
       "name": "Monitoring System",
@@ -147,11 +147,11 @@
         "enabled": true,
         "running": true,
         "rules": 9,
-        "activeAlerts": 1,
+        "activeAlerts": 0,
         "totalAlerts": 2,
-        "lastCheck": "2025-07-30T04:45:07.129Z"
+        "lastCheck": "2025-07-31T14:26:07.545Z"
       },
-      "timestamp": "2025-07-30T04:45:07.130Z"
+      "timestamp": "2025-07-31T14:26:07.545Z"
     },
     {
       "name": "Circuit Breakers",
@@ -159,7 +159,7 @@
       "message": "Circuit breaker information not available",
       "details": {},
       "warning": true,
-      "timestamp": "2025-07-30T04:45:07.134Z"
+      "timestamp": "2025-07-31T14:26:07.552Z"
     },
     {
       "name": "Load Test Success Rate",
@@ -170,7 +170,7 @@
         "successful": 0,
         "failed": 25
       },
-      "timestamp": "2025-07-30T04:45:08.481Z"
+      "timestamp": "2025-07-31T14:26:08.685Z"
     },
     {
       "name": "Load Test Response Time",
@@ -180,17 +180,17 @@
         "avgResponseTime": 0,
         "target": 1000
       },
-      "timestamp": "2025-07-30T04:45:08.481Z"
+      "timestamp": "2025-07-31T14:26:08.685Z"
     },
     {
       "name": "Load Test Throughput",
       "passed": true,
-      "message": "Throughput under load: 18.6 req/s (target: ≥10 req/s)",
+      "message": "Throughput under load: 22.1 req/s (target: ≥10 req/s)",
       "details": {
-        "throughput": 18.567025450147817,
+        "throughput": 22.070821292780703,
         "target": 10
       },
-      "timestamp": "2025-07-30T04:45:08.481Z"
+      "timestamp": "2025-07-31T14:26:08.685Z"
     }
   ],
   "environment": {
