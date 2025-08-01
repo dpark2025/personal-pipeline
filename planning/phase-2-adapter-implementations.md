@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides detailed technical specifications for implementing all 6 source adapters in Phase 2. Each adapter follows the `SourceAdapter` abstract class pattern established in Phase 1, ensuring consistent interfaces while supporting diverse source types.
+This document provides detailed technical specifications for implementing all 4 source adapters in Phase 2. Each adapter follows the `SourceAdapter` abstract class pattern established in Phase 1, ensuring consistent interfaces while supporting diverse source types.
 
 **Team Leadership**:
 - **Integration Specialist**: Barry Young (bear) - Enterprise system integrations and API design
@@ -70,83 +70,7 @@ interface FileSystemConfig extends SourceConfig {
 ### Implementation Priority
 **Week 4, Day 1** - Foundation enhancement before new adapter implementation
 
-## Adapter 2: ConfluenceAdapter
-
-### Purpose & Integration
-Enterprise wiki integration supporting Atlassian Confluence with personal access tokens and OAuth2 authentication.
-
-### Technical Specification
-
-#### Configuration Schema
-```typescript
-interface ConfluenceConfig extends SourceConfig {
-  type: 'confluence';
-  base_url: string;                        // Confluence instance URL
-  auth: {
-    type: 'personal_token' | 'oauth2';
-    token_env?: string;                    // Environment variable for token
-    oauth_config?: OAuth2Config;           // OAuth2 configuration
-  };
-  spaces?: string[];                       // Specific spaces to index
-  content_types?: string[];                // Page types to include
-  include_attachments?: boolean;           // Process attachments
-  cache_ttl?: string;                      // Cache duration per page
-  rate_limit?: {
-    requests_per_minute?: number;          // API rate limiting
-    concurrent_requests?: number;          // Max concurrent requests
-  };
-}
-```
-
-#### Core Implementation
-```typescript
-export class ConfluenceAdapter extends SourceAdapter {
-  name = 'confluence';
-  type = 'wiki' as const;
-  
-  private client: ConfluenceApi;
-  private spaceCache: Map<string, Space>;
-  private pageCache: CacheService;
-  
-  async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
-    // Use Confluence CQL (Confluence Query Language)
-    const cql = this.buildCQLQuery(query, filters);
-    const results = await this.client.content.search({ cql });
-    return this.transformResults(results);
-  }
-  
-  async searchRunbooks(alertType: string, severity: string, systems: string[]): Promise<Runbook[]> {
-    // Search for pages with operational content patterns
-    const query = this.buildOperationalQuery(alertType, severity, systems);
-    const pages = await this.search(query);
-    return this.extractRunbookContent(pages);
-  }
-  
-  private buildCQLQuery(query: string, filters?: SearchFilters): string {
-    // Build Confluence Query Language syntax
-    let cql = `text ~ "${query}"`;
-    if (filters?.spaces) {
-      cql += ` and space in (${filters.spaces.join(',')})`;
-    }
-    return cql;
-  }
-}
-```
-
-### Key Features
-- **Space-Level Caching**: Cache entire spaces for offline access
-- **Attachment Processing**: Extract text from attached documents
-- **Page Hierarchy Navigation**: Parent-child page relationships
-- **Real-time Updates**: Webhook support for change notifications
-- **Permission Awareness**: Respect Confluence permissions
-
-### Performance Targets
-- **Cached Content**: <200ms response time
-- **Live API Calls**: <1s response time
-- **Rate Limiting**: 100 requests/hour (Atlassian default)
-- **Cache Hit Rate**: 80%+ for frequently accessed content
-
-## Adapter 3: GitHubAdapter
+## Adapter 2: GitHubAdapter
 
 ### Purpose & Integration  
 Repository documentation integration supporting GitHub API v4 (GraphQL) and v3 (REST) for comprehensive repository content access.
@@ -223,104 +147,12 @@ export class GitHubAdapter extends SourceAdapter {
 - **Webhook Processing**: <5s for real-time updates
 - **Cache Strategy**: Repository-level caching with TTL
 
-## Adapter 4: DatabaseAdapter
-
-### Purpose & Integration
-Structured data access for PostgreSQL and MongoDB databases containing operational procedures, incident history, and configuration data.
-
-### Technical Specification
-
-#### Configuration Schema
-```typescript
-interface DatabaseConfig extends SourceConfig {
-  type: 'database';
-  database_type: 'postgresql' | 'mongodb';
-  connection: {
-    host: string;
-    port: number;
-    database: string;
-    auth: {
-      username_env: string;                // Environment variable for username
-      password_env: string;                // Environment variable for password
-    };
-    ssl?: boolean;                         // Enable SSL/TLS
-    pool_config?: {
-      min_connections?: number;            // Connection pool minimum
-      max_connections?: number;            // Connection pool maximum
-    };
-  };
-  tables?: {
-    runbooks?: string;                     // Table/collection for runbooks
-    procedures?: string;                   // Table/collection for procedures
-    incidents?: string;                    // Table/collection for incident history
-  };
-  query_config?: {
-    search_columns?: string[];             // Columns to include in full-text search
-    metadata_columns?: string[];           // Columns to include as metadata
-  };
-}
-```
-
-#### Core Implementation
-```typescript
-export class DatabaseAdapter extends SourceAdapter {
-  name = 'database';
-  type = 'database' as const;
-  
-  private connection: PostgreSQLClient | MongoDBClient;
-  private queryCache: CacheService;
-  private preparedStatements: Map<string, PreparedStatement>;
-  
-  async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
-    if (this.config.database_type === 'postgresql') {
-      return this.searchPostgreSQL(query, filters);
-    } else {
-      return this.searchMongoDB(query, filters);
-    }
-  }
-  
-  private async searchPostgreSQL(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
-    // Use PostgreSQL full-text search
-    const sql = `
-      SELECT *, ts_rank(search_vector, plainto_tsquery($1)) as rank
-      FROM runbooks 
-      WHERE search_vector @@ plainto_tsquery($1)
-      ORDER BY rank DESC
-      LIMIT 50
-    `;
-    const results = await this.connection.query(sql, [query]);
-    return this.transformDatabaseResults(results.rows);
-  }
-  
-  private async searchMongoDB(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
-    // Use MongoDB text search
-    const results = await this.connection.collection('runbooks').find({
-      $text: { $search: query }
-    }).sort({ score: { $meta: 'textScore' } }).limit(50).toArray();
-    return this.transformDatabaseResults(results);
-  }
-}
-```
-
-### Key Features
-- **Multi-Database Support**: PostgreSQL and MongoDB with unified interface
-- **Connection Pooling**: Efficient connection management
-- **Prepared Statements**: SQL injection prevention and performance
-- **Full-Text Search**: Database-native search capabilities
-- **Schema Discovery**: Automatic table/collection schema detection
-
-### Performance Targets
-- **Indexed Queries**: <100ms response time
-- **Connection Pool**: 5-20 connections based on load
-- **Query Caching**: 60%+ cache hit rate for repeated queries
-- **Schema Updates**: Automatic detection of schema changes
-
-## Adapter 5: WebAdapter (Enhanced Web Scraping)
+## Adapter 3: WebAdapter (Enhanced Web Scraping)
 
 ### Purpose & Integration
 **Enhanced implementation incorporating all specifications from the original WebScraperAdapter plan**, providing comprehensive web crawling and content extraction capabilities.
 
-### Technical Specification (from Original Plan)
+### Technical Specification
 
 #### Configuration Schema
 ```typescript
@@ -454,7 +286,7 @@ export class WebAdapter extends SourceAdapter {
 - **normalize-url**: URL normalization and deduplication
 - **got** or **axios**: HTTP client with retry logic and connection pooling
 
-## Adapter 6: DiscordAdapter (Bi-directional Integration)
+## Adapter 4: DiscordAdapter (Bi-directional Integration)
 
 ### Purpose & Integration
 **Complete implementation from the original Discord adapter plan**, providing bi-directional Discord integration for both documentation retrieval and operational notifications.
