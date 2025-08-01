@@ -139,7 +139,7 @@ export type SearchResult = z.infer<typeof SearchResult>;
  * Authentication configuration for sources
  */
 export const AuthConfig = z.object({
-  type: z.enum(['bearer_token', 'basic_auth', 'api_key', 'oauth2']),
+  type: z.enum(['bearer_token', 'basic_auth', 'api_key', 'oauth2', 'personal_token', 'github_app']),
   token_env: z.string().optional(),
   username_env: z.string().optional(),
   password_env: z.string().optional(),
@@ -367,6 +367,146 @@ export const AppConfig = z.object({
 export type AppConfig = z.infer<typeof AppConfig>;
 
 // ============================================================================
+// GitHub Adapter Types
+// ============================================================================
+
+/**
+ * GitHub authentication configuration
+ */
+export const GitHubAuthConfig = z.object({
+  type: z.enum(['personal_token', 'github_app']),
+  token_env: z.string().optional(),
+  app_config: z.object({
+    app_id: z.string(),
+    private_key_env: z.string(),
+    installation_id: z.string().optional(),
+  }).optional(),
+});
+export type GitHubAuthConfig = z.infer<typeof GitHubAuthConfig>;
+
+/**
+ * GitHub repository filter configuration
+ */
+export const GitHubRepositoryFilters = z.object({
+  languages: z.array(z.string()).optional(),
+  topics: z.array(z.string()).optional(),
+  min_stars: z.number().optional(),
+  max_age_days: z.number().optional(),
+});
+export type GitHubRepositoryFilters = z.infer<typeof GitHubRepositoryFilters>;
+
+/**
+ * GitHub scope configuration
+ */
+export const GitHubScopeConfig = z.object({
+  repositories: z.array(z.string()).optional(), // ["owner/repo"] format
+  organizations: z.array(z.string()).optional(),
+  include_private: z.boolean().default(false),
+  user_consent_given: z.boolean().default(false),
+  repository_filters: GitHubRepositoryFilters.optional(),
+});
+export type GitHubScopeConfig = z.infer<typeof GitHubScopeConfig>;
+
+/**
+ * GitHub content type configuration
+ */
+export const GitHubContentConfig = z.object({
+  readme: z.boolean().default(true),
+  wiki: z.boolean().default(false),
+  documentation: z.boolean().default(true),
+  issues: z.boolean().default(false),
+  pull_requests: z.boolean().default(false),
+  code_comments: z.boolean().default(false),
+});
+export type GitHubContentConfig = z.infer<typeof GitHubContentConfig>;
+
+/**
+ * GitHub performance configuration with conservative defaults
+ */
+export const GitHubPerformanceConfig = z.object({
+  cache_ttl: z.string().default('4h'),
+  max_file_size_kb: z.number().default(100),
+  rate_limit_quota: z.number().min(1).max(100).default(10), // % of GitHub quota
+  min_request_interval_ms: z.number().min(1000).default(2000), // Min 1 second
+  concurrent_requests: z.number().min(1).max(10).default(1),
+  max_repositories_per_scan: z.number().min(1).max(50).default(5),
+});
+export type GitHubPerformanceConfig = z.infer<typeof GitHubPerformanceConfig>;
+
+/**
+ * GitHub webhook configuration (optional)
+ */
+export const GitHubWebhookConfig = z.object({
+  endpoint_url: z.string().url(),
+  secret_env: z.string(),
+  events: z.array(z.string()).default(['push']),
+});
+export type GitHubWebhookConfig = z.infer<typeof GitHubWebhookConfig>;
+
+/**
+ * Complete GitHub adapter configuration
+ */
+export const GitHubConfig = SourceConfig.extend({
+  type: z.literal('github'),
+  auth: GitHubAuthConfig,
+  scope: GitHubScopeConfig,
+  content_types: GitHubContentConfig.default({}),
+  performance: GitHubPerformanceConfig.default({}),
+  webhook: GitHubWebhookConfig.optional(),
+});
+export type GitHubConfig = z.infer<typeof GitHubConfig>;
+
+/**
+ * GitHub repository metadata
+ */
+export const GitHubRepositoryMetadata = z.object({
+  owner: z.string(),
+  repo: z.string(),
+  full_name: z.string(),
+  default_branch: z.string(),
+  description: z.string().nullable(),
+  language: z.string().nullable(),
+  topics: z.array(z.string()),
+  stars: z.number(),
+  forks: z.number(),
+  is_private: z.boolean(),
+  is_fork: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  pushed_at: z.string(),
+});
+export type GitHubRepositoryMetadata = z.infer<typeof GitHubRepositoryMetadata>;
+
+/**
+ * GitHub content file metadata
+ */
+export const GitHubContentFile = z.object({
+  path: z.string(),
+  name: z.string(),
+  sha: z.string(),
+  size: z.number(),
+  type: z.enum(['file', 'dir']),
+  download_url: z.string().nullable(),
+  git_url: z.string(),
+  html_url: z.string(),
+  encoding: z.string().optional(),
+  content: z.string().optional(),
+});
+export type GitHubContentFile = z.infer<typeof GitHubContentFile>;
+
+/**
+ * GitHub rate limiting information
+ */
+export const GitHubRateLimit = z.object({
+  limit: z.number(),
+  remaining: z.number(),
+  reset: z.number(), // Unix timestamp
+  used: z.number(),
+  resource: z.string(),
+});
+export type GitHubRateLimit = z.infer<typeof GitHubRateLimit>;
+
+// ============================================================================
 // Error Types
 // ============================================================================
 
@@ -393,5 +533,52 @@ export class ValidationError extends PPError {
   constructor(message: string, field: string, context?: Record<string, any>) {
     super(message, 'VALIDATION_ERROR', 400, { ...context, field });
     this.name = 'ValidationError';
+  }
+}
+
+/**
+ * GitHub API error types
+ */
+export class GitHubError extends PPError {
+  constructor(
+    message: string,
+    public gitHubCode?: string,
+    statusCode: number = 500,
+    context?: Record<string, any>
+  ) {
+    super(message, 'GITHUB_ERROR', statusCode, context);
+    this.name = 'GitHubError';
+  }
+}
+
+export class GitHubRateLimitError extends GitHubError {
+  constructor(
+    message: string,
+    public resetTime: Date,
+    context?: Record<string, any>
+  ) {
+    super(message, 'RATE_LIMIT_EXCEEDED', 429, { ...context, resetTime });
+    this.name = 'GitHubRateLimitError';
+  }
+}
+
+export class GitHubAuthenticationError extends GitHubError {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, 'AUTHENTICATION_FAILED', 401, context);
+    this.name = 'GitHubAuthenticationError';
+  }
+}
+
+export class GitHubConfigurationError extends GitHubError {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, 'CONFIGURATION_ERROR', 400, context);
+    this.name = 'GitHubConfigurationError';
+  }
+}
+
+export class GitHubAdapterError extends GitHubError {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, 'ADAPTER_ERROR', 500, context);
+    this.name = 'GitHubAdapterError';
   }
 }

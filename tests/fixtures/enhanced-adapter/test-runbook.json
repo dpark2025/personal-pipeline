@@ -1,0 +1,43 @@
+{
+  "id": "test_disk_space",
+  "title": "Test Disk Space Runbook",
+  "version": "1.0",
+  "description": "Test runbook for unit testing",
+  "triggers": [
+    "disk_usage_critical",
+    "filesystem_full"
+  ],
+  "severity_mapping": {
+    "critical": "critical",
+    "high": "high"
+  },
+  "decision_tree": {
+    "id": "test_decision_tree",
+    "name": "Test Decision Tree",
+    "branches": [
+      {
+        "id": "check_usage",
+        "condition": "disk_usage > 95%",
+        "description": "Check critical disk usage",
+        "action": "immediate_cleanup",
+        "confidence": 0.9
+      }
+    ],
+    "default_action": "escalate"
+  },
+  "procedures": [
+    {
+      "id": "immediate_cleanup",
+      "name": "Emergency Cleanup",
+      "description": "Free up disk space immediately",
+      "command": "rm -rf /tmp/*",
+      "expected_outcome": "Free at least 1GB",
+      "timeout_seconds": 300
+    }
+  ],
+  "metadata": {
+    "created_at": "2024-01-15T10:00:00Z",
+    "author": "Test Team",
+    "confidence_score": 0.85
+  }
+}

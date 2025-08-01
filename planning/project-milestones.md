@@ -232,9 +232,10 @@
 
 ### Milestone 2.1: Source Adapter Framework (Week 4)
 **Deliverables:**
-- [ ] `SourceAdapter` interface implementation
-- [ ] Confluence adapter with authentication
+- [x] Enhanced FileSystemAdapter with Phase 2 capabilities ✅ **COMPLETED**
 - [ ] GitHub repository adapter
+- [ ] WebAdapter (enhanced web scraping)
+- [ ] DiscordAdapter (bi-directional integration)
 - [ ] Configuration system for sources
 - [ ] Source health monitoring
 - [ ] **NEW**: Documentation Indexer tool
@@ -251,14 +252,15 @@
 - Integration tests validate source adapters
 
 **Dependencies:**
-- Confluence/GitHub API access
-- Authentication credential management
+- GitHub API access and authentication
+- Web scraping compliance and rate limiting
+- Discord bot setup and permissions
 - YAML configuration parsing
 
 **Risks:**
 - API rate limiting issues
-- Authentication complexity
-- Source system changes
+- Web scraping legal/technical challenges
+- Discord API changes and compliance
 
 ---
 
@@ -291,25 +293,25 @@
 ### Milestone 2.3: Data Processing & Quality (Week 6)
 **Deliverables:**
 - [ ] Content extraction and normalization
-- [ ] Decision tree parsing from wiki content
-- [ ] Database query adapters (PostgreSQL/MongoDB)
+- [ ] Decision tree parsing from web content
+- [ ] Multi-format content processing (Markdown, HTML, JSON)
 - [ ] Content freshness tracking
 - [ ] Error handling and circuit breakers
 
 **Success Criteria:**
 - Content extracted from multiple formats
 - Decision trees properly parsed and structured
-- Database queries execute successfully
+- Web scraping operates within compliance limits
 - Circuit breakers prevent cascade failures
 
 **Dependencies:**
 - Content parsing libraries
-- Database connection management
+- Web scraping frameworks and rate limiting
 - Error handling patterns
 
 **Risks:**
 - Content format variations
-- Database performance issues
+- Web scraping legal/technical challenges
 - Error recovery complexity
 
 ---

@@ -21,7 +21,8 @@ import { ConfigManager } from '../utils/config.js';
 import { logger, loggerStream } from '../utils/logger.js';
 import { PPMCPTools } from '../tools/index.js';
 import { SourceAdapterRegistry } from '../adapters/base.js';
-import { FileSystemAdapter } from '../adapters/file.js';
+import { EnhancedFileSystemAdapter } from '../adapters/file-enhanced.js';
+import { GitHubAdapter } from '../adapters/github.js';
 import { CacheService, initializeCacheService } from '../utils/cache.js';
 import { AppConfig, CacheConfig } from '../types/index.js';
 import { performance } from 'perf_hooks';
@@ -973,18 +974,22 @@ export class PersonalPipelineServer {
   private registerSourceAdapters(): void {
     // Register file system adapter factory
     this.sourceRegistry.registerFactory('file', config => {
-      return new FileSystemAdapter(config);
+      return new EnhancedFileSystemAdapter(config as any);
+    });
+
+    // Register GitHub adapter factory
+    this.sourceRegistry.registerFactory('github', config => {
+      return new GitHubAdapter(config as any);
     });
 
     // TODO: Register other adapter factories when implemented
     // this.sourceRegistry.registerFactory('confluence', (config) => {
     //   return new ConfluenceAdapter(config);
     // });
-    // this.sourceRegistry.registerFactory('github', (config) => {
-    //   return new GitHubAdapter(config);
-    // });
 
-    logger.debug('Source adapter factories registered');
+    logger.debug('Source adapter factories registered', {
+      adapters: ['file', 'github'],
+    });
   }
 
   /**
