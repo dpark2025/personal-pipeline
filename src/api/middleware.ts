@@ -19,34 +19,39 @@ function getErrorStatusCode(error: unknown): number {
   if (error instanceof ValidationError) {
     return 400; // Bad Request
   }
-  if (error instanceof SourceError) {  
+  if (error instanceof SourceError) {
     return 502; // Bad Gateway
   }
   if (error instanceof PPError) {
     return error.statusCode;
   }
-  
+
   // Check error message for common client error patterns
-  const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  
-  if (errorMessage.includes('validation') || 
-      errorMessage.includes('invalid') ||
-      errorMessage.includes('missing required') ||
-      errorMessage.includes('bad request') ||
-      errorMessage.includes('malformed')) {
+  const errorMessage =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+  if (
+    errorMessage.includes('validation') ||
+    errorMessage.includes('invalid') ||
+    errorMessage.includes('missing required') ||
+    errorMessage.includes('bad request') ||
+    errorMessage.includes('malformed')
+  ) {
     return 400; // Bad Request
   }
-  
+
   if (errorMessage.includes('not found')) {
     return 404; // Not Found
   }
-  
-  if (errorMessage.includes('timeout') ||
-      errorMessage.includes('unavailable') ||
-      errorMessage.includes('service down')) {
+
+  if (
+    errorMessage.includes('timeout') ||
+    errorMessage.includes('unavailable') ||
+    errorMessage.includes('service down')
+  ) {
     return 503; // Service Unavailable
   }
-  
+
   // Default to 500 for unknown internal errors
   return 500;
 }
@@ -378,9 +383,13 @@ export function handleAsyncRoute(handler: AsyncRouteHandler) {
           const statusCode = getErrorStatusCode(error);
           res.status(statusCode).json(
             createErrorResponse(
-              statusCode === 400 ? 'BAD_REQUEST' : 
-              statusCode === 404 ? 'NOT_FOUND' :
-              statusCode === 503 ? 'SERVICE_UNAVAILABLE' : 'INTERNAL_SERVER_ERROR',
+              statusCode === 400
+                ? 'BAD_REQUEST'
+                : statusCode === 404
+                  ? 'NOT_FOUND'
+                  : statusCode === 503
+                    ? 'SERVICE_UNAVAILABLE'
+                    : 'INTERNAL_SERVER_ERROR',
               error instanceof Error ? error.message : 'An unexpected error occurred',
               {
                 execution_time_ms: Math.round(executionTime),
@@ -906,11 +915,15 @@ export function globalErrorHandler() {
         .status(statusCode)
         .json(
           createErrorResponse(
-            statusCode === 400 ? 'BAD_REQUEST' : 
-            statusCode === 404 ? 'NOT_FOUND' :
-            statusCode === 503 ? 'SERVICE_UNAVAILABLE' : 'INTERNAL_SERVER_ERROR', 
-            error instanceof Error ? error.message : 'An unexpected error occurred', 
-            {}, 
+            statusCode === 400
+              ? 'BAD_REQUEST'
+              : statusCode === 404
+                ? 'NOT_FOUND'
+                : statusCode === 503
+                  ? 'SERVICE_UNAVAILABLE'
+                  : 'INTERNAL_SERVER_ERROR',
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            {},
             req
           )
         );

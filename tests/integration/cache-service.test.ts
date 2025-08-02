@@ -1,9 +1,9 @@
 /**
  * Cache Service Integration Tests
- * 
+ *
  * Tests the complete cache service functionality including Redis integration,
  * fallback mechanisms, and error handling scenarios.
- * 
+ *
  * Enhanced with improved test utilities for better maintainability and consistency.
  */
 
@@ -11,14 +11,14 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { CacheService, createCacheKey } from '../../src/utils/cache.js';
 import { CacheConfig } from '../../src/types/index.js';
-import { 
-  memoryOnlyCacheConfig, 
+import {
+  memoryOnlyCacheConfig,
   disabledCacheConfig,
   assertCacheStats,
   assertHealthCheck,
   generateCacheKeyTestSet,
   generateRunbookData,
-  cleanupCacheService
+  cleanupCacheService,
 } from '../utils/index.js';
 
 describe('Cache Service Integration Tests', () => {
@@ -44,7 +44,7 @@ describe('Cache Service Integration Tests', () => {
         misses: 0,
         total_operations: 0,
         hit_rate: 0,
-        redis_connected: false
+        redis_connected: false,
       });
     });
 
@@ -57,15 +57,15 @@ describe('Cache Service Integration Tests', () => {
     it('should handle disabled cache', async () => {
       const disabledCacheService = new CacheService(disabledCacheConfig);
       const stats = disabledCacheService.getStats();
-      
+
       // Use assertion utility for consistent validation
       assertCacheStats(stats, {
         hits: 0,
         misses: 0,
         total_operations: 0,
-        hit_rate: 0
+        hit_rate: 0,
       });
-      
+
       await cleanupCacheService(disabledCacheService);
     });
   });
@@ -75,7 +75,7 @@ describe('Cache Service Integration Tests', () => {
       const key = createCacheKey('runbooks', 'test-runbook-1');
       const testData = generateRunbookData('test-runbook-1', {
         title: 'Test Runbook',
-        severity: 'high'
+        severity: 'high',
       });
 
       await cacheService.set(key, testData);
@@ -88,7 +88,7 @@ describe('Cache Service Integration Tests', () => {
       assertCacheStats(stats, {
         hits: 1,
         total_operations: 1,
-        hit_rate: 1
+        hit_rate: 1,
       });
     });
 
@@ -290,17 +290,17 @@ describe('Cache Service Integration Tests', () => {
       const disabledCache = new CacheService(disabledConfig);
 
       const key = createCacheKey('runbooks', 'test');
-      
+
       // Operations should be no-ops
       await disabledCache.set(key, { test: true });
       const result = await disabledCache.get(key);
-      
+
       assert.strictEqual(result, null);
-      
+
       const stats = disabledCache.getStats();
       assert.strictEqual(stats.hits, 0);
       assert.strictEqual(stats.misses, 0);
-      
+
       await disabledCache.shutdown();
     });
 
@@ -340,20 +340,20 @@ describe('Cache Service Integration Tests', () => {
       assert.strictEqual(stats.hits, 2);
       assert.strictEqual(stats.misses, 1);
       assert.strictEqual(stats.total_operations, 3);
-      assert.strictEqual(stats.hit_rate, 2/3);
+      assert.strictEqual(stats.hit_rate, 2 / 3);
       assert(stats.memory_usage_bytes !== undefined);
       assert(stats.last_reset);
     });
 
     it('should track performance across multiple operations', async () => {
       const operations = [];
-      
+
       // Perform multiple cache operations
       for (let i = 0; i < 10; i++) {
         const key = createCacheKey('runbooks', `rb-${i}`);
         operations.push(cacheService.set(key, { id: i }));
       }
-      
+
       await Promise.all(operations);
 
       // Get half of them (hits)

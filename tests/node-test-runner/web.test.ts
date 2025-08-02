@@ -1,6 +1,6 @@
 /**
  * WebAdapter Tests using Node.js Test Runner
- * 
+ *
  * Pilot implementation to demonstrate benefits over Jest
  * This file tests the same functionality as tests/unit/adapters/web.test.ts
  */
@@ -106,9 +106,7 @@ describe('WebAdapter (Node.js Test Runner)', () => {
   describe('Web Crawling (Fixed HTTP Mocking)', () => {
     beforeEach(() => {
       // Mock robots.txt to allow crawling
-      nock('https://example.com')
-        .get('/robots.txt')
-        .reply(404);
+      nock('https://example.com').get('/robots.txt').reply(404);
     });
 
     it('should crawl a single page successfully', async () => {
@@ -126,15 +124,13 @@ describe('WebAdapter (Node.js Test Runner)', () => {
         </html>
       `;
 
-      nock('https://example.com')
-        .get('/')
-        .reply(200, html, { 'Content-Type': 'text/html' });
+      nock('https://example.com').get('/').reply(200, html, { 'Content-Type': 'text/html' });
 
       await adapter.initialize();
       const result = await adapter.refreshIndex(true);
-      
+
       assert.strictEqual(result, true);
-      
+
       const metadata = await adapter.getMetadata();
       assert.strictEqual(metadata.documentCount, 1);
     });
@@ -166,39 +162,33 @@ describe('WebAdapter (Node.js Test Runner)', () => {
       `;
 
       // Set up nock interceptors - these will work properly without got mock conflicts!
-      nock('https://example.com')
-        .get('/')
-        .reply(200, mainHtml)
-        .get('/page2')
-        .reply(200, page2Html);
+      nock('https://example.com').get('/').reply(200, mainHtml).get('/page2').reply(200, page2Html);
 
       const depthConfig = { ...mockConfig, max_depth: 2 };
       const depthAdapter = new WebAdapter(depthConfig);
-      
+
       await depthAdapter.initialize();
       const result = await depthAdapter.refreshIndex(true);
-      
+
       assert.strictEqual(result, true);
-      
+
       const metadata = await depthAdapter.getMetadata();
       console.log('Node.js Test Runner - indexed documents:', metadata.documentCount);
       console.log('Node.js Test Runner - metadata:', metadata);
-      
+
       // This should work correctly now - no mock conflicts!
       assert.strictEqual(metadata.documentCount, 2, 'Should crawl both main page and linked page');
     });
 
     it('should handle HTTP errors gracefully', async () => {
-      nock('https://example.com')
-        .get('/')
-        .reply(404, 'Not Found');
+      nock('https://example.com').get('/').reply(404, 'Not Found');
 
       await adapter.initialize();
       const result = await adapter.refreshIndex(true);
-      
+
       // Should complete but with no documents
       assert.strictEqual(result, true);
-      
+
       const metadata = await adapter.getMetadata();
       assert.strictEqual(metadata.documentCount, 0);
     });
@@ -223,9 +213,7 @@ describe('WebAdapter (Node.js Test Runner)', () => {
         </html>
       `;
 
-      nock('https://example.com')
-        .get('/')
-        .reply(200, html);
+      nock('https://example.com').get('/').reply(200, html);
 
       await adapter.initialize();
       await adapter.refreshIndex(true);
@@ -233,7 +221,7 @@ describe('WebAdapter (Node.js Test Runner)', () => {
 
     it('should search documents and return results', async () => {
       const results = await adapter.search('database performance');
-      
+
       assert(results.length > 0, 'Should return search results');
       assert.strictEqual(results[0].title, 'Database Performance Guide');
       assert(results[0].confidence_score > 0.5, 'Should have reasonable confidence score');
@@ -248,12 +236,10 @@ describe('WebAdapter (Node.js Test Runner)', () => {
 
   describe('Health Check', () => {
     it('should return healthy status when base URL is accessible', async () => {
-      nock('https://example.com')
-        .head('/')
-        .reply(200);
+      nock('https://example.com').head('/').reply(200);
 
       await adapter.initialize();
-      
+
       const health = await adapter.healthCheck();
       assert.strictEqual(health.healthy, true);
       assert.strictEqual(health.source_name, 'test-web');
@@ -261,12 +247,10 @@ describe('WebAdapter (Node.js Test Runner)', () => {
     });
 
     it('should return unhealthy status when base URL is not accessible', async () => {
-      nock('https://example.com')
-        .head('/')
-        .reply(500, 'Server Error');
+      nock('https://example.com').head('/').reply(500, 'Server Error');
 
       await adapter.initialize();
-      
+
       const health = await adapter.healthCheck();
       assert.strictEqual(health.healthy, false);
       assert(health.error_message);
@@ -275,10 +259,7 @@ describe('WebAdapter (Node.js Test Runner)', () => {
 
   describe('Error Handling', () => {
     it('should throw error when adapter not initialized', async () => {
-      await assert.rejects(
-        async () => await adapter.search('test'),
-        /Adapter not initialized/
-      );
+      await assert.rejects(async () => await adapter.search('test'), /Adapter not initialized/);
     });
   });
 });

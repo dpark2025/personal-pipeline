@@ -32,33 +32,38 @@ function getErrorStatusCode(error: unknown): number {
     return 400; // Bad Request
   }
   if (error instanceof SourceError) {
-    return 502; // Bad Gateway  
+    return 502; // Bad Gateway
   }
   if (error instanceof PPError) {
     return error.statusCode;
   }
-  
+
   // Check error message for common client error patterns
-  const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  
-  if (errorMessage.includes('invalid') || 
-      errorMessage.includes('validation') ||
-      errorMessage.includes('missing required') ||
-      errorMessage.includes('bad request') ||
-      errorMessage.includes('malformed')) {
+  const errorMessage =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+  if (
+    errorMessage.includes('invalid') ||
+    errorMessage.includes('validation') ||
+    errorMessage.includes('missing required') ||
+    errorMessage.includes('bad request') ||
+    errorMessage.includes('malformed')
+  ) {
     return 400; // Bad Request
   }
-  
+
   if (errorMessage.includes('not found')) {
     return 404; // Not Found
   }
-  
-  if (errorMessage.includes('timeout') ||
-      errorMessage.includes('unavailable') ||
-      errorMessage.includes('service down')) {
+
+  if (
+    errorMessage.includes('timeout') ||
+    errorMessage.includes('unavailable') ||
+    errorMessage.includes('service down')
+  ) {
     return 503; // Service Unavailable
   }
-  
+
   // Default to 500 for unknown errors
   return 500;
 }
@@ -815,7 +820,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
       } catch (error) {
         const executionTime = performance.now() - startTime;
         const statusCode = getErrorStatusCode(error);
-        
+
         logger.error('REST API runbook retrieval failed', {
           runbook_id: runbookId,
           error: error instanceof Error ? error.message : String(error),
@@ -901,7 +906,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
       } catch (error) {
         const executionTime = performance.now() - startTime;
         const statusCode = getErrorStatusCode(error);
-        
+
         logger.error('REST API runbook listing failed', {
           error: error instanceof Error ? error.message : String(error),
           status_code: statusCode,
@@ -973,14 +978,16 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
       } catch (error) {
         const executionTime = performance.now() - startTime;
         const statusCode = getErrorStatusCode(error);
-        
-        res
-          .status(statusCode)
-          .json(
-            createErrorResponse('DECISION_TREE_FAILED', error instanceof Error ? error.message : 'Decision tree retrieval failed', {
+
+        res.status(statusCode).json(
+          createErrorResponse(
+            'DECISION_TREE_FAILED',
+            error instanceof Error ? error.message : 'Decision tree retrieval failed',
+            {
               execution_time_ms: Math.round(executionTime),
-            })
-          );
+            }
+          )
+        );
       }
     })
   );
@@ -1044,14 +1051,16 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
       } catch (error) {
         const executionTime = performance.now() - startTime;
         const statusCode = getErrorStatusCode(error);
-        
-        res
-          .status(statusCode)
-          .json(
-            createErrorResponse('PROCEDURE_RETRIEVAL_FAILED', error instanceof Error ? error.message : 'Procedure retrieval failed', {
+
+        res.status(statusCode).json(
+          createErrorResponse(
+            'PROCEDURE_RETRIEVAL_FAILED',
+            error instanceof Error ? error.message : 'Procedure retrieval failed',
+            {
               execution_time_ms: Math.round(executionTime),
-            })
-          );
+            }
+          )
+        );
       }
     })
   );
@@ -1107,13 +1116,11 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
         );
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        res
-          .status(getErrorStatusCode(error))
-          .json(
-            createErrorResponse('ESCALATION_FAILED', 'Escalation path retrieval failed', {
-              execution_time_ms: Math.round(executionTime),
-            })
-          );
+        res.status(getErrorStatusCode(error)).json(
+          createErrorResponse('ESCALATION_FAILED', 'Escalation path retrieval failed', {
+            execution_time_ms: Math.round(executionTime),
+          })
+        );
       }
     })
   );
@@ -1153,13 +1160,11 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
         );
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        res
-          .status(getErrorStatusCode(error))
-          .json(
-            createErrorResponse('SOURCES_LISTING_FAILED', 'Sources listing failed', {
-              execution_time_ms: Math.round(executionTime),
-            })
-          );
+        res.status(getErrorStatusCode(error)).json(
+          createErrorResponse('SOURCES_LISTING_FAILED', 'Sources listing failed', {
+            execution_time_ms: Math.round(executionTime),
+          })
+        );
       }
     })
   );

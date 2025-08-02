@@ -1,6 +1,6 @@
 /**
  * Web Adapter for Personal Pipeline MCP Server
- * 
+ *
  * Provides web crawling and content extraction capabilities with
  * responsible crawling practices, rate limiting, and robots.txt compliance.
  */
@@ -80,12 +80,14 @@ interface IndexedDocument {
   category: DocumentCategory;
   metadata: Record<string, any>;
   lastIndexed: string;
-  runbookIndicators: {
-    hasNumberedSteps: boolean;
-    hasProcedureKeywords: boolean;
-    hasCommands: boolean;
-    confidence: number;
-  } | undefined;
+  runbookIndicators:
+    | {
+        hasNumberedSteps: boolean;
+        hasProcedureKeywords: boolean;
+        hasCommands: boolean;
+        confidence: number;
+      }
+    | undefined;
 }
 
 interface URLQueueItem {
@@ -153,8 +155,8 @@ export class WebAdapter extends SourceAdapter {
   constructor(config: WebConfig) {
     super(config);
     this.config = this.normalizeConfig(config);
-    
-    // Initialize HTTP client with conservative defaults  
+
+    // Initialize HTTP client with conservative defaults
     this.httpClient = got.extend({
       timeout: {
         request: 30000, // 30 seconds
@@ -252,7 +254,9 @@ export class WebAdapter extends SourceAdapter {
     });
 
     // Transform results
-    const results = fuseResults.map(result => this.transformToSearchResult(result.item, result.score || 0));
+    const results = fuseResults.map(result =>
+      this.transformToSearchResult(result.item, result.score || 0)
+    );
 
     // Apply category filter if specified
     if (filters?.category) {
@@ -327,9 +331,10 @@ export class WebAdapter extends SourceAdapter {
         urls_crawled: this.stats.urlsCrawled,
         documents_indexed: this.indexedDocuments.size,
         cache_size: this.contentCache.keys().length,
-        avg_response_time: this.stats.urlsCrawled > 0
-          ? Math.round(this.stats.totalResponseTime / this.stats.urlsCrawled)
-          : 0,
+        avg_response_time:
+          this.stats.urlsCrawled > 0
+            ? Math.round(this.stats.totalResponseTime / this.stats.urlsCrawled)
+            : 0,
       };
     } catch (error) {
       health.healthy = false;
@@ -392,12 +397,14 @@ export class WebAdapter extends SourceAdapter {
       type: 'web',
       documentCount: this.indexedDocuments.size,
       lastIndexed: this.crawlStartTime?.toISOString() || 'never',
-      avgResponseTime: this.stats.urlsCrawled > 0
-        ? Math.round(this.stats.totalResponseTime / this.stats.urlsCrawled)
-        : 0,
-      successRate: this.stats.urlsCrawled > 0
-        ? (this.stats.urlsCrawled - this.stats.errors) / this.stats.urlsCrawled
-        : 0,
+      avgResponseTime:
+        this.stats.urlsCrawled > 0
+          ? Math.round(this.stats.totalResponseTime / this.stats.urlsCrawled)
+          : 0,
+      successRate:
+        this.stats.urlsCrawled > 0
+          ? (this.stats.urlsCrawled - this.stats.errors) / this.stats.urlsCrawled
+          : 0,
     };
   }
 
@@ -421,8 +428,8 @@ export class WebAdapter extends SourceAdapter {
 
     while (this.crawlQueue.length > 0 && this.urlCache.size < this.config.max_urls_per_domain!) {
       const batch = this.crawlQueue.splice(0, this.config.rate_limit!.concurrent_requests!);
-      
-      const promises = batch.map(async (item) => {
+
+      const promises = batch.map(async item => {
         // Rate limiting
         const now = Date.now();
         const timeSinceLastRequest = now - lastRequestTime;
@@ -480,9 +487,7 @@ export class WebAdapter extends SourceAdapter {
 
       // Add discovered links to queue if within depth limit
       if (depth < this.config.max_depth!) {
-        const newLinks = crawlResult.links
-          .filter(link => !this.urlCache.has(link))
-          .slice(0, 10); // Limit new links per page
+        const newLinks = crawlResult.links.filter(link => !this.urlCache.has(link)).slice(0, 10); // Limit new links per page
 
         for (const link of newLinks) {
           this.crawlQueue.push({
@@ -494,10 +499,10 @@ export class WebAdapter extends SourceAdapter {
       }
     } catch (err) {
       this.stats.errors++;
-      
+
       // Type-safe error handling
       const error = err as Error | any;
-      
+
       if (error && error.response && error.response.statusCode) {
         if (error.response.statusCode === 429) {
           throw new WebRateLimitError('Rate limit exceeded', url);
@@ -505,7 +510,7 @@ export class WebAdapter extends SourceAdapter {
           throw new WebAuthenticationError('Authentication failed', url);
         }
       }
-      
+
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('Failed to crawl URL', { url, error: errorMessage });
     }
@@ -615,7 +620,7 @@ export class WebAdapter extends SourceAdapter {
 
     // Auto-detection: Find the element with the most text content
     const contentBlocks = $('article, main, [role="main"], .content, #content, .post, .entry');
-    
+
     if (contentBlocks.length > 0) {
       let maxLength = 0;
       let bestContent = '';
@@ -632,7 +637,9 @@ export class WebAdapter extends SourceAdapter {
     }
 
     // Fallback: Get all paragraph text
-    const paragraphs = $('p').map((_, el) => $(el).text().trim()).get();
+    const paragraphs = $('p')
+      .map((_, el) => $(el).text().trim())
+      .get();
     return paragraphs.filter(p => p.length > 50).join('\n\n');
   }
 
@@ -644,18 +651,13 @@ export class WebAdapter extends SourceAdapter {
     }
 
     // Try common title selectors
-    const titleSelectors = [
-      'h1',
-      'title',
-      '[class*="title"]',
-      'meta[property="og:title"]',
-    ];
+    const titleSelectors = ['h1', 'title', '[class*="title"]', 'meta[property="og:title"]'];
 
     for (const selector of titleSelectors) {
       const title = selector.startsWith('meta')
         ? $(selector).attr('content')
         : $(selector).first().text();
-      
+
       if (title?.trim()) return title.trim();
     }
 
@@ -664,19 +666,21 @@ export class WebAdapter extends SourceAdapter {
   }
 
   private extractMetadata($: cheerio.Root): CrawlResult['metadata'] {
-    const description = $('meta[name="description"]').attr('content') ||
-                       $('meta[property="og:description"]').attr('content');
+    const description =
+      $('meta[name="description"]').attr('content') ||
+      $('meta[property="og:description"]').attr('content');
     const author = $('meta[name="author"]').attr('content');
     const keywordsAttr = $('meta[name="keywords"]').attr('content');
-    const lastModified = $('meta[name="last-modified"]').attr('content') ||
-                        $('meta[property="article:modified_time"]').attr('content');
+    const lastModified =
+      $('meta[name="last-modified"]').attr('content') ||
+      $('meta[property="article:modified_time"]').attr('content');
 
     const metadata: CrawlResult['metadata'] = {};
     if (description) metadata.description = description;
     if (author) metadata.author = author;
     if (keywordsAttr) metadata.keywords = keywordsAttr.split(',').map(k => k.trim());
     if (lastModified) metadata.lastModified = lastModified;
-    
+
     return metadata;
   }
 
@@ -763,7 +767,7 @@ export class WebAdapter extends SourceAdapter {
       lowerUrl.includes('api') ||
       lowerTitle.includes('api') ||
       lowerContent.includes('endpoint') ||
-      lowerContent.includes('request') && lowerContent.includes('response')
+      (lowerContent.includes('request') && lowerContent.includes('response'))
     ) {
       return 'api';
     }
@@ -786,7 +790,9 @@ export class WebAdapter extends SourceAdapter {
 
     const indicators = {
       hasNumberedSteps: /step \d+|^\d+\./gm.test(content),
-      hasProcedureKeywords: /procedure|troubleshoot|resolve|fix|diagnose|investigate/i.test(content),
+      hasProcedureKeywords: /procedure|troubleshoot|resolve|fix|diagnose|investigate/i.test(
+        content
+      ),
       hasCommands: /```|`[^`]+`|^\$\s+|^>\s+/gm.test(content),
       confidence: 0,
     };
@@ -877,7 +883,7 @@ export class WebAdapter extends SourceAdapter {
     try {
       // This is a simplified extraction - in production, would use more sophisticated parsing
       const procedures = this.extractProcedureSteps(result.content);
-      
+
       if (procedures.length === 0) return null;
 
       const runbook: Runbook = {
@@ -918,10 +924,10 @@ export class WebAdapter extends SourceAdapter {
 
   private extractProcedureSteps(content: string): Runbook['procedures'] {
     const steps: Runbook['procedures'] = [];
-    
+
     // Look for numbered steps
     const stepMatches = content.matchAll(/(?:step\s+)?(\d+)[.)]\s*([^\n]+)/gi);
-    
+
     let stepNumber = 1;
     for (const match of stepMatches) {
       steps.push({
@@ -938,7 +944,7 @@ export class WebAdapter extends SourceAdapter {
 
   private extractTriggers(content: string): string[] {
     const triggers: string[] = [];
-    
+
     // Common alert patterns
     const alertPatterns = [
       /alert[:\s]+([^\n.]+)/gi,
@@ -997,7 +1003,7 @@ export class WebAdapter extends SourceAdapter {
           });
         }
         break;
-        
+
       // Handle other auth types if needed
       default:
         logger.warn('Unsupported authentication type for WebAdapter', { type: auth.type });

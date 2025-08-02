@@ -1,6 +1,6 @@
 /**
  * Adapter exports for Personal Pipeline
- * 
+ *
  * Central export point for all source adapters
  */
 

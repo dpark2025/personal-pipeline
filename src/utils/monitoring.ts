@@ -310,6 +310,11 @@ export class MonitoringService extends EventEmitter {
         redis_enabled: true,
       };
     } catch (error) {
+      // Cache service not initialized yet or unavailable
+      logger.debug('Cache service not available for metrics collection', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
       metrics.cache = {
         hit_rate: 0,
         total_operations: 0,

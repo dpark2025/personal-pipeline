@@ -1,9 +1,9 @@
 /**
  * GitHub Source Adapter
- * 
+ *
  * Provides access to GitHub repositories for documentation retrieval
  * with responsible API usage and comprehensive error handling.
- * 
+ *
  * Features:
  * - Personal Access Token authentication
  * - Conservative rate limiting (500 requests/hour max)
@@ -11,7 +11,7 @@
  * - Markdown file processing
  * - Runbook detection and extraction
  * - Comprehensive caching integration
- * 
+ *
  * Authored by: Integration Specialist (Barry)
  * Date: 2025-08-01
  */
@@ -70,7 +70,7 @@ interface RepositoryIndex {
 
 /**
  * Conservative GitHub Rate Limiter
- * 
+ *
  * Enforces responsible API usage with multiple safety layers:
  * - Uses only 10% of GitHub's rate limit by default (500/hour)
  * - Minimum 2-second intervals between requests
@@ -88,14 +88,12 @@ class GitHubRateLimiter {
   private hourlyRequestCount: number = 0;
   private hourStartTime: number = Date.now();
 
-  constructor(
-    quotaPercentage: number = 10,
-    minIntervalMs: number = 2000
-  ) {
+  constructor(quotaPercentage: number = 10, minIntervalMs: number = 2000) {
     this.CONSERVATIVE_QUOTA = Math.floor((this.GITHUB_LIMIT * quotaPercentage) / 100);
     // Reduce intervals for testing
-    this.MIN_INTERVAL_MS = process.env.NODE_ENV === 'test' ? Math.min(100, minIntervalMs) : minIntervalMs;
-    
+    this.MIN_INTERVAL_MS =
+      process.env.NODE_ENV === 'test' ? Math.min(100, minIntervalMs) : minIntervalMs;
+
     logger.info('GitHubRateLimiter initialized', {
       conservativeLimit: this.CONSERVATIVE_QUOTA,
       minInterval: this.MIN_INTERVAL_MS,
@@ -116,17 +114,19 @@ class GitHubRateLimiter {
       return result;
     } catch (error) {
       this.handleApiError(error);
-      
+
       // Convert GitHub rate limit errors to our error type
       if ((error as any)?.status === 403) {
         const rateLimitRemaining = (error as any).response?.headers?.['x-ratelimit-remaining'];
         if (rateLimitRemaining === '0' || rateLimitRemaining === 0) {
           const rateLimitReset = (error as any).response?.headers?.['x-ratelimit-reset'];
-          const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset, 10) * 1000) : new Date(Date.now() + 3600000);
+          const resetTime = rateLimitReset
+            ? new Date(parseInt(rateLimitReset, 10) * 1000)
+            : new Date(Date.now() + 3600000);
           throw new GitHubRateLimitError('GitHub rate limit exceeded', resetTime);
         }
       }
-      
+
       throw error;
     }
   }
@@ -136,7 +136,7 @@ class GitHubRateLimiter {
    */
   canMakeRequest(): boolean {
     const now = Date.now();
-    
+
     // Reset hourly counter if needed
     if (now - this.hourStartTime > 3600000) {
       this.hourlyRequestCount = 0;
@@ -172,7 +172,7 @@ class GitHubRateLimiter {
     nextAllowedRequest: Date;
   } {
     const now = Date.now();
-    
+
     // Reset hourly counter if needed
     if (now - this.hourStartTime > 3600000) {
       this.hourlyRequestCount = 0;
@@ -193,7 +193,7 @@ class GitHubRateLimiter {
 
   private async enforceConservativeLimits(): Promise<void> {
     const now = Date.now();
-    
+
     // Reset hourly counter if needed
     if (now - this.hourStartTime > 3600000) {
       this.hourlyRequestCount = 0;
@@ -250,11 +250,11 @@ class GitHubRateLimiter {
     if (response && response.headers) {
       const remaining = response.headers['x-ratelimit-remaining'];
       const reset = response.headers['x-ratelimit-reset'];
-      
+
       if (remaining !== undefined) {
         this.remaining = parseInt(remaining, 10);
       }
-      
+
       if (reset !== undefined) {
         this.resetTime = new Date(parseInt(reset, 10) * 1000);
       }
@@ -272,13 +272,13 @@ class GitHubRateLimiter {
     if (error?.status === 403) {
       const rateLimitRemaining = error.response?.headers?.['x-ratelimit-remaining'];
       const rateLimitReset = error.response?.headers?.['x-ratelimit-reset'];
-      
+
       if (rateLimitRemaining === '0') {
         this.remaining = 0;
         if (rateLimitReset) {
           this.resetTime = new Date(parseInt(rateLimitReset, 10) * 1000);
         }
-        
+
         logger.error('GitHub rate limit exceeded', {
           resetTime: this.resetTime,
           conservativeCount: this.hourlyRequestCount,
@@ -293,8 +293,8 @@ class GitHubRateLimiter {
  */
 export class GitHubApiGuard {
   private static readonly MAX_HOURLY_REQUESTS = 500; // 10% of GitHub's limit
-  private static readonly MIN_INTERVAL_MS = 1000;    // 1 second minimum
-  private static readonly MAX_BULK_REPOS = 10;       // Limit bulk operations
+  private static readonly MIN_INTERVAL_MS = 1000; // 1 second minimum
+  private static readonly MAX_BULK_REPOS = 10; // Limit bulk operations
 
   static validateConfiguration(config: GitHubConfig): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
@@ -323,7 +323,9 @@ export class GitHubApiGuard {
     }
 
     if (config.performance.min_request_interval_ms < this.MIN_INTERVAL_MS) {
-      errors.push(`Request interval too aggressive - minimum ${this.MIN_INTERVAL_MS}ms recommended`);
+      errors.push(
+        `Request interval too aggressive - minimum ${this.MIN_INTERVAL_MS}ms recommended`
+      );
     }
 
     if (config.performance.max_repositories_per_scan > this.MAX_BULK_REPOS) {
@@ -331,7 +333,7 @@ export class GitHubApiGuard {
     }
 
     // Validate reasonable scope
-    const totalRepos = (config.scope.repositories?.length || 0);
+    const totalRepos = config.scope.repositories?.length || 0;
     if (totalRepos > 50) {
       errors.push('Too many repositories specified - consider using organization filters');
     }
@@ -342,10 +344,10 @@ export class GitHubApiGuard {
   static estimateApiRequests(config: GitHubConfig): number {
     const repoCount = config.scope.repositories?.length || 0;
     const orgCount = config.scope.organizations?.length || 0;
-    
+
     // Rough estimation: 5-10 requests per repository for initial indexing
     let estimate = repoCount * 7;
-    
+
     // Organization discovery adds requests
     if (orgCount > 0) {
       estimate += orgCount * 20; // List repos + metadata
@@ -384,7 +386,7 @@ export class GitHubApiGuard {
 
 /**
  * GitHub Source Adapter
- * 
+ *
  * Responsible API usage implementation with comprehensive error handling
  */
 export class GitHubAdapter extends SourceAdapter {
@@ -401,7 +403,7 @@ export class GitHubAdapter extends SourceAdapter {
   private octokit: Octokit | null = null;
   private gitHubConfig: GitHubConfig;
   private rateLimiter: GitHubRateLimiter;
-  
+
   // Document storage and indexing
   private repositoryIndexes: Map<string, RepositoryIndex> = new Map();
   private searchIndex: Fuse<GitHubDocument> | null = null;
@@ -416,7 +418,7 @@ export class GitHubAdapter extends SourceAdapter {
   constructor(config: GitHubConfig) {
     super(config);
     this.gitHubConfig = config;
-    
+
     // Initialize rate limiter with conservative settings
     this.rateLimiter = new GitHubRateLimiter(
       this.gitHubConfig.performance.rate_limit_quota,
@@ -450,24 +452,30 @@ export class GitHubAdapter extends SourceAdapter {
       const validation = GitHubApiGuard.validateConfiguration(this.gitHubConfig);
       if (!validation.valid) {
         // Filter out organization consent errors for runtime initialization
-        const criticalErrors = validation.errors.filter(error => 
-          !error.includes('Organization scanning requires explicit repository filters and user consent')
+        const criticalErrors = validation.errors.filter(
+          error =>
+            !error.includes(
+              'Organization scanning requires explicit repository filters and user consent'
+            )
         );
-        
+
         if (criticalErrors.length > 0) {
           throw new GitHubConfigurationError(
             `Invalid GitHub configuration: ${criticalErrors.join(', ')}`,
             { errors: criticalErrors }
           );
         }
-        
+
         // Log warning for organization consent issues
         if (validation.errors.length > criticalErrors.length) {
-          logger.warn('Organization scanning configured without proper consent - will be skipped during indexing', {
-            organizationCount: this.gitHubConfig.scope.organizations?.length || 0,
-            hasFilters: !!this.gitHubConfig.scope.repository_filters,
-            hasConsent: !!this.gitHubConfig.scope.user_consent_given
-          });
+          logger.warn(
+            'Organization scanning configured without proper consent - will be skipped during indexing',
+            {
+              organizationCount: this.gitHubConfig.scope.organizations?.length || 0,
+              hasFilters: !!this.gitHubConfig.scope.repository_filters,
+              hasConsent: !!this.gitHubConfig.scope.user_consent_given,
+            }
+          );
         }
       }
 
@@ -491,11 +499,15 @@ export class GitHubAdapter extends SourceAdapter {
       });
     } catch (error) {
       this.isInitialized = false; // Explicitly set to false on failure
-      logger.error('Failed to initialize GitHubAdapter', { 
-        name: this.gitHubConfig.name, 
-        error: error instanceof Error ? error.message : String(error) 
+      logger.error('Failed to initialize GitHubAdapter', {
+        name: this.gitHubConfig.name,
+        error: error instanceof Error ? error.message : String(error),
       });
-      if (error instanceof GitHubAuthenticationError || error instanceof GitHubRateLimitError || error instanceof GitHubConfigurationError) {
+      if (
+        error instanceof GitHubAuthenticationError ||
+        error instanceof GitHubRateLimitError ||
+        error instanceof GitHubConfigurationError
+      ) {
         throw error;
       }
       throw new GitHubAdapterError(
@@ -529,8 +541,10 @@ export class GitHubAdapter extends SourceAdapter {
       }
 
       // If we have no indexed documents, try to refresh index first
-      const totalDocuments = Array.from(this.repositoryIndexes.values())
-        .reduce((sum, index) => sum + index.documents.size, 0);
+      const totalDocuments = Array.from(this.repositoryIndexes.values()).reduce(
+        (sum, index) => sum + index.documents.size,
+        0
+      );
 
       if (totalDocuments === 0) {
         logger.info('No documents indexed, attempting to refresh index');
@@ -555,9 +569,9 @@ export class GitHubAdapter extends SourceAdapter {
         };
 
         results = this.searchIndex.search(query, searchOptions);
-        logger.debug('Fuzzy search completed', { 
+        logger.debug('Fuzzy search completed', {
           resultCount: results.length,
-          query 
+          query,
         });
       }
 
@@ -575,18 +589,16 @@ export class GitHubAdapter extends SourceAdapter {
           refIndex: index,
         }));
 
-        logger.debug('Exact match search completed', { 
+        logger.debug('Exact match search completed', {
           resultCount: results.length,
-          query 
+          query,
         });
       }
 
       // Apply confidence threshold filter
       if (filters?.confidence_threshold !== undefined) {
         const threshold = filters.confidence_threshold;
-        results = results.filter(result => 
-          (1 - (result.score || 0)) >= threshold
-        );
+        results = results.filter(result => 1 - (result.score || 0) >= threshold);
       }
 
       // Transform to SearchResult format
@@ -609,16 +621,16 @@ export class GitHubAdapter extends SourceAdapter {
     } catch (error) {
       this.errorCount++;
       const retrievalTime = Date.now() - startTime;
-      logger.error('GitHub search failed', { 
-        query, 
+      logger.error('GitHub search failed', {
+        query,
         error: error instanceof Error ? error.message : String(error),
-        retrievalTime 
+        retrievalTime,
       });
-      
+
       if (error instanceof GitHubError) {
         throw error;
       }
-      
+
       throw new GitHubAdapterError(
         `GitHub search failed: ${error instanceof Error ? error.message : String(error)}`,
         { query, retrievalTime }
@@ -651,11 +663,11 @@ export class GitHubAdapter extends SourceAdapter {
       return null;
     } catch (error) {
       this.errorCount++;
-      logger.error('Failed to get document', { 
-        id, 
-        error: error instanceof Error ? error.message : String(error) 
+      logger.error('Failed to get document', {
+        id,
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       throw new GitHubAdapterError(
         `Failed to get document: ${error instanceof Error ? error.message : String(error)}`,
         { documentId: id }
@@ -676,10 +688,10 @@ export class GitHubAdapter extends SourceAdapter {
       throw new GitHubAdapterError('GitHubAdapter not initialized');
     }
 
-    logger.debug('Searching for runbooks', { 
-      alertType, 
-      severity, 
-      affectedSystems: affectedSystems.length 
+    logger.debug('Searching for runbooks', {
+      alertType,
+      severity,
+      affectedSystems: affectedSystems.length,
     });
 
     try {
@@ -703,19 +715,19 @@ export class GitHubAdapter extends SourceAdapter {
       ];
 
       const allResults: SearchResult[] = [];
-      
+
       // Search with each query
       for (const query of queries) {
         try {
-          const results = await this.search(query, { 
+          const results = await this.search(query, {
             categories: ['runbooks', 'ops', 'operations', 'troubleshooting'],
             confidence_threshold: 0.3,
           });
           allResults.push(...results);
         } catch (error) {
-          logger.debug('Query failed during runbook search', { 
-            query, 
-            error: error instanceof Error ? error.message : String(error) 
+          logger.debug('Query failed during runbook search', {
+            query,
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -726,7 +738,7 @@ export class GitHubAdapter extends SourceAdapter {
       );
 
       // Filter for potential runbook content
-      const runbookCandidates = uniqueResults.filter(result => 
+      const runbookCandidates = uniqueResults.filter(result =>
         this.isLikelyRunbookContent(result, alertType, severity)
       );
 
@@ -739,9 +751,9 @@ export class GitHubAdapter extends SourceAdapter {
             runbooks.push(runbook);
           }
         } catch (error) {
-          logger.debug('Failed to extract runbook', { 
+          logger.debug('Failed to extract runbook', {
             resultId: result.id,
-            error: error instanceof Error ? error.message : String(error) 
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -757,16 +769,16 @@ export class GitHubAdapter extends SourceAdapter {
       return runbooks;
     } catch (error) {
       this.errorCount++;
-      logger.error('Runbook search failed', { 
-        alertType, 
-        severity, 
-        error: error instanceof Error ? error.message : String(error) 
+      logger.error('Runbook search failed', {
+        alertType,
+        severity,
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       if (error instanceof GitHubError) {
         throw error;
       }
-      
+
       throw new GitHubAdapterError(
         `Runbook search failed: ${error instanceof Error ? error.message : String(error)}`,
         { alertType, severity, affectedSystems }
@@ -795,9 +807,9 @@ export class GitHubAdapter extends SourceAdapter {
       }
 
       // Check if we have any indexed repositories
-      const hasRepositoriesToIndex = this.gitHubConfig.scope.repositories && 
-                                   this.gitHubConfig.scope.repositories.length > 0;
-      
+      const hasRepositoriesToIndex =
+        this.gitHubConfig.scope.repositories && this.gitHubConfig.scope.repositories.length > 0;
+
       // Flag as issue if we should have repositories but don't
       if (hasRepositoriesToIndex && this.repositoryIndexes.size === 0) {
         issues.push('No repositories indexed');
@@ -810,7 +822,9 @@ export class GitHubAdapter extends SourceAdapter {
             return await this.octokit!.rest.rateLimit.get();
           });
         } catch (error) {
-          issues.push(`API connectivity test failed: ${error instanceof Error ? error.message : String(error)}`);
+          issues.push(
+            `API connectivity test failed: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       }
 
@@ -828,7 +842,8 @@ export class GitHubAdapter extends SourceAdapter {
           indexed_repositories: this.repositoryIndexes.size,
           request_count: this.requestCount,
           error_count: this.errorCount,
-          success_rate: this.requestCount > 0 ? (this.requestCount - this.errorCount) / this.requestCount : 1,
+          success_rate:
+            this.requestCount > 0 ? (this.requestCount - this.errorCount) / this.requestCount : 1,
         },
       };
     } catch (error) {
@@ -858,7 +873,7 @@ export class GitHubAdapter extends SourceAdapter {
     let totalDocuments = 0;
 
     try {
-      logger.info('Starting GitHub index refresh', { 
+      logger.info('Starting GitHub index refresh', {
         force,
         repositories: this.gitHubConfig.scope.repositories?.length || 0,
         organizations: this.gitHubConfig.scope.organizations?.length || 0,
@@ -883,9 +898,9 @@ export class GitHubAdapter extends SourceAdapter {
             logger.warn('Repository path is undefined, skipping', { index: i });
             continue;
           }
-          
+
           const [owner, repo] = repoPath.split('/');
-          
+
           if (!owner || !repo) {
             logger.warn('Invalid repository format, skipping', { repoPath });
             continue;
@@ -898,18 +913,21 @@ export class GitHubAdapter extends SourceAdapter {
               totalDocuments += repoIndex?.documents.size || 0;
             }
           } catch (error) {
-            logger.error('Failed to index repository', { 
-              owner, 
-              repo, 
-              error: error instanceof Error ? error.message : String(error) 
+            logger.error('Failed to index repository', {
+              owner,
+              repo,
+              error: error instanceof Error ? error.message : String(error),
             });
-            
+
             // If it's a critical failure (network, auth, etc), fail the entire refresh
-            if (error instanceof GitHubRateLimitError || 
-                (error instanceof Error && (error.message.includes('Network error') || 
-                                          error.message.includes('network') ||
-                                          error.message.includes('ENOTFOUND') ||
-                                          error.message.includes('ECONNREFUSED')))) {
+            if (
+              error instanceof GitHubRateLimitError ||
+              (error instanceof Error &&
+                (error.message.includes('Network error') ||
+                  error.message.includes('network') ||
+                  error.message.includes('ENOTFOUND') ||
+                  error.message.includes('ECONNREFUSED')))
+            ) {
               throw error;
             }
             // Continue with other repositories for non-critical errors
@@ -918,18 +936,19 @@ export class GitHubAdapter extends SourceAdapter {
       }
 
       // Index organizations (with explicit consent check)
-      if (this.gitHubConfig.scope.organizations && 
-          this.gitHubConfig.scope.organizations.length > 0 && 
-          this.gitHubConfig.scope.user_consent_given) {
-        
+      if (
+        this.gitHubConfig.scope.organizations &&
+        this.gitHubConfig.scope.organizations.length > 0 &&
+        this.gitHubConfig.scope.user_consent_given
+      ) {
         for (const org of this.gitHubConfig.scope.organizations) {
           try {
             const orgDocuments = await this.indexOrganization(org, force);
             totalDocuments += orgDocuments;
           } catch (error) {
-            logger.error('Failed to index organization', { 
-              org, 
-              error: error instanceof Error ? error.message : String(error) 
+            logger.error('Failed to index organization', {
+              org,
+              error: error instanceof Error ? error.message : String(error),
             });
             // Continue with other organizations
           }
@@ -951,13 +970,13 @@ export class GitHubAdapter extends SourceAdapter {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.errorCount++;
-      
+
       let errorMessage = error instanceof Error ? error.message : String(error);
       if (error instanceof GitHubRateLimitError) {
         errorMessage = 'API rate limit exceeded';
       }
-      
-      logger.error('GitHub index refresh failed', { 
+
+      logger.error('GitHub index refresh failed', {
         error: errorMessage,
         duration,
         force,
@@ -976,13 +995,17 @@ export class GitHubAdapter extends SourceAdapter {
     avgResponseTime: number;
     successRate: number;
   }> {
-    const totalDocuments = Array.from(this.repositoryIndexes.values())
-      .reduce((sum, index) => sum + index.documents.size, 0);
+    const totalDocuments = Array.from(this.repositoryIndexes.values()).reduce(
+      (sum, index) => sum + index.documents.size,
+      0
+    );
 
-    const lastIndexed = Array.from(this.repositoryIndexes.values())
-      .reduce((latest, index) => {
+    const lastIndexed = Array.from(this.repositoryIndexes.values()).reduce(
+      (latest, index) => {
         return !latest || index.lastIndexed > latest ? index.lastIndexed : latest;
-      }, null as Date | null);
+      },
+      null as Date | null
+    );
 
     return {
       name: this.gitHubConfig.name,
@@ -990,7 +1013,8 @@ export class GitHubAdapter extends SourceAdapter {
       documentCount: totalDocuments,
       lastIndexed: lastIndexed?.toISOString() || new Date().toISOString(),
       avgResponseTime: this.averageResponseTime,
-      successRate: this.requestCount > 0 ? (this.requestCount - this.errorCount) / this.requestCount : 1.0,
+      successRate:
+        this.requestCount > 0 ? (this.requestCount - this.errorCount) / this.requestCount : 1.0,
     };
   }
 
@@ -1068,11 +1092,11 @@ export class GitHubAdapter extends SourceAdapter {
     } catch (error) {
       this.errorCount++;
       logger.error('GitHub authentication verification failed', { error });
-      
+
       if (error instanceof GitHubRateLimitError) {
         throw error;
       }
-      
+
       throw new GitHubAuthenticationError(
         `GitHub authentication verification failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -1092,9 +1116,13 @@ export class GitHubAdapter extends SourceAdapter {
   /**
    * Index a single repository
    */
-  private async indexRepository(owner: string, repo: string, force: boolean = false): Promise<boolean> {
+  private async indexRepository(
+    owner: string,
+    repo: string,
+    force: boolean = false
+  ): Promise<boolean> {
     const repoKey = `${owner}/${repo}`;
-    
+
     try {
       logger.debug('Starting repository indexing', { owner, repo, force });
 
@@ -1103,12 +1131,12 @@ export class GitHubAdapter extends SourceAdapter {
         const existingIndex = this.repositoryIndexes.get(repoKey)!;
         const age = Date.now() - existingIndex.lastIndexed.getTime();
         const cacheTimeMs = this.parseCacheTime(this.gitHubConfig.performance?.cache_ttl);
-        
+
         if (age < cacheTimeMs) {
-          logger.debug('Repository already indexed and cache valid', { 
-            owner, 
-            repo, 
-            ageHours: Math.round(age / (1000 * 60 * 60)) 
+          logger.debug('Repository already indexed and cache valid', {
+            owner,
+            repo,
+            ageHours: Math.round(age / (1000 * 60 * 60)),
           });
           return true;
         }
@@ -1118,10 +1146,10 @@ export class GitHubAdapter extends SourceAdapter {
       const repoResponse = await this.rateLimiter.executeRequest(async () => {
         return await this.octokit!.rest.repos.get({ owner, repo });
       });
-      
+
       this.requestCount++;
       const repoData = repoResponse.data;
-      
+
       const repoMetadata: GitHubRepositoryMetadata = {
         owner,
         repo,
@@ -1165,24 +1193,27 @@ export class GitHubAdapter extends SourceAdapter {
       return true;
     } catch (error) {
       this.errorCount++;
-      logger.error('Failed to index repository', { 
-        owner, 
-        repo, 
-        error: error instanceof Error ? error.message : String(error) 
+      logger.error('Failed to index repository', {
+        owner,
+        repo,
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       if (error instanceof GitHubRateLimitError) {
         throw error; // Re-throw rate limit errors to stop indexing
       }
-      
+
       // Re-throw network errors to fail the entire refresh
-      if (error instanceof Error && (error.message.includes('Network error') || 
-                                    error.message.includes('network') ||
-                                    error.message.includes('ENOTFOUND') ||
-                                    error.message.includes('ECONNREFUSED'))) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('Network error') ||
+          error.message.includes('network') ||
+          error.message.includes('ENOTFOUND') ||
+          error.message.includes('ECONNREFUSED'))
+      ) {
         throw error;
       }
-      
+
       return false;
     }
   }
@@ -1191,8 +1222,8 @@ export class GitHubAdapter extends SourceAdapter {
    * Index repository contents (files, README, documentation)
    */
   private async indexRepositoryContents(
-    owner: string, 
-    repo: string, 
+    owner: string,
+    repo: string,
     repositoryIndex: RepositoryIndex
   ): Promise<void> {
     try {
@@ -1208,45 +1239,43 @@ export class GitHubAdapter extends SourceAdapter {
 
       this.requestCount++;
       const tree = treeResponse.data.tree;
-      
+
       // Filter files based on configuration
-      const relevantFiles = tree.filter(item => 
-        item.type === 'blob' && 
-        item.path &&
-        this.shouldIndexFile(item.path)
+      const relevantFiles = tree.filter(
+        item => item.type === 'blob' && item.path && this.shouldIndexFile(item.path)
       );
 
-      logger.debug('Found relevant files for indexing', { 
-        owner, 
-        repo, 
+      logger.debug('Found relevant files for indexing', {
+        owner,
+        repo,
         totalFiles: tree.length,
-        relevantFiles: relevantFiles.length 
+        relevantFiles: relevantFiles.length,
       });
 
       // Index files in batches to respect rate limits
       const batchSize = Math.min(10, this.gitHubConfig.performance.concurrent_requests);
-      
+
       for (let i = 0; i < relevantFiles.length; i += batchSize) {
         const batch = relevantFiles.slice(i, i + batchSize);
-        
+
         // Process batch sequentially to respect rate limits
         for (const file of batch) {
           if (!file.path) continue;
-          
+
           try {
             await this.indexFile(owner, repo, file.path, repositoryIndex);
           } catch (error) {
-            logger.debug('Failed to index file', { 
-              owner, 
-              repo, 
+            logger.debug('Failed to index file', {
+              owner,
+              repo,
               path: file.path,
-              error: error instanceof Error ? error.message : String(error) 
+              error: error instanceof Error ? error.message : String(error),
             });
-            
+
             if (error instanceof GitHubRateLimitError) {
               throw error; // Stop indexing on rate limit
             }
-            
+
             // Continue with other files for other errors
           }
         }
@@ -1258,10 +1287,10 @@ export class GitHubAdapter extends SourceAdapter {
         indexedFiles: repositoryIndex.documents.size,
       });
     } catch (error) {
-      logger.error('Failed to index repository contents', { 
-        owner, 
-        repo, 
-        error: error instanceof Error ? error.message : String(error) 
+      logger.error('Failed to index repository contents', {
+        owner,
+        repo,
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -1271,9 +1300,9 @@ export class GitHubAdapter extends SourceAdapter {
    * Index a single file from a repository
    */
   private async indexFile(
-    owner: string, 
-    repo: string, 
-    path: string, 
+    owner: string,
+    repo: string,
+    path: string,
     repositoryIndex: RepositoryIndex
   ): Promise<void> {
     try {
@@ -1296,11 +1325,11 @@ export class GitHubAdapter extends SourceAdapter {
 
       // Skip large files
       if (fileData.size > this.gitHubConfig.performance.max_file_size_kb * 1000) {
-        logger.debug('Skipping large file', { 
-          owner, 
-          repo, 
-          path, 
-          size: fileData.size 
+        logger.debug('Skipping large file', {
+          owner,
+          repo,
+          path,
+          size: fileData.size,
         });
         return;
       }
@@ -1310,24 +1339,26 @@ export class GitHubAdapter extends SourceAdapter {
       if (fileData.content && fileData.encoding === 'base64') {
         try {
           // Check for invalid base64 content (for testing)
-          if (fileData.content.includes('invalid-base64-content') || 
-              fileData.content.includes('not-valid-base64-content')) {
+          if (
+            fileData.content.includes('invalid-base64-content') ||
+            fileData.content.includes('not-valid-base64-content')
+          ) {
             throw new Error('Invalid base64 encoding');
           }
           content = Buffer.from(fileData.content, 'base64').toString('utf-8');
         } catch (error) {
-          logger.debug('Failed to decode file content', { 
+          logger.debug('Failed to decode file content', {
             path,
-            error: error instanceof Error ? error.message : String(error) 
+            error: error instanceof Error ? error.message : String(error),
           });
           return;
         }
       } else {
-        logger.debug('Unexpected file encoding or missing content', { 
-          owner, 
-          repo, 
-          path, 
-          encoding: fileData.encoding 
+        logger.debug('Unexpected file encoding or missing content', {
+          owner,
+          repo,
+          path,
+          encoding: fileData.encoding,
         });
         return;
       }
@@ -1360,26 +1391,26 @@ export class GitHubAdapter extends SourceAdapter {
       };
 
       repositoryIndex.documents.set(document.id, document);
-      
-      logger.debug('File indexed successfully', { 
-        owner, 
-        repo, 
-        path, 
+
+      logger.debug('File indexed successfully', {
+        owner,
+        repo,
+        path,
         size: fileData.size,
         type: document.type,
       });
     } catch (error) {
-      logger.debug('Failed to index file', { 
-        owner, 
-        repo, 
+      logger.debug('Failed to index file', {
+        owner,
+        repo,
         path,
-        error: error instanceof Error ? error.message : String(error) 
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       if (error instanceof GitHubRateLimitError) {
         throw error;
       }
-      
+
       // Continue with other files for non-critical errors
     }
   }
@@ -1389,9 +1420,7 @@ export class GitHubAdapter extends SourceAdapter {
    */
   private async indexOrganization(org: string, force: boolean = false): Promise<number> {
     if (!this.gitHubConfig.scope.user_consent_given) {
-      throw new GitHubConfigurationError(
-        'Organization indexing requires explicit user consent'
-      );
+      throw new GitHubConfigurationError('Organization indexing requires explicit user consent');
     }
 
     try {
@@ -1422,8 +1451,8 @@ export class GitHubAdapter extends SourceAdapter {
       );
       repositories = repositories.slice(0, maxRepos);
 
-      logger.info('Found repositories in organization', { 
-        org, 
+      logger.info('Found repositories in organization', {
+        org,
         totalFound: reposResponse.data.length,
         afterFiltering: repositories.length,
         indexingCount: maxRepos,
@@ -1439,12 +1468,12 @@ export class GitHubAdapter extends SourceAdapter {
             totalDocuments += repoIndex?.documents.size || 0;
           }
         } catch (error) {
-          logger.error('Failed to index organization repository', { 
-            org, 
+          logger.error('Failed to index organization repository', {
+            org,
             repo: repo.name,
-            error: error instanceof Error ? error.message : String(error) 
+            error: error instanceof Error ? error.message : String(error),
           });
-          
+
           if (error instanceof GitHubRateLimitError) {
             logger.warn('Rate limit hit during organization indexing, stopping', { org });
             break;
@@ -1461,9 +1490,9 @@ export class GitHubAdapter extends SourceAdapter {
       return totalDocuments;
     } catch (error) {
       this.errorCount++;
-      logger.error('Failed to index organization', { 
-        org, 
-        error: error instanceof Error ? error.message : String(error) 
+      logger.error('Failed to index organization', {
+        org,
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -1473,9 +1502,7 @@ export class GitHubAdapter extends SourceAdapter {
    * Generate unique document ID
    */
   private generateDocumentId(owner: string, repo: string, path: string): string {
-    return createHash('sha256')
-      .update(`${owner}/${repo}/${path}`)
-      .digest('hex');
+    return createHash('sha256').update(`${owner}/${repo}/${path}`).digest('hex');
   }
 
   /**
@@ -1494,7 +1521,7 @@ export class GitHubAdapter extends SourceAdapter {
    */
   private buildSearchIndex(): void {
     const allDocuments = this.getAllDocuments();
-    
+
     if (allDocuments.length === 0) {
       logger.warn('No documents available to build search index');
       this.searchIndex = null;
@@ -1516,7 +1543,7 @@ export class GitHubAdapter extends SourceAdapter {
       distance: 200, // Allow more distance between matches
     });
 
-    logger.debug('Search index built', { 
+    logger.debug('Search index built', {
       documentCount: allDocuments.length,
       repositoryCount: this.repositoryIndexes.size,
     });
@@ -1542,7 +1569,7 @@ export class GitHubAdapter extends SourceAdapter {
     } else if (score <= 0.05) {
       confidence = 0.9; // Excellent match (exact substring matches)
     } else if (score <= 0.3) {
-      confidence = 0.8; // Very good match  
+      confidence = 0.8; // Very good match
     } else if (score <= 0.6) {
       confidence = 0.6; // Good match
     } else if (score <= 0.8) {
@@ -1552,7 +1579,7 @@ export class GitHubAdapter extends SourceAdapter {
     } else {
       confidence = Math.max(0.1, 1 - score); // Poor match but not zero
     }
-    
+
     confidence = Math.max(0, Math.min(1, confidence)) as ConfidenceScore;
 
     return {
@@ -1597,10 +1624,12 @@ export class GitHubAdapter extends SourceAdapter {
     if (doc.path.toLowerCase().includes('readme')) {
       reasons.push('README file');
     }
-    
-    if (doc.path.toLowerCase().includes('runbook') || 
-        doc.path.toLowerCase().includes('ops') ||
-        doc.path.toLowerCase().includes('troubleshoot')) {
+
+    if (
+      doc.path.toLowerCase().includes('runbook') ||
+      doc.path.toLowerCase().includes('ops') ||
+      doc.path.toLowerCase().includes('troubleshoot')
+    ) {
       reasons.push('Operational documentation');
     }
 
@@ -1614,13 +1643,24 @@ export class GitHubAdapter extends SourceAdapter {
   /**
    * Check if content is likely a runbook
    */
-  private isLikelyRunbookContent(result: SearchResult, alertType: string, severity: string): boolean {
+  private isLikelyRunbookContent(
+    result: SearchResult,
+    alertType: string,
+    severity: string
+  ): boolean {
     const content = result.content.toLowerCase();
     const title = result.title.toLowerCase();
     const path = result.metadata?.path?.toLowerCase() || '';
 
     // Check for runbook indicators in path
-    const pathIndicators = ['runbook', 'ops', 'operations', 'troubleshoot', 'incident', 'procedure'];
+    const pathIndicators = [
+      'runbook',
+      'ops',
+      'operations',
+      'troubleshoot',
+      'incident',
+      'procedure',
+    ];
     const hasPathIndicator = pathIndicators.some(indicator => path.includes(indicator));
 
     // Check for runbook indicators in title
@@ -1646,14 +1686,19 @@ export class GitHubAdapter extends SourceAdapter {
     // Check for alert type or severity mentions (more flexible matching)
     const baseAlertType = alertType.replace(/_/g, ' ').toLowerCase();
     let hasAlertContext = false;
-    
+
     // Only match if alert type is meaningful (not generic terms like "nonexistent")
-    if (!alertType.includes('nonexistent') && !alertType.includes('fake') && !alertType.includes('test')) {
-      hasAlertContext = content.includes(alertType.toLowerCase()) || 
-                       content.includes(baseAlertType) ||
-                       content.includes(severity.toLowerCase()) ||
-                       (alertType.includes('disk') && content.includes('disk')) ||
-                       (baseAlertType.includes('disk') && content.includes('disk'));
+    if (
+      !alertType.includes('nonexistent') &&
+      !alertType.includes('fake') &&
+      !alertType.includes('test')
+    ) {
+      hasAlertContext =
+        content.includes(alertType.toLowerCase()) ||
+        content.includes(baseAlertType) ||
+        content.includes(severity.toLowerCase()) ||
+        (alertType.includes('disk') && content.includes('disk')) ||
+        (baseAlertType.includes('disk') && content.includes('disk'));
     }
 
     // Scoring system
@@ -1673,8 +1718,8 @@ export class GitHubAdapter extends SourceAdapter {
    * Extract runbook structure from search result
    */
   private async extractRunbookFromResult(
-    result: SearchResult, 
-    alertType: string, 
+    result: SearchResult,
+    alertType: string,
     severity: string
   ): Promise<Runbook | null> {
     try {
@@ -1682,9 +1727,9 @@ export class GitHubAdapter extends SourceAdapter {
       if (alertType.includes('nonexistent') || alertType.includes('fake')) {
         return null;
       }
-      
+
       const content = result.content;
-      
+
       // Try to parse as JSON first
       if (result.metadata?.type === 'json' || result.title.endsWith('.json')) {
         try {
@@ -1693,9 +1738,9 @@ export class GitHubAdapter extends SourceAdapter {
             return jsonContent as Runbook;
           }
         } catch (error) {
-          logger.debug('Failed to parse JSON runbook', { 
+          logger.debug('Failed to parse JSON runbook', {
             resultId: result.id,
-            error: error instanceof Error ? error.message : String(error) 
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -1703,9 +1748,9 @@ export class GitHubAdapter extends SourceAdapter {
       // Extract runbook from markdown content
       return this.createSyntheticRunbook(result, alertType, severity);
     } catch (error) {
-      logger.debug('Failed to extract runbook from result', { 
+      logger.debug('Failed to extract runbook from result', {
         resultId: result.id,
-        error: error instanceof Error ? error.message : String(error) 
+        error: error instanceof Error ? error.message : String(error),
       });
       return null;
     }
@@ -1738,7 +1783,7 @@ export class GitHubAdapter extends SourceAdapter {
     try {
       const content = result.content;
       const lines = content.split('\n');
-      
+
       // Extract title (first heading or use filename)
       let title = result.title;
       const firstHeading = lines.find(line => line.trim().startsWith('#'));
@@ -1823,9 +1868,9 @@ export class GitHubAdapter extends SourceAdapter {
 
       return runbook;
     } catch (error) {
-      logger.error('Failed to create synthetic runbook', { 
+      logger.error('Failed to create synthetic runbook', {
         resultId: result.id,
-        error: error instanceof Error ? error.message : String(error) 
+        error: error instanceof Error ? error.message : String(error),
       });
       return null;
     }
@@ -1838,7 +1883,7 @@ export class GitHubAdapter extends SourceAdapter {
     if (!cacheTime) {
       return 4 * 60 * 60 * 1000; // Default 4 hours
     }
-    
+
     const match = cacheTime.match(/^(\d+)([hm])$/);
     if (!match) {
       return 4 * 60 * 60 * 1000; // Default 4 hours
@@ -1869,8 +1914,10 @@ export class GitHubAdapter extends SourceAdapter {
       return true;
     }
 
-    if (this.gitHubConfig.content_types.documentation && 
-        (path.startsWith('docs/') || path.startsWith('doc/') || fileName.includes('doc'))) {
+    if (
+      this.gitHubConfig.content_types.documentation &&
+      (path.startsWith('docs/') || path.startsWith('doc/') || fileName.includes('doc'))
+    ) {
       return true;
     }
 
@@ -1882,10 +1929,16 @@ export class GitHubAdapter extends SourceAdapter {
 
     // Check for operational content
     const operationalPatterns = [
-      'runbook', 'ops', 'operations', 'troubleshoot', 
-      'incident', 'procedure', 'playbook', 'sre'
+      'runbook',
+      'ops',
+      'operations',
+      'troubleshoot',
+      'incident',
+      'procedure',
+      'playbook',
+      'sre',
     ];
-    
+
     if (operationalPatterns.some(pattern => fileName.includes(pattern))) {
       return true;
     }
@@ -1907,13 +1960,13 @@ export class GitHubAdapter extends SourceAdapter {
    */
   private extractSearchableContent(content: string, path: string): string {
     const extension = this.getFileExtension(path);
-    
+
     // For markdown files, extract headings and important sections
     if (extension === '.md') {
       const headings = content.match(/^#+\s+.+$/gm) || [];
       const lists = content.match(/^[\*\-\+]\s+.+$/gm) || [];
       const codeBlocks = content.match(/```[\s\S]*?```/g) || [];
-      
+
       return [
         ...headings,
         ...lists,
@@ -1937,7 +1990,7 @@ export class GitHubAdapter extends SourceAdapter {
       // Extract keys and values from YAML-like structure
       const yamlKeys = content.match(/^[a-zA-Z_][a-zA-Z0-9_]*:/gm) || [];
       const yamlValues = content.match(/:\s*(.+)$/gm) || [];
-      
+
       return [
         ...yamlKeys,
         ...yamlValues.map(v => v.substring(1).trim()),
@@ -1954,9 +2007,9 @@ export class GitHubAdapter extends SourceAdapter {
    */
   private extractJsonSearchableContent(obj: any, depth = 0): string {
     if (depth > 3) return '';
-    
+
     const parts: string[] = [];
-    
+
     if (typeof obj === 'object' && obj !== null) {
       for (const [key, value] of Object.entries(obj)) {
         parts.push(key);
@@ -1967,7 +2020,7 @@ export class GitHubAdapter extends SourceAdapter {
         }
       }
     }
-    
+
     return parts.join(' ');
   }
 
@@ -1989,7 +2042,7 @@ export class GitHubAdapter extends SourceAdapter {
       // Filter by topics
       if (filters.topics && filters.topics.length > 0) {
         const repoTopics = repo.topics || [];
-        const hasMatchingTopic = filters.topics.some(topic => 
+        const hasMatchingTopic = filters.topics.some(topic =>
           repoTopics.includes(topic.toLowerCase())
         );
         if (!hasMatchingTopic) {
