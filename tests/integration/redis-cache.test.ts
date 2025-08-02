@@ -59,8 +59,9 @@ describe('Redis Cache Integration Tests', () => {
     // but gracefully fall back to memory-only when Redis is unavailable
     cacheService = new CacheService(hybridConfig);
     
-    // Give it a moment to attempt Redis connection and fail gracefully
-    await new Promise(resolve => setTimeout(resolve, 50));
+    // Wait briefly for Redis connection attempt to complete
+    // The cache service initializes synchronously, but Redis connection is async
+    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   afterEach(async () => {

@@ -229,7 +229,7 @@ export class RedisConnectionManager extends EventEmitter {
             reject(new Error(`Connection timeout after ${this.config.connection_timeout_ms}ms`));
           }, this.config.connection_timeout_ms);
 
-          if (this.redis!.status === 'ready') {
+          if (this.redis && this.redis.status === 'ready') {
             clearTimeout(timeout);
             resolve();
             return;

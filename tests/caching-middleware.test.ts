@@ -308,11 +308,11 @@ describe('Caching Middleware Unit Tests (Node.js Test Runner)', () => {
         processed: false,
       }));
 
-      // Simulate concurrent processing
+      // Simulate concurrent processing with realistic async operations
       const processedRequests = await Promise.all(
         simulatedRequests.map(async req => {
-          // Simulate async cache lookup
-          await new Promise(resolve => setTimeout(resolve, 10));
+          // Simulate async cache lookup using Promise.resolve for deterministic timing
+          await Promise.resolve();
           return { ...req, processed: true };
         })
       );
