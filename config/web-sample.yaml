@@ -1,0 +1,193 @@
+# WebAdapter Sample Configuration
+# 
+# This configuration demonstrates responsible web crawling with conservative
+# rate limiting and comprehensive content extraction capabilities.
+
+# ============================================================================
+# Basic Web Source Configuration
+# ============================================================================
+
+sources:
+  - name: "company-docs"
+    type: "web"
+    
+    # Required: Starting URLs for crawling
+    base_urls:
+      - "https://docs.company.com"
+      - "https://wiki.company.com/operations"
+      - "https://runbooks.company.com"
+    
+    # Crawl Settings (Conservative Defaults)
+    max_depth: 2                              # Maximum crawl depth (default: 1)
+    max_urls_per_domain: 50                   # Limit URLs per domain (default: 100)
+    
+    # Rate Limiting (Responsible Crawling)
+    rate_limit:
+      requests_per_second: 2                  # Conservative: 2 requests/second (default: 2)
+      concurrent_requests: 2                  # Max concurrent requests (default: 3)
+    
+    # URL Pattern Filtering
+    url_patterns:
+      include:
+        - ".*/(runbooks|procedures|guides|docs)/.*"     # Include operational docs
+        - ".*/(troubleshooting|support)/.*"             # Include support content
+        - ".*\\.md$"                                     # Include Markdown files
+      exclude:
+        - ".*/archive/.*"                               # Exclude archived content
+        - ".*/private/.*"                               # Exclude private areas
+        - ".*\\.(pdf|zip|tar|gz)$"                     # Skip binary files
+        - ".*/admin/.*"                                 # Skip admin areas
+    
+    # Content Extraction Selectors
+    content_selectors:
+      main: "article.content, .documentation-content, main, [role='main']"
+      title: "h1, title, .page-title"
+      exclude:
+        - "nav"                                         # Remove navigation
+        - ".sidebar"                                    # Remove sidebars
+        - "footer"                                      # Remove footers
+        - ".advertisement"                              # Remove ads
+        - ".breadcrumb"                                 # Remove breadcrumbs
+    
+    # Caching and Performance
+    cache_ttl: "4h"                           # Cache content for 4 hours
+    respect_robots_txt: true                  # Always respect robots.txt (default: true)
+    user_agent: "PersonalPipeline-MCP/1.0 (Documentation Indexer; +https://company.com/contact)"
+    
+    # Standard adapter settings
+    refresh_interval: "6h"                    # Refresh every 6 hours
+    priority: 3                               # Medium priority
+    enabled: true
+    timeout_ms: 30000                         # 30 second timeout
+    max_retries: 2                            # Conservative retry count
+
+# ============================================================================
+# Advanced Configuration Examples
+# ============================================================================
+
+  # Example: Authenticated Site
+  - name: "internal-wiki"
+    type: "web"
+    base_urls:
+      - "https://internal.company.com/wiki"
+    
+    # Authentication Configuration
+    auth:
+      type: "bearer"                          # Bearer token authentication
+      credentials:
+        token: "your-api-token-here"          # Replace with actual token
+    
+    # Or basic authentication:
+    # auth:
+    #   type: "basic" 
+    #   credentials:
+    #     username: "api-user"
+    #     password: "api-password"
+    
+    # Or cookie-based authentication:
+    # auth:
+    #   type: "cookie"
+    #   credentials:
+    #     cookie: "session=abc123; auth=xyz789"
+    
+    max_depth: 1
+    rate_limit:
+      requests_per_second: 1                  # Even more conservative for internal sites
+      concurrent_requests: 1
+    cache_ttl: "2h"
+    refresh_interval: "4h"
+    priority: 2
+    enabled: true
+
+  # Example: Public Documentation Site
+  - name: "framework-docs"
+    type: "web"
+    base_urls:
+      - "https://framework.example.com/docs"
+    
+    max_depth: 3                              # Deeper crawling for comprehensive docs
+    
+    url_patterns:
+      include:
+        - ".*/docs/.*"                        # Only documentation sections
+        - ".*/api/.*"                         # Include API documentation
+        - ".*/guides/.*"                      # Include user guides
+      exclude:
+        - ".*/blog/.*"                        # Exclude blog posts
+        - ".*/news/.*"                        # Exclude news
+        - ".*/community/.*"                   # Exclude community content
+    
+    content_selectors:
+      main: ".docs-content, .api-content"    # Framework-specific selectors
+      title: ".docs-title, h1"
+      exclude:
+        - ".docs-nav"
+        - ".docs-sidebar"
+        - ".docs-footer"
+    
+    rate_limit:
+      requests_per_second: 3                  # Slightly faster for public sites
+      concurrent_requests: 2
+    
+    cache_ttl: "12h"                          # Longer cache for stable docs
+    refresh_interval: "24h"                   # Daily refresh
+    priority: 4
+    enabled: true
+
+  # Example: Minimal Configuration
+  - name: "simple-site"
+    type: "web"
+    base_urls:
+      - "https://simple.example.com"
+    
+    # All other settings use defaults:
+    # - max_depth: 1
+    # - rate_limit: { requests_per_second: 2, concurrent_requests: 3 }
+    # - cache_ttl: "1h"
+    # - respect_robots_txt: true
+    # - max_urls_per_domain: 100
+    
+    refresh_interval: "12h"
+    priority: 5
+    enabled: true
+
+# ============================================================================
+# Configuration Guidelines
+# ============================================================================
+
+# IMPORTANT: Responsible Crawling Guidelines
+#
+# 1. ALWAYS respect robots.txt (respect_robots_txt: true)
+# 2. Use conservative rate limiting (≤3 requests/second)
+# 3. Set appropriate User-Agent with contact information
+# 4. Limit crawl depth and URLs per domain
+# 5. Use specific URL patterns to avoid unnecessary requests
+# 6. Cache content appropriately to reduce repeated requests
+# 7. Monitor your crawling impact and adjust if needed
+#
+# SECURITY:
+# - Never log authentication credentials
+# - Use environment variables for sensitive data
+# - Validate all URLs and patterns
+# - Consider legal and terms of service implications
+#
+# PERFORMANCE:
+# - Start with conservative settings and adjust based on results
+# - Use longer cache TTL for stable content
+# - Prioritize important sources with higher priority values
+# - Monitor memory usage with large content sets
+
+# ============================================================================
+# Environment Variables (Recommended)
+# ============================================================================
+
+# Store sensitive configuration in environment variables:
+# export WIKI_API_TOKEN="your-secret-token"
+# export INTERNAL_USERNAME="api-user"  
+# export INTERNAL_PASSWORD="api-password"
+#
+# Then reference them in credentials:
+# auth:
+#   type: "bearer"
+#   credentials:
+#     token: "${WIKI_API_TOKEN}"

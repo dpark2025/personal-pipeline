@@ -1,13 +1,15 @@
 /**
- * REST API Transforms Unit Tests
+ * REST API Transforms Unit Tests using Node.js Test Runner
  *
  * Tests basic transformation concepts and data structure validation
  * for REST to MCP conversions and MCP to REST response transformations.
  */
 
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { describe, it } from 'node:test';
+import assert from 'node:assert';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
-describe('REST API Transforms Unit Tests', () => {
+describe('REST API Transforms Unit Tests (Node.js Test Runner)', () => {
   describe('Request Data Structure Validation', () => {
     it('should validate search knowledge base request structure', () => {
       const searchRequest = {
@@ -17,18 +19,18 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate required fields
-      expect(searchRequest.query).toBeDefined();
-      expect(typeof searchRequest.query).toBe('string');
-      expect(searchRequest.query.length).toBeGreaterThan(0);
+      assert(searchRequest.query);
+      assert.strictEqual(typeof searchRequest.query, 'string');
+      assert(searchRequest.query.length > 0);
 
       // Validate optional fields
       if (searchRequest.categories) {
-        expect(Array.isArray(searchRequest.categories)).toBe(true);
+        assert(Array.isArray(searchRequest.categories));
       }
 
       if (searchRequest.max_results) {
-        expect(typeof searchRequest.max_results).toBe('number');
-        expect(searchRequest.max_results).toBeGreaterThan(0);
+        assert.strictEqual(typeof searchRequest.max_results, 'number');
+        assert(searchRequest.max_results > 0);
       }
     });
 
@@ -44,18 +46,18 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate required fields
-      expect(runbookRequest.alert_type).toBeDefined();
-      expect(runbookRequest.severity).toBeDefined();
-      expect(runbookRequest.affected_systems).toBeDefined();
+      assert(runbookRequest.alert_type);
+      assert(runbookRequest.severity);
+      assert(runbookRequest.affected_systems);
 
       // Validate data types
-      expect(typeof runbookRequest.alert_type).toBe('string');
-      expect(typeof runbookRequest.severity).toBe('string');
-      expect(Array.isArray(runbookRequest.affected_systems)).toBe(true);
-      expect(runbookRequest.affected_systems.length).toBeGreaterThan(0);
+      assert.strictEqual(typeof runbookRequest.alert_type, 'string');
+      assert.strictEqual(typeof runbookRequest.severity, 'string');
+      assert(Array.isArray(runbookRequest.affected_systems));
+      assert(runbookRequest.affected_systems.length > 0);
 
       // Validate severity values
-      expect(['low', 'medium', 'high', 'critical']).toContain(runbookRequest.severity);
+      assert(['low', 'medium', 'high', 'critical'].includes(runbookRequest.severity));
     });
 
     it('should validate decision tree request structure', () => {
@@ -76,17 +78,17 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate structure
-      expect(decisionTreeRequest.alert_context).toBeDefined();
-      expect(decisionTreeRequest.current_agent_state).toBeDefined();
+      assert(decisionTreeRequest.alert_context);
+      assert(decisionTreeRequest.current_agent_state);
 
       // Validate alert context
-      expect(decisionTreeRequest.alert_context.alert_type).toBeDefined();
-      expect(decisionTreeRequest.alert_context.severity).toBeDefined();
-      expect(Array.isArray(decisionTreeRequest.alert_context.affected_systems)).toBe(true);
+      assert(decisionTreeRequest.alert_context.alert_type);
+      assert(decisionTreeRequest.alert_context.severity);
+      assert(Array.isArray(decisionTreeRequest.alert_context.affected_systems));
 
       // Validate agent state
-      expect(Array.isArray(decisionTreeRequest.current_agent_state.attempted_steps)).toBe(true);
-      expect(typeof decisionTreeRequest.current_agent_state.execution_time_seconds).toBe('number');
+      assert(Array.isArray(decisionTreeRequest.current_agent_state.attempted_steps));
+      assert.strictEqual(typeof decisionTreeRequest.current_agent_state.execution_time_seconds, 'number');
     });
   });
 
@@ -117,23 +119,23 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate MCP response structure
-      expect(mcpResponse.content).toBeDefined();
-      expect(Array.isArray(mcpResponse.content)).toBe(true);
-      expect(mcpResponse.content.length).toBeGreaterThan(0);
+      assert(mcpResponse.content);
+      assert(Array.isArray(mcpResponse.content));
+      assert(mcpResponse.content.length > 0);
 
       // Validate content structure
       const firstContent = mcpResponse.content[0];
-      expect(firstContent).toBeDefined();
+      assert(firstContent);
       if (firstContent) {
-        expect(firstContent.type).toBe('text');
-        expect(firstContent.text).toBeDefined();
+        assert.strictEqual(firstContent.type, 'text');
+        assert(firstContent.text);
 
         // Validate JSON parsing
         if (typeof firstContent.text === 'string') {
           const parsedContent = JSON.parse(firstContent.text);
-          expect(parsedContent.results).toBeDefined();
-          expect(Array.isArray(parsedContent.results)).toBe(true);
-          expect(parsedContent.metadata).toBeDefined();
+          assert(parsedContent.results);
+          assert(Array.isArray(parsedContent.results));
+          assert(parsedContent.metadata);
         }
       }
     });
@@ -160,17 +162,17 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate REST response structure
-      expect(typeof restResponse.success).toBe('boolean');
-      expect(restResponse.data).toBeDefined();
-      expect(restResponse.metadata).toBeDefined();
-      expect(restResponse.timestamp).toBeDefined();
+      assert.strictEqual(typeof restResponse.success, 'boolean');
+      assert(restResponse.data);
+      assert(restResponse.metadata);
+      assert(restResponse.timestamp);
 
       // Validate metadata
-      expect(restResponse.metadata.correlation_id).toBeDefined();
-      expect(typeof restResponse.metadata.execution_time_ms).toBe('number');
-      expect(restResponse.metadata.execution_time_ms).toBeGreaterThanOrEqual(0);
-      expect(['fast', 'medium', 'slow']).toContain(restResponse.metadata.performance_tier);
-      expect(typeof restResponse.metadata.cached).toBe('boolean');
+      assert(restResponse.metadata.correlation_id);
+      assert.strictEqual(typeof restResponse.metadata.execution_time_ms, 'number');
+      assert(restResponse.metadata.execution_time_ms >= 0);
+      assert(['fast', 'medium', 'slow'].includes(restResponse.metadata.performance_tier));
+      assert.strictEqual(typeof restResponse.metadata.cached, 'boolean');
     });
   });
 
@@ -202,8 +204,8 @@ describe('REST API Transforms Unit Tests', () => {
             break;
         }
 
-        expect(cachePriority).toBe(expectedPriority);
-        expect(urgencyMultiplier).toBe(expectedMultiplier);
+        assert.strictEqual(cachePriority, expectedPriority);
+        assert.strictEqual(urgencyMultiplier, expectedMultiplier);
       });
     });
 
@@ -223,7 +225,7 @@ describe('REST API Transforms Unit Tests', () => {
         if (text.length > 50) complexity = 'high';
         else if (text.length > 20) complexity = 'medium';
 
-        expect(complexity).toBe(expectedComplexity);
+        assert.strictEqual(complexity, expectedComplexity);
       });
     });
 
@@ -251,7 +253,7 @@ describe('REST API Transforms Unit Tests', () => {
             break;
         }
 
-        expect(ttl).toBe(expectedTTL);
+        assert.strictEqual(ttl, expectedTTL);
       });
     });
   });
@@ -277,17 +279,17 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate error structure
-      expect(mcpError.isError).toBe(true);
-      expect(mcpError.content).toBeDefined();
+      assert.strictEqual(mcpError.isError, true);
+      assert(mcpError.content);
 
       const firstContent = mcpError.content[0];
       if (firstContent && typeof firstContent.text === 'string') {
         const errorContent = JSON.parse(firstContent.text);
-        expect(errorContent.error).toBeDefined();
-        expect(errorContent.error.code).toBeDefined();
-        expect(errorContent.error.message).toBeDefined();
-        expect(Array.isArray(errorContent.error.recovery_actions)).toBe(true);
-        expect(typeof errorContent.error.retry_recommended).toBe('boolean');
+        assert(errorContent.error);
+        assert(errorContent.error.code);
+        assert(errorContent.error.message);
+        assert(Array.isArray(errorContent.error.recovery_actions));
+        assert.strictEqual(typeof errorContent.error.retry_recommended, 'boolean');
       }
     });
 
@@ -304,9 +306,9 @@ describe('REST API Transforms Unit Tests', () => {
       // Test JSON parsing error handling
       const firstContent = malformedResponse.content[0];
       if (firstContent && typeof firstContent.text === 'string') {
-        expect(() => {
+        assert.throws(() => {
           JSON.parse(firstContent.text);
-        }).toThrow();
+        });
 
         // Simulate error handling
         let isValidJSON = true;
@@ -316,7 +318,7 @@ describe('REST API Transforms Unit Tests', () => {
           isValidJSON = false;
         }
 
-        expect(isValidJSON).toBe(false);
+        assert.strictEqual(isValidJSON, false);
       }
     });
   });
@@ -335,7 +337,7 @@ describe('REST API Transforms Unit Tests', () => {
         if (executionTime < 100) tier = 'fast';
         else if (executionTime < 300) tier = 'medium';
 
-        expect(tier).toBe(expectedTier);
+        assert.strictEqual(tier, expectedTier);
       });
     });
 
@@ -348,7 +350,7 @@ describe('REST API Transforms Unit Tests', () => {
       cacheScenarios.forEach(({ cached, baseTime, expectedTime }) => {
         // Simulate cache performance impact
         const actualTime = cached ? Math.min(baseTime * 0.1, 50) : baseTime;
-        expect(actualTime).toBe(expectedTime);
+        assert.strictEqual(actualTime, expectedTime);
       });
     });
   });
@@ -358,9 +360,9 @@ describe('REST API Transforms Unit Tests', () => {
       const correlationId = 'test_correlation_12345';
 
       // Validate correlation ID format
-      expect(correlationId).toMatch(/^[a-zA-Z0-9_-]+$/);
-      expect(correlationId.length).toBeGreaterThan(0);
-      expect(correlationId.length).toBeLessThanOrEqual(100);
+      assert(/^[a-zA-Z0-9_-]+$/.test(correlationId));
+      assert(correlationId.length > 0);
+      assert(correlationId.length <= 100);
     });
 
     it('should enrich metadata with performance information', () => {
@@ -372,10 +374,10 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate performance metadata
-      expect(performanceMetadata.execution_time_ms).toBeGreaterThanOrEqual(0);
-      expect(['fast', 'medium', 'slow']).toContain(performanceMetadata.performance_tier);
-      expect(typeof performanceMetadata.cached).toBe('boolean');
-      expect(performanceMetadata.transform_time_ms).toBeGreaterThanOrEqual(0);
+      assert(performanceMetadata.execution_time_ms >= 0);
+      assert(['fast', 'medium', 'slow'].includes(performanceMetadata.performance_tier));
+      assert.strictEqual(typeof performanceMetadata.cached, 'boolean');
+      assert(performanceMetadata.transform_time_ms >= 0);
     });
 
     it('should enrich metadata with source information', () => {
@@ -387,14 +389,14 @@ describe('REST API Transforms Unit Tests', () => {
       };
 
       // Validate source metadata
-      expect(sourceMetadata.source).toBeDefined();
-      expect(sourceMetadata.source_type).toBeDefined();
-      expect(sourceMetadata.last_updated).toBeDefined();
-      expect(typeof sourceMetadata.document_count).toBe('number');
-      expect(sourceMetadata.document_count).toBeGreaterThanOrEqual(0);
+      assert(sourceMetadata.source);
+      assert(sourceMetadata.source_type);
+      assert(sourceMetadata.last_updated);
+      assert.strictEqual(typeof sourceMetadata.document_count, 'number');
+      assert(sourceMetadata.document_count >= 0);
 
       // Validate timestamp format
-      expect(new Date(sourceMetadata.last_updated).getTime()).toBeGreaterThan(0);
+      assert(new Date(sourceMetadata.last_updated).getTime() > 0);
     });
   });
 });

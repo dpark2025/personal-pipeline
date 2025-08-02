@@ -26,6 +26,12 @@ export type AlertSeverity = z.infer<typeof AlertSeverity>;
 export const SourceType = z.enum(['confluence', 'notion', 'github', 'database', 'web', 'file']);
 export type SourceType = z.infer<typeof SourceType>;
 
+/**
+ * Document categories for classification
+ */
+export const DocumentCategory = z.enum(['runbook', 'api', 'guide', 'general']);
+export type DocumentCategory = z.infer<typeof DocumentCategory>;
+
 // ============================================================================
 // Runbook Types
 // ============================================================================
@@ -110,6 +116,9 @@ export const SearchFilters = z.object({
   severity: AlertSeverity.optional(),
   categories: z.array(z.string()).optional(),
   confidence_threshold: ConfidenceScore.optional(),
+  min_confidence: ConfidenceScore.optional(),
+  category: DocumentCategory.optional(),
+  limit: z.number().optional(),
 });
 export type SearchFilters = z.infer<typeof SearchFilters>;
 
@@ -121,7 +130,9 @@ export const SearchResult = z.object({
   title: z.string(),
   content: z.string(),
   source: z.string(),
+  source_name: z.string().optional(),
   source_type: SourceType,
+  category: DocumentCategory.optional(),
   confidence_score: ConfidenceScore,
   match_reasons: z.array(z.string()),
   retrieval_time_ms: z.number(),
@@ -131,6 +142,11 @@ export const SearchResult = z.object({
 });
 export type SearchResult = z.infer<typeof SearchResult>;
 
+/**
+ * Document type for getDocument method
+ */
+export type Document = SearchResult;
+
 // ============================================================================
 // Source Adapter Types
 // ============================================================================
@@ -139,12 +155,13 @@ export type SearchResult = z.infer<typeof SearchResult>;
  * Authentication configuration for sources
  */
 export const AuthConfig = z.object({
-  type: z.enum(['bearer_token', 'basic_auth', 'api_key', 'oauth2', 'personal_token', 'github_app']),
+  type: z.enum(['bearer_token', 'basic_auth', 'api_key', 'oauth2', 'personal_token', 'github_app', 'basic', 'bearer', 'cookie']),
   token_env: z.string().optional(),
   username_env: z.string().optional(),
   password_env: z.string().optional(),
   api_key_env: z.string().optional(),
   oauth_config: z.record(z.string()).optional(),
+  credentials: z.record(z.string()).optional(),
 });
 export type AuthConfig = z.infer<typeof AuthConfig>;
 

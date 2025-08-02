@@ -1,12 +1,15 @@
 /**
- * REST API Routes Unit Tests
+ * REST API Routes Unit Tests using Node.js Test Runner
  *
  * Tests the route concepts and error handling patterns in isolation.
- * Since routes.ts doesn't export individual route handlers, we test the
+ * Since routes.js doesn't export individual route handlers, we test the
  * concepts and error handling logic that would be used.
  */
 
-describe('REST API Routes Unit Tests', () => {
+import { describe, it } from 'node:test';
+import assert from 'node:assert';
+
+describe('REST API Routes Unit Tests (Node.js Test Runner)', () => {
   describe('Request Validation Concepts', () => {
     it('should understand search knowledge base request structure', () => {
       const validSearchRequest = {
@@ -15,10 +18,10 @@ describe('REST API Routes Unit Tests', () => {
         max_results: 5,
       };
 
-      expect(validSearchRequest.query).toBeDefined();
-      expect(validSearchRequest.query.length).toBeGreaterThan(0);
-      expect(validSearchRequest.categories).toBeInstanceOf(Array);
-      expect(validSearchRequest.max_results).toBeGreaterThanOrEqual(1);
+      assert(validSearchRequest.query);
+      assert(validSearchRequest.query.length > 0);
+      assert(Array.isArray(validSearchRequest.categories));
+      assert(validSearchRequest.max_results >= 1);
     });
 
     it('should understand runbook search request structure', () => {
@@ -32,11 +35,11 @@ describe('REST API Routes Unit Tests', () => {
         },
       };
 
-      expect(validRunbookRequest.alert_type).toBeDefined();
-      expect(validRunbookRequest.severity).toBeDefined();
-      expect(validRunbookRequest.affected_systems).toBeInstanceOf(Array);
-      expect(validRunbookRequest.affected_systems.length).toBeGreaterThan(0);
-      expect(validRunbookRequest.context).toBeDefined();
+      assert(validRunbookRequest.alert_type);
+      assert(validRunbookRequest.severity);
+      assert(Array.isArray(validRunbookRequest.affected_systems));
+      assert(validRunbookRequest.affected_systems.length > 0);
+      assert(validRunbookRequest.context);
     });
 
     it('should understand decision tree request structure', () => {
@@ -56,10 +59,10 @@ describe('REST API Routes Unit Tests', () => {
         },
       };
 
-      expect(validDecisionTreeRequest.alert_context).toBeDefined();
-      expect(validDecisionTreeRequest.alert_context.alert_type).toBeDefined();
-      expect(validDecisionTreeRequest.alert_context.severity).toBeDefined();
-      expect(validDecisionTreeRequest.current_agent_state).toBeDefined();
+      assert(validDecisionTreeRequest.alert_context);
+      assert(validDecisionTreeRequest.alert_context.alert_type);
+      assert(validDecisionTreeRequest.alert_context.severity);
+      assert(validDecisionTreeRequest.current_agent_state);
     });
 
     it('should understand escalation request structure', () => {
@@ -69,10 +72,9 @@ describe('REST API Routes Unit Tests', () => {
         failed_attempts: ['primary_oncall'],
       };
 
-      expect(validEscalationRequest.severity).toBeDefined();
-      expect(validEscalationRequest.business_hours).toBeDefined();
-      expect(['low', 'medium', 'high', 'critical']).toContain(validEscalationRequest.severity);
-      expect(typeof validEscalationRequest.business_hours).toBe('boolean');
+      assert(validEscalationRequest.severity);
+      assert(typeof validEscalationRequest.business_hours === 'boolean');
+      assert(['low', 'medium', 'high', 'critical'].includes(validEscalationRequest.severity));
     });
 
     it('should understand feedback request structure', () => {
@@ -84,11 +86,11 @@ describe('REST API Routes Unit Tests', () => {
         notes: 'Required additional database restart after connection pool restart',
       };
 
-      expect(validFeedbackRequest.runbook_id).toBeDefined();
-      expect(validFeedbackRequest.procedure_id).toBeDefined();
-      expect(validFeedbackRequest.outcome).toBeDefined();
-      expect(validFeedbackRequest.resolution_time_minutes).toBeGreaterThanOrEqual(0);
-      expect(['success', 'partial_success', 'failure']).toContain(validFeedbackRequest.outcome);
+      assert(validFeedbackRequest.runbook_id);
+      assert(validFeedbackRequest.procedure_id);
+      assert(validFeedbackRequest.outcome);
+      assert(validFeedbackRequest.resolution_time_minutes >= 0);
+      assert(['success', 'partial_success', 'failure'].includes(validFeedbackRequest.outcome));
     });
   });
 
@@ -121,11 +123,11 @@ describe('REST API Routes Unit Tests', () => {
         timestamp: '2025-07-31T10:00:00.000Z',
       };
 
-      expect(successResponse.success).toBe(true);
-      expect(successResponse.data).toBeDefined();
-      expect(successResponse.metadata.correlation_id).toBeDefined();
-      expect(successResponse.metadata.execution_time_ms).toBeGreaterThanOrEqual(0);
-      expect(successResponse.timestamp).toBeDefined();
+      assert.strictEqual(successResponse.success, true);
+      assert(successResponse.data);
+      assert(successResponse.metadata.correlation_id);
+      assert(successResponse.metadata.execution_time_ms >= 0);
+      assert(successResponse.timestamp);
     });
 
     it('should understand standard error response format', () => {
@@ -148,12 +150,12 @@ describe('REST API Routes Unit Tests', () => {
         timestamp: '2025-07-31T10:00:00.000Z',
       };
 
-      expect(errorResponse.success).toBe(false);
-      expect(errorResponse.error).toBeDefined();
-      expect(errorResponse.error.code).toBeDefined();
-      expect(errorResponse.error.message).toBeDefined();
-      expect(errorResponse.error.details.recovery_actions).toBeInstanceOf(Array);
-      expect(errorResponse.error.details.retry_recommended).toBeDefined();
+      assert.strictEqual(errorResponse.success, false);
+      assert(errorResponse.error);
+      assert(errorResponse.error.code);
+      assert(errorResponse.error.message);
+      assert(Array.isArray(errorResponse.error.details.recovery_actions));
+      assert(typeof errorResponse.error.details.retry_recommended === 'boolean');
     });
   });
 
@@ -166,7 +168,7 @@ describe('REST API Routes Unit Tests', () => {
         validationError.message.includes('required') ||
         validationError.message.includes('Missing required field');
 
-      expect(isValidationError).toBe(true);
+      assert.strictEqual(isValidationError, true);
 
       if (isValidationError) {
         const errorDetails = {
@@ -178,9 +180,9 @@ describe('REST API Routes Unit Tests', () => {
           retryRecommended: false,
         };
 
-        expect(errorDetails.httpStatus).toBe(400);
-        expect(errorDetails.severity).toBe('low');
-        expect(errorDetails.retryRecommended).toBe(false);
+        assert.strictEqual(errorDetails.httpStatus, 400);
+        assert.strictEqual(errorDetails.severity, 'low');
+        assert.strictEqual(errorDetails.retryRecommended, false);
       }
     });
 
@@ -190,7 +192,7 @@ describe('REST API Routes Unit Tests', () => {
       const isTimeoutError =
         timeoutError.message.includes('timeout') || timeoutError.message.includes('TIMEOUT');
 
-      expect(isTimeoutError).toBe(true);
+      assert.strictEqual(isTimeoutError, true);
 
       if (isTimeoutError) {
         const errorDetails = {
@@ -202,9 +204,9 @@ describe('REST API Routes Unit Tests', () => {
           retryRecommended: true,
         };
 
-        expect(errorDetails.httpStatus).toBe(504);
-        expect(errorDetails.severity).toBe('medium');
-        expect(errorDetails.retryRecommended).toBe(true);
+        assert.strictEqual(errorDetails.httpStatus, 504);
+        assert.strictEqual(errorDetails.severity, 'medium');
+        assert.strictEqual(errorDetails.retryRecommended, true);
       }
     });
 
@@ -214,7 +216,7 @@ describe('REST API Routes Unit Tests', () => {
       const isServiceError =
         serviceError.message.includes('unavailable') || serviceError.message.includes('service');
 
-      expect(isServiceError).toBe(true);
+      assert.strictEqual(isServiceError, true);
 
       if (isServiceError) {
         const errorDetails = {
@@ -230,9 +232,9 @@ describe('REST API Routes Unit Tests', () => {
           retryRecommended: true,
         };
 
-        expect(errorDetails.httpStatus).toBe(503);
-        expect(errorDetails.severity).toBe('high');
-        expect(errorDetails.retryRecommended).toBe(true);
+        assert.strictEqual(errorDetails.httpStatus, 503);
+        assert.strictEqual(errorDetails.severity, 'high');
+        assert.strictEqual(errorDetails.retryRecommended, true);
       }
     });
   });
@@ -251,7 +253,7 @@ describe('REST API Routes Unit Tests', () => {
         if (message.includes('Invalid') && message.includes('query')) errorCode = 'INVALID_QUERY';
         if (message.includes('timeout')) errorCode = 'SEARCH_TIMEOUT';
 
-        expect(errorCode).toBe(expectedCode);
+        assert.strictEqual(errorCode, expectedCode);
       });
     });
 
@@ -268,7 +270,7 @@ describe('REST API Routes Unit Tests', () => {
         if (message.includes('Invalid severity')) errorCode = 'INVALID_SEVERITY';
         if (message.includes('service connection failed')) errorCode = 'RUNBOOK_SERVICE_ERROR';
 
-        expect(errorCode).toBe(expectedCode);
+        assert.strictEqual(errorCode, expectedCode);
       });
     });
 
@@ -288,7 +290,7 @@ describe('REST API Routes Unit Tests', () => {
         if (message.includes('policy not found')) errorCode = 'POLICY_NOT_FOUND';
         if (message.includes('directory service')) errorCode = 'DIRECTORY_SERVICE_ERROR';
 
-        expect(errorCode).toBe(expectedCode);
+        assert.strictEqual(errorCode, expectedCode);
       });
     });
   });
@@ -319,7 +321,7 @@ describe('REST API Routes Unit Tests', () => {
             businessImpact = 'low';
         }
 
-        expect(businessImpact).toBe(expectedImpact);
+        assert.strictEqual(businessImpact, expectedImpact);
       });
     });
 
@@ -335,7 +337,7 @@ describe('REST API Routes Unit Tests', () => {
         const requiresEscalation =
           severity === 'critical' || (severity === 'high' && !businessHours);
 
-        expect(requiresEscalation).toBe(expectedEscalation);
+        assert.strictEqual(requiresEscalation, expectedEscalation);
       });
     });
   });
@@ -349,10 +351,10 @@ describe('REST API Routes Unit Tests', () => {
         results_count: 5,
       };
 
-      expect(performanceMetrics.execution_time_ms).toBeGreaterThan(0);
-      expect(typeof performanceMetrics.cache_hit).toBe('boolean');
-      expect(performanceMetrics.source_count).toBeGreaterThanOrEqual(1);
-      expect(performanceMetrics.results_count).toBeGreaterThanOrEqual(0);
+      assert(performanceMetrics.execution_time_ms > 0);
+      assert(typeof performanceMetrics.cache_hit === 'boolean');
+      assert(performanceMetrics.source_count >= 1);
+      assert(performanceMetrics.results_count >= 0);
 
       // Performance tier classification
       let performanceTier = 'slow';
@@ -362,7 +364,7 @@ describe('REST API Routes Unit Tests', () => {
         performanceTier = 'medium';
       }
 
-      expect(['fast', 'medium', 'slow']).toContain(performanceTier);
+      assert(['fast', 'medium', 'slow'].includes(performanceTier));
     });
 
     it('should handle cache performance tracking', () => {
@@ -377,10 +379,10 @@ describe('REST API Routes Unit Tests', () => {
         if (executionTime < 100) tier = 'fast';
         else if (executionTime < 300) tier = 'medium';
 
-        expect(tier).toBe(expectedTier);
+        assert.strictEqual(tier, expectedTier);
 
         if (cacheHit) {
-          expect(executionTime).toBeLessThan(50); // Cached responses should be fast
+          assert(executionTime < 50); // Cached responses should be fast
         }
       });
     });
@@ -405,7 +407,7 @@ describe('REST API Routes Unit Tests', () => {
               ? 'yaml'
               : 'text';
 
-        expect(detectedType).toBe(type);
+        assert.strictEqual(detectedType, type);
       });
     });
 
@@ -413,14 +415,14 @@ describe('REST API Routes Unit Tests', () => {
       const confidenceScores = [0.95, 0.75, 0.5, 0.25];
 
       confidenceScores.forEach(score => {
-        expect(score).toBeGreaterThanOrEqual(0);
-        expect(score).toBeLessThanOrEqual(1);
+        assert(score >= 0);
+        assert(score <= 1);
 
         let confidenceLevel = 'low';
         if (score >= 0.8) confidenceLevel = 'high';
         else if (score >= 0.6) confidenceLevel = 'medium';
 
-        expect(['low', 'medium', 'high']).toContain(confidenceLevel);
+        assert(['low', 'medium', 'high'].includes(confidenceLevel));
       });
     });
   });
@@ -440,7 +442,7 @@ describe('REST API Routes Unit Tests', () => {
         const containsPathTraversal = input.includes('../');
 
         const isDangerous = containsScript || containsSQL || containsPathTraversal;
-        expect(isDangerous).toBe(true);
+        assert.strictEqual(isDangerous, true);
       });
     });
 
@@ -456,9 +458,9 @@ describe('REST API Routes Unit Tests', () => {
         const isValid = id.length > 0 && id.length <= 100 && /^[a-zA-Z0-9_-]+$/.test(id);
 
         if (id === 'valid_correlation_12345' || id === 'valid-correlation-uuid') {
-          expect(isValid).toBe(true);
+          assert.strictEqual(isValid, true);
         } else {
-          expect(isValid).toBe(false);
+          assert.strictEqual(isValid, false);
         }
       });
     });

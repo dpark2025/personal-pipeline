@@ -1,12 +1,14 @@
 /**
- * REST API Middleware Unit Tests
+ * REST API Middleware Unit Tests using Node.js Test Runner
  *
  * Tests middleware concepts and validation patterns for REST API requests.
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { describe, it, beforeEach, mock } from 'node:test';
+import assert from 'node:assert';
+import type { Request, Response, NextFunction } from 'express';
 
-describe('REST API Middleware Unit Tests', () => {
+describe('REST API Middleware Unit Tests (Node.js Test Runner)', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
@@ -20,17 +22,17 @@ describe('REST API Middleware Unit Tests', () => {
       ip: '127.0.0.1',
       method: 'POST',
       url: '/api/search',
-      get: jest.fn(),
+      get: mock.fn(),
     };
 
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      setHeader: jest.fn().mockReturnThis(),
+      status: mock.fn(() => mockResponse as Response),
+      json: mock.fn(() => mockResponse as Response),
+      setHeader: mock.fn(() => mockResponse as Response),
       locals: {},
     };
 
-    mockNext = jest.fn();
+    mockNext = mock.fn();
   });
 
   describe('Request Validation Concepts', () => {
@@ -61,11 +63,11 @@ describe('REST API Middleware Unit Tests', () => {
       };
 
       // Validate schema structure
-      expect(validationSchema.type).toBe('object');
-      expect(validationSchema.properties.query).toBeDefined();
-      expect(validationSchema.properties.query.type).toBe('string');
-      expect(validationSchema.required).toContain('query');
-      expect(validationSchema.additionalProperties).toBe(false);
+      assert.strictEqual(validationSchema.type, 'object');
+      assert(validationSchema.properties.query);
+      assert.strictEqual(validationSchema.properties.query.type, 'string');
+      assert(validationSchema.required.includes('query'));
+      assert.strictEqual(validationSchema.additionalProperties, false);
     });
 
     it('should identify required field validation errors', () => {
@@ -77,8 +79,8 @@ describe('REST API Middleware Unit Tests', () => {
       const requiredFields = ['query'];
       const missingFields = requiredFields.filter(field => !requestData.hasOwnProperty(field));
 
-      expect(missingFields).toContain('query');
-      expect(missingFields).toHaveLength(1);
+      assert(missingFields.includes('query'));
+      assert.strictEqual(missingFields.length, 1);
     });
 
     it('should apply default values for optional fields', () => {
@@ -92,8 +94,8 @@ describe('REST API Middleware Unit Tests', () => {
         max_results: requestData.max_results || 10,
       };
 
-      expect(processedData.max_results).toBe(10);
-      expect(processedData.query).toBe('test query');
+      assert.strictEqual(processedData.max_results, 10);
+      assert.strictEqual(processedData.query, 'test query');
     });
 
     it('should validate string length constraints', () => {
@@ -110,7 +112,7 @@ describe('REST API Middleware Unit Tests', () => {
         if (minLength && value.length < minLength) validationResult = false;
         if (maxLength && value.length > maxLength) validationResult = false;
 
-        expect(validationResult).toBe(isValid);
+        assert.strictEqual(validationResult, isValid);
       });
     });
 
@@ -127,7 +129,7 @@ describe('REST API Middleware Unit Tests', () => {
         if (minimum && value < minimum) validationResult = false;
         if (maximum && value > maximum) validationResult = false;
 
-        expect(validationResult).toBe(isValid);
+        assert.strictEqual(validationResult, isValid);
       });
     });
 
@@ -141,7 +143,7 @@ describe('REST API Middleware Unit Tests', () => {
 
       testValues.forEach(({ value, isValid }) => {
         const validationResult = severityEnum.includes(value);
-        expect(validationResult).toBe(isValid);
+        assert.strictEqual(validationResult, isValid);
       });
     });
   });
@@ -158,10 +160,10 @@ describe('REST API Middleware Unit Tests', () => {
         timestamp: new Date().toISOString(),
       };
 
-      expect(successResponse.success).toBe(true);
-      expect(successResponse.data).toBeDefined();
-      expect(successResponse.metadata.correlation_id).toBeDefined();
-      expect(successResponse.timestamp).toBeDefined();
+      assert.strictEqual(successResponse.success, true);
+      assert(successResponse.data);
+      assert(successResponse.metadata.correlation_id);
+      assert(successResponse.timestamp);
     });
 
     it('should understand standard error response format', () => {
@@ -182,10 +184,10 @@ describe('REST API Middleware Unit Tests', () => {
         timestamp: new Date().toISOString(),
       };
 
-      expect(errorResponse.success).toBe(false);
-      expect(errorResponse.error).toBeDefined();
-      expect(errorResponse.error.code).toBeDefined();
-      expect(errorResponse.error.details.recovery_actions).toBeInstanceOf(Array);
+      assert.strictEqual(errorResponse.success, false);
+      assert(errorResponse.error);
+      assert(errorResponse.error.code);
+      assert(Array.isArray(errorResponse.error.details.recovery_actions));
     });
   });
 
@@ -198,7 +200,7 @@ describe('REST API Middleware Unit Tests', () => {
         error.message.includes('required') ||
         error.message.includes('Missing required field');
 
-      expect(isValidationError).toBe(true);
+      assert.strictEqual(isValidationError, true);
 
       if (isValidationError) {
         const errorClassification = {
@@ -207,8 +209,8 @@ describe('REST API Middleware Unit Tests', () => {
           retryRecommended: false,
         };
 
-        expect(errorClassification.httpStatus).toBe(400);
-        expect(errorClassification.severity).toBe('low');
+        assert.strictEqual(errorClassification.httpStatus, 400);
+        assert.strictEqual(errorClassification.severity, 'low');
       }
     });
 
@@ -217,7 +219,7 @@ describe('REST API Middleware Unit Tests', () => {
 
       const isTimeoutError = error.message.includes('timeout');
 
-      expect(isTimeoutError).toBe(true);
+      assert.strictEqual(isTimeoutError, true);
 
       if (isTimeoutError) {
         const errorClassification = {
@@ -226,8 +228,8 @@ describe('REST API Middleware Unit Tests', () => {
           retryRecommended: true,
         };
 
-        expect(errorClassification.httpStatus).toBe(504);
-        expect(errorClassification.retryRecommended).toBe(true);
+        assert.strictEqual(errorClassification.httpStatus, 504);
+        assert.strictEqual(errorClassification.retryRecommended, true);
       }
     });
   });
@@ -247,7 +249,7 @@ describe('REST API Middleware Unit Tests', () => {
           validationResult = false;
         }
 
-        expect(validationResult).toBe(isValid);
+        assert.strictEqual(validationResult, isValid);
       });
     });
 
@@ -259,7 +261,7 @@ describe('REST API Middleware Unit Tests', () => {
 
       requests.forEach(({ size, limit, isValid }) => {
         const validationResult = size <= limit;
-        expect(validationResult).toBe(isValid);
+        assert.strictEqual(validationResult, isValid);
       });
     });
 
@@ -271,9 +273,9 @@ describe('REST API Middleware Unit Tests', () => {
         'Access-Control-Allow-Origin': '*',
       };
 
-      expect(securityHeaders['X-Content-Type-Options']).toBe('nosniff');
-      expect(securityHeaders['X-Frame-Options']).toBe('DENY');
-      expect(securityHeaders['X-XSS-Protection']).toBe('1; mode=block');
+      assert.strictEqual(securityHeaders['X-Content-Type-Options'], 'nosniff');
+      assert.strictEqual(securityHeaders['X-Frame-Options'], 'DENY');
+      assert.strictEqual(securityHeaders['X-XSS-Protection'], '1; mode=block');
     });
   });
 
@@ -286,8 +288,8 @@ describe('REST API Middleware Unit Tests', () => {
       };
 
       const responseTime = performanceMetrics.end_time - performanceMetrics.start_time;
-      expect(responseTime).toBeGreaterThanOrEqual(150);
-      expect(performanceMetrics.execution_time_ms).toBe(150);
+      assert(responseTime >= 150);
+      assert.strictEqual(performanceMetrics.execution_time_ms, 150);
     });
 
     it('should classify performance tiers', () => {
@@ -302,7 +304,7 @@ describe('REST API Middleware Unit Tests', () => {
         if (time < 100) tier = 'fast';
         else if (time < 300) tier = 'medium';
 
-        expect(tier).toBe(expectedTier);
+        assert.strictEqual(tier, expectedTier);
       });
     });
 
@@ -313,9 +315,9 @@ describe('REST API Middleware Unit Tests', () => {
         'X-Correlation-ID': 'test_correlation_12345',
       };
 
-      expect(performanceHeaders['X-Response-Time']).toBeDefined();
-      expect(performanceHeaders['X-Performance-Tier']).toBeDefined();
-      expect(performanceHeaders['X-Correlation-ID']).toBeDefined();
+      assert(performanceHeaders['X-Response-Time']);
+      assert(performanceHeaders['X-Performance-Tier']);
+      assert(performanceHeaders['X-Correlation-ID']);
     });
   });
 
@@ -327,9 +329,9 @@ describe('REST API Middleware Unit Tests', () => {
         'Access-Control-Allow-Headers': 'Content-Type, X-Correlation-ID',
       };
 
-      expect(corsHeaders['Access-Control-Allow-Origin']).toBe('*');
-      expect(corsHeaders['Access-Control-Allow-Methods']).toContain('POST');
-      expect(corsHeaders['Access-Control-Allow-Headers']).toContain('Content-Type');
+      assert.strictEqual(corsHeaders['Access-Control-Allow-Origin'], '*');
+      assert(corsHeaders['Access-Control-Allow-Methods'].includes('POST'));
+      assert(corsHeaders['Access-Control-Allow-Headers'].includes('Content-Type'));
     });
 
     it('should identify OPTIONS requests', () => {
@@ -339,9 +341,9 @@ describe('REST API Middleware Unit Tests', () => {
         const isOptionsRequest = method === 'OPTIONS';
 
         if (method === 'OPTIONS') {
-          expect(isOptionsRequest).toBe(true);
+          assert.strictEqual(isOptionsRequest, true);
         } else {
-          expect(isOptionsRequest).toBe(false);
+          assert.strictEqual(isOptionsRequest, false);
         }
       });
     });
@@ -353,12 +355,12 @@ describe('REST API Middleware Unit Tests', () => {
       const syncError = new Error('Sync operation failed');
 
       // Simulate error handling patterns
-      expect(asyncError.message).toContain('Async');
-      expect(syncError.message).toContain('Sync');
+      assert(asyncError.message.includes('Async'));
+      assert(syncError.message.includes('Sync'));
 
       // Both should be treated as errors
-      expect(asyncError instanceof Error).toBe(true);
-      expect(syncError instanceof Error).toBe(true);
+      assert(asyncError instanceof Error);
+      assert(syncError instanceof Error);
     });
 
     it('should handle promise rejections', async () => {
@@ -370,10 +372,10 @@ describe('REST API Middleware Unit Tests', () => {
 
       // Test successful operation
       const successResult = await mockAsyncOperation(false);
-      expect(successResult).toBe('Success');
+      assert.strictEqual(successResult, 'Success');
 
       // Test failed operation
-      await expect(mockAsyncOperation(true)).rejects.toThrow('Operation failed');
+      await assert.rejects(mockAsyncOperation(true), /Operation failed/);
     });
   });
 
@@ -392,7 +394,7 @@ describe('REST API Middleware Unit Tests', () => {
         const containsPathTraversal = value.includes('../');
 
         const detectedAsDangerous = containsScript || containsSQL || containsPathTraversal;
-        expect(detectedAsDangerous).toBe(isDangerous);
+        assert.strictEqual(detectedAsDangerous, isDangerous);
       });
     });
 
@@ -407,7 +409,7 @@ describe('REST API Middleware Unit Tests', () => {
       correlationIds.forEach(({ id, isValid }) => {
         const validationResult = id.length > 0 && id.length <= 100 && /^[a-zA-Z0-9_-]+$/.test(id);
 
-        expect(validationResult).toBe(isValid);
+        assert.strictEqual(validationResult, isValid);
       });
     });
   });
