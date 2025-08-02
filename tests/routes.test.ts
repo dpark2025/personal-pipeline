@@ -2,7 +2,7 @@
  * REST API Routes Unit Tests using Node.js Test Runner
  *
  * Tests the route concepts and error handling patterns in isolation.
- * Since routes.ts doesn't export individual route handlers, we test the
+ * Since routes.js doesn't export individual route handlers, we test the
  * concepts and error handling logic that would be used.
  */
 
