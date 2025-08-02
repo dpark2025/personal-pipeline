@@ -3,74 +3,49 @@
  * 
  * Tests the complete cache service functionality including Redis integration,
  * fallback mechanisms, and error handling scenarios.
+ * 
+ * Enhanced with improved test utilities for better maintainability and consistency.
  */
 
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { CacheService, createCacheKey } from '../../src/utils/cache.js';
 import { CacheConfig } from '../../src/types/index.js';
+import { 
+  memoryOnlyCacheConfig, 
+  disabledCacheConfig,
+  assertCacheStats,
+  assertHealthCheck,
+  generateCacheKeyTestSet,
+  generateRunbookData,
+  cleanupCacheService
+} from '../utils/index.js';
 
 describe('Cache Service Integration Tests', () => {
   let cacheService: CacheService;
 
-  const testConfig: CacheConfig = {
-    enabled: true,
-    strategy: 'memory_only',
-    memory: {
-      max_keys: 100,
-      ttl_seconds: 60,
-      check_period_seconds: 30,
-    },
-    redis: {
-      enabled: false,
-      url: 'redis://localhost:6379',
-      ttl_seconds: 120,
-      key_prefix: 'test:cache:',
-      connection_timeout_ms: 5000,
-      retry_attempts: 3,
-      retry_delay_ms: 1000,
-      max_retry_delay_ms: 30000,
-      backoff_multiplier: 2,
-      connection_retry_limit: 5,
-    },
-    content_types: {
-      runbooks: {
-        ttl_seconds: 3600,
-        warmup: true,
-      },
-      procedures: {
-        ttl_seconds: 1800,
-        warmup: false,
-      },
-      decision_trees: {
-        ttl_seconds: 2400,
-        warmup: true,
-      },
-      knowledge_base: {
-        ttl_seconds: 900,
-        warmup: false,
-      },
-    },
-  };
-
   beforeEach(async () => {
-    // Create a fresh cache service instance
-    cacheService = new CacheService(testConfig);
+    // Create a fresh cache service instance using shared config
+    cacheService = new CacheService(memoryOnlyCacheConfig);
   });
 
   afterEach(async () => {
     if (cacheService) {
-      await cacheService.shutdown();
+      await cleanupCacheService(cacheService);
     }
   });
 
   describe('Cache Service Initialization', () => {
     it('should initialize with memory-only strategy', () => {
       const stats = cacheService.getStats();
-      assert.strictEqual(stats.hits, 0);
-      assert.strictEqual(stats.misses, 0);
-      assert.strictEqual(stats.total_operations, 0);
-      assert.strictEqual(stats.hit_rate, 0);
+      // Use enhanced assertion utility for better error messages
+      assertCacheStats(stats, {
+        hits: 0,
+        misses: 0,
+        total_operations: 0,
+        hit_rate: 0,
+        redis_connected: false
+      });
     });
 
     it('should have Redis disabled in memory-only mode', () => {
@@ -79,36 +54,42 @@ describe('Cache Service Integration Tests', () => {
       assert.strictEqual(stats.redis_connected, false);
     });
 
-    it('should handle disabled cache', () => {
-      const disabledConfig = {
-        ...testConfig,
-        enabled: false,
-      };
-      
-      const disabledCacheService = new CacheService(disabledConfig);
+    it('should handle disabled cache', async () => {
+      const disabledCacheService = new CacheService(disabledCacheConfig);
       const stats = disabledCacheService.getStats();
       
-      assert.strictEqual(stats.hits, 0);
-      assert.strictEqual(stats.misses, 0);
+      // Use assertion utility for consistent validation
+      assertCacheStats(stats, {
+        hits: 0,
+        misses: 0,
+        total_operations: 0,
+        hit_rate: 0
+      });
       
-      disabledCacheService.shutdown();
+      await cleanupCacheService(disabledCacheService);
     });
   });
 
   describe('Basic Cache Operations', () => {
     it('should set and get values from memory cache', async () => {
       const key = createCacheKey('runbooks', 'test-runbook-1');
-      const testData = { title: 'Test Runbook', content: 'Test content' };
+      const testData = generateRunbookData('test-runbook-1', {
+        title: 'Test Runbook',
+        severity: 'high'
+      });
 
       await cacheService.set(key, testData);
       const result = await cacheService.get(key);
 
       assert.deepStrictEqual(result, testData);
 
+      // Use enhanced assertion utility
       const stats = cacheService.getStats();
-      assert.strictEqual(stats.hits, 1);
-      assert.strictEqual(stats.total_operations, 1);
-      assert.strictEqual(stats.hit_rate, 1);
+      assertCacheStats(stats, {
+        hits: 1,
+        total_operations: 1,
+        hit_rate: 1
+      });
     });
 
     it('should return null for non-existent keys', async () => {
@@ -305,7 +286,7 @@ describe('Cache Service Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle disabled cache gracefully', async () => {
-      const disabledConfig = { ...testConfig, enabled: false };
+      const disabledConfig = disabledCacheConfig;
       const disabledCache = new CacheService(disabledConfig);
 
       const key = createCacheKey('runbooks', 'test');
