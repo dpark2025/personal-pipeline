@@ -99,12 +99,12 @@ export class PersonalPipelineServer {
         maxSamples: 1000, // Keep last 1000 samples
       });
 
-      // Initialize monitoring service
+      // Initialize cache service first (required by monitoring)
+      await this.initializeCacheService();
+
+      // Initialize monitoring service (after cache service is ready)
       const monitoringService = initializeMonitoringService(defaultMonitoringConfig);
       monitoringService.start();
-
-      // Initialize cache service
-      await this.initializeCacheService();
 
       // Initialize PPMCPTools with cache service
       this.mcpTools = new PPMCPTools(this.sourceRegistry, this.cacheService || undefined);
