@@ -1,15 +1,17 @@
 /**
- * Caching Middleware Unit Tests
+ * Caching Middleware Unit Tests using Node.js Test Runner
  *
  * Tests caching concepts and middleware patterns for API performance optimization.
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { describe, it, beforeEach, mock } from 'node:test';
+import assert from 'node:assert';
+import type { Request, Response, NextFunction } from 'express';
 
-describe('Caching Middleware Unit Tests', () => {
+describe('Caching Middleware Unit Tests (Node.js Test Runner)', () => {
   let mockRequest: Partial<Request>;
   let _mockResponse: Partial<Response>;
-  let mockNext: jest.MockedFunction<NextFunction>;
+  let mockNext: NextFunction;
 
   beforeEach(() => {
     mockRequest = {
@@ -22,14 +24,14 @@ describe('Caching Middleware Unit Tests', () => {
     };
 
     _mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      setHeader: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
+      status: mock.fn(() => _mockResponse as Response),
+      json: mock.fn(() => _mockResponse as Response),
+      setHeader: mock.fn(() => _mockResponse as Response),
+      send: mock.fn(() => _mockResponse as Response),
       locals: {},
     };
 
-    mockNext = jest.fn() as jest.MockedFunction<NextFunction>;
+    mockNext = mock.fn();
   });
 
   describe('Cache Key Generation Concepts', () => {
@@ -55,8 +57,8 @@ describe('Caching Middleware Unit Tests', () => {
 
       // All cache keys should be unique
       const uniqueKeys = new Set(cacheKeys);
-      expect(uniqueKeys.size).toBe(cacheKeys.length);
-      expect(cacheKeys).toHaveLength(4);
+      assert.strictEqual(uniqueKeys.size, cacheKeys.length);
+      assert.strictEqual(cacheKeys.length, 4);
     });
 
     it('should include request parameters in cache key', () => {
@@ -73,9 +75,9 @@ describe('Caching Middleware Unit Tests', () => {
       // Simulate cache key generation
       const cacheKey = `${request.method}:${request.path}:${JSON.stringify(request.body)}`;
 
-      expect(cacheKey).toContain('database_connection_failure');
-      expect(cacheKey).toContain('critical');
-      expect(cacheKey).toContain('user-api');
+      assert(cacheKey.includes('database_connection_failure'));
+      assert(cacheKey.includes('critical'));
+      assert(cacheKey.includes('user-api'));
     });
   });
 
@@ -109,7 +111,7 @@ describe('Caching Middleware Unit Tests', () => {
           strategy = 'performance_cache';
         }
 
-        expect(strategy).toBe(expectedStrategy);
+        assert.strictEqual(strategy, expectedStrategy);
       });
     });
 
@@ -133,7 +135,7 @@ describe('Caching Middleware Unit Tests', () => {
             break;
         }
 
-        expect(ttl).toBe(expectedTTL);
+        assert.strictEqual(ttl, expectedTTL);
       });
     });
   });
@@ -150,9 +152,9 @@ describe('Caching Middleware Unit Tests', () => {
         return { method, cacheable: isCacheable };
       });
 
-      expect(cacheableResults.find(r => r.method === 'GET')?.cacheable).toBe(true);
-      expect(cacheableResults.find(r => r.method === 'PUT')?.cacheable).toBe(false);
-      expect(cacheableResults.find(r => r.method === 'DELETE')?.cacheable).toBe(false);
+      assert.strictEqual(cacheableResults.find(r => r.method === 'GET')?.cacheable, true);
+      assert.strictEqual(cacheableResults.find(r => r.method === 'PUT')?.cacheable, false);
+      assert.strictEqual(cacheableResults.find(r => r.method === 'DELETE')?.cacheable, false);
     });
 
     it('should identify cacheable POST endpoints', () => {
@@ -168,7 +170,7 @@ describe('Caching Middleware Unit Tests', () => {
         // Simulate POST endpoint cache eligibility
         const isCacheable = !path.includes('feedback');
 
-        expect(isCacheable).toBe(cacheable);
+        assert.strictEqual(isCacheable, cacheable);
       });
     });
   });
@@ -185,9 +187,9 @@ describe('Caching Middleware Unit Tests', () => {
         const actualTime = cached ? Math.min(baseTime * 0.1, 50) : baseTime;
 
         if (cached && expectedMaxTime !== undefined) {
-          expect(actualTime).toBeLessThanOrEqual(expectedMaxTime);
+          assert(actualTime <= expectedMaxTime);
         } else if (!cached && expectedTime !== undefined) {
-          expect(actualTime).toBe(expectedTime);
+          assert.strictEqual(actualTime, expectedTime);
         }
       });
     });
@@ -205,7 +207,7 @@ describe('Caching Middleware Unit Tests', () => {
         if (time < 100) tier = 'fast';
         else if (time < 300) tier = 'medium';
 
-        expect(tier).toBe(expectedTier);
+        assert.strictEqual(tier, expectedTier);
       });
     });
   });
@@ -217,7 +219,7 @@ describe('Caching Middleware Unit Tests', () => {
       // Simulate graceful degradation
       const shouldProceed = !cacheAvailable; // Continue without cache
 
-      expect(shouldProceed).toBe(true);
+      assert.strictEqual(shouldProceed, true);
     });
 
     it('should handle malformed cache data', () => {
@@ -231,11 +233,11 @@ describe('Caching Middleware Unit Tests', () => {
         isValidCache = false;
       }
 
-      expect(isValidCache).toBe(false);
+      assert.strictEqual(isValidCache, false);
 
       // Should continue to next middleware when cache is invalid
       const shouldContinue = !isValidCache;
-      expect(shouldContinue).toBe(true);
+      assert.strictEqual(shouldContinue, true);
     });
 
     it('should handle cache timeout errors', () => {
@@ -245,11 +247,11 @@ describe('Caching Middleware Unit Tests', () => {
       // Simulate timeout detection
       const isTimeout = requestTime > cacheTimeout;
 
-      expect(isTimeout).toBe(true);
+      assert.strictEqual(isTimeout, true);
 
       // Should continue without cache on timeout
       const shouldContinue = isTimeout;
-      expect(shouldContinue).toBe(true);
+      assert.strictEqual(shouldContinue, true);
     });
   });
 
@@ -268,16 +270,16 @@ describe('Caching Middleware Unit Tests', () => {
 
       // Test cache hit scenario
       const withCache = middlewareAction(true, mockNext);
-      expect(withCache).toBe('cached_response');
-      expect(mockNext).not.toHaveBeenCalled();
+      assert.strictEqual(withCache, 'cached_response');
+      assert.strictEqual(mockNext.mock.callCount(), 0);
 
       // Reset mock for next test
-      mockNext.mockClear();
+      mockNext.mock.resetCalls();
 
       // Test cache miss scenario
       const withoutCache = middlewareAction(false, mockNext);
-      expect(withoutCache).toBe('continue');
-      expect(mockNext).toHaveBeenCalled();
+      assert.strictEqual(withoutCache, 'continue');
+      assert.strictEqual(mockNext.mock.callCount(), 1);
     });
 
     it('should understand response header management', () => {
@@ -288,12 +290,12 @@ describe('Caching Middleware Unit Tests', () => {
       };
 
       // Validate header structures
-      expect(cacheHeaders.hit['X-Cache']).toBe('HIT');
-      expect(cacheHeaders.miss['X-Cache']).toBe('MISS');
-      expect(cacheHeaders.error['X-Cache']).toBe('ERROR');
+      assert.strictEqual(cacheHeaders.hit['X-Cache'], 'HIT');
+      assert.strictEqual(cacheHeaders.miss['X-Cache'], 'MISS');
+      assert.strictEqual(cacheHeaders.error['X-Cache'], 'ERROR');
 
-      expect(cacheHeaders.hit['X-Cache-Strategy']).toBeDefined();
-      expect(cacheHeaders.miss['X-Cache-Strategy']).toBeDefined();
+      assert(cacheHeaders.hit['X-Cache-Strategy']);
+      assert(cacheHeaders.miss['X-Cache-Strategy']);
     });
   });
 
@@ -315,9 +317,9 @@ describe('Caching Middleware Unit Tests', () => {
         })
       );
 
-      expect(processedRequests).toHaveLength(concurrentRequestCount);
+      assert.strictEqual(processedRequests.length, concurrentRequestCount);
       processedRequests.forEach(req => {
-        expect(req.processed).toBe(true);
+        assert.strictEqual(req.processed, true);
       });
     });
   });
@@ -337,8 +339,8 @@ describe('Caching Middleware Unit Tests', () => {
 
       const shouldCache = responseSize < maxCacheSize;
 
-      expect(responseSize).toBeGreaterThan(100000); // Should be substantial
-      expect(shouldCache).toBe(true); // But still cacheable
+      assert(responseSize > 100000); // Should be substantial
+      assert.strictEqual(shouldCache, true); // But still cacheable
     });
   });
 });

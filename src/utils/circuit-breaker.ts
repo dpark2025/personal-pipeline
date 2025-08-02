@@ -454,6 +454,14 @@ export class CircuitBreakerFactory {
     this.breakers.forEach(breaker => breaker.manualReset());
     logger.info('All circuit breakers reset');
   }
+
+  /**
+   * Clear all circuit breakers from the factory (for testing)
+   */
+  static clearAll(): void {
+    this.breakers.clear();
+    logger.info('All circuit breakers cleared from factory');
+  }
 }
 
 /**

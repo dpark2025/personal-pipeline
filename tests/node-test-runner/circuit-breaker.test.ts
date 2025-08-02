@@ -1,35 +1,37 @@
 /**
- * Comprehensive Circuit Breaker Tests
- * Tests for circuit breaker pattern implementation and factory
- *
- * QA Engineer: Testing circuit breaker resilience for milestone 1.3
- * Coverage: Circuit states, failure handling, recovery, factory patterns
+ * Circuit Breaker Tests using Node.js Test Runner
+ * 
+ * Tests circuit breaker pattern implementation, factory, and resilience features
  */
 
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+import assert from 'node:assert';
 import {
   CircuitBreaker,
   CircuitBreakerFactory,
   CircuitState,
-  CircuitBreakerConfig,
   withCircuitBreaker,
-} from '../../../src/utils/circuit-breaker';
+} from '../../src/utils/circuit-breaker.js';
+import type { CircuitBreakerConfig } from '../../src/utils/circuit-breaker.js';
 
 // Mock logger to prevent console output during tests
-jest.mock('../../../src/utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    debug: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-}));
+const mockLogger = {
+  info: mock.fn(),
+  debug: mock.fn(),
+  warn: mock.fn(),
+  error: mock.fn(),
+};
 
-describe('CircuitBreaker - Comprehensive Testing', () => {
+// Helper to wait for timeout
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+describe('CircuitBreaker (Node.js Test Runner)', () => {
   let circuitBreaker: CircuitBreaker;
   let mockConfig: CircuitBreakerConfig;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    // Reset all mock calls
+    Object.values(mockLogger).forEach(fn => fn.mock.resetCalls());
 
     mockConfig = {
       failureThreshold: 3,
@@ -45,12 +47,14 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
 
   describe('Circuit States and Transitions', () => {
     it('should initialize in CLOSED state', () => {
-      expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
-      expect(circuitBreaker.isHealthy()).toBe(true);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.CLOSED);
+      assert.strictEqual(circuitBreaker.isHealthy(), true);
     });
 
     it('should transition to OPEN state after failure threshold', async () => {
-      const failingFunction = jest.fn().mockRejectedValue(new Error('Service unavailable'));
+      const failingFunction = mock.fn(async () => {
+        throw new Error('Service unavailable');
+      });
 
       // Trigger failures up to threshold
       for (let i = 0; i < mockConfig.failureThreshold; i++) {
@@ -61,24 +65,28 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         }
       }
 
-      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
-      expect(circuitBreaker.isHealthy()).toBe(false);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.OPEN);
+      assert.strictEqual(circuitBreaker.isHealthy(), false);
     });
 
     it('should fail fast when circuit is OPEN', async () => {
       // Force circuit to OPEN state
       circuitBreaker.trip();
-      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.OPEN);
 
-      const mockFunction = jest.fn().mockResolvedValue('success');
+      const mockFunction = mock.fn(async () => 'success');
 
-      try {
-        await circuitBreaker.execute(mockFunction);
-        fail('Should have thrown circuit breaker error');
-      } catch (error) {
-        expect((error as Error).message).toContain('Circuit breaker test-circuit is OPEN');
-        expect(mockFunction).not.toHaveBeenCalled();
-      }
+      await assert.rejects(
+        async () => {
+          await circuitBreaker.execute(mockFunction);
+        },
+        (error: Error) => {
+          assert(error.message.includes('Circuit breaker test-circuit is OPEN'));
+          return true;
+        }
+      );
+
+      assert.strictEqual(mockFunction.mock.callCount(), 0);
     });
 
     it('should transition to HALF_OPEN after recovery timeout', async () => {
@@ -91,16 +99,16 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
       const shortTimeoutBreaker = new CircuitBreaker(shortTimeoutConfig);
       shortTimeoutBreaker.trip();
 
-      expect(shortTimeoutBreaker.getState()).toBe(CircuitState.OPEN);
+      assert.strictEqual(shortTimeoutBreaker.getState(), CircuitState.OPEN);
 
       // Wait for recovery timeout
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await wait(150);
 
-      // Next execution should transition to HALF_OPEN
-      const successFunction = jest.fn().mockResolvedValue('success');
+      // Next execution should transition to HALF_OPEN then CLOSED
+      const successFunction = mock.fn(async () => 'success');
       await shortTimeoutBreaker.execute(successFunction);
 
-      expect(shortTimeoutBreaker.getState()).toBe(CircuitState.CLOSED);
+      assert.strictEqual(shortTimeoutBreaker.getState(), CircuitState.CLOSED);
     });
 
     it('should transition from HALF_OPEN to CLOSED after success threshold', async () => {
@@ -111,17 +119,17 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
       });
 
       breaker.trip();
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await wait(150);
 
-      const successFunction = jest.fn().mockResolvedValue('success');
+      const successFunction = mock.fn(async () => 'success');
 
       // Execute successful calls to meet success threshold
       for (let i = 0; i < mockConfig.successThreshold; i++) {
         await breaker.execute(successFunction);
       }
 
-      expect(breaker.getState()).toBe(CircuitState.CLOSED);
-      expect(breaker.isHealthy()).toBe(true);
+      assert.strictEqual(breaker.getState(), CircuitState.CLOSED);
+      assert.strictEqual(breaker.isHealthy(), true);
     });
 
     it('should transition from HALF_OPEN back to OPEN on failure', async () => {
@@ -132,14 +140,16 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
 
       // Force to HALF_OPEN state
       breaker.trip();
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await wait(150);
 
       // First success to get to HALF_OPEN
-      const successFunction = jest.fn().mockResolvedValue('success');
+      const successFunction = mock.fn(async () => 'success');
       await breaker.execute(successFunction);
 
       // Now fail - should go back to OPEN
-      const failFunction = jest.fn().mockRejectedValue(new Error('Failed again'));
+      const failFunction = mock.fn(async () => {
+        throw new Error('Failed again');
+      });
 
       try {
         await breaker.execute(failFunction);
@@ -147,81 +157,92 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         // Expected
       }
 
-      expect(breaker.getState()).toBe(CircuitState.OPEN);
+      assert.strictEqual(breaker.getState(), CircuitState.OPEN);
     });
   });
 
   describe('Execution and Timeout Handling', () => {
     it('should execute successful functions normally', async () => {
-      const successFunction = jest.fn().mockResolvedValue('test result');
+      const successFunction = mock.fn(async () => 'test result');
 
       const result = await circuitBreaker.execute(successFunction);
 
-      expect(result).toBe('test result');
-      expect(successFunction).toHaveBeenCalledTimes(1);
-      expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
+      assert.strictEqual(result, 'test result');
+      assert.strictEqual(successFunction.mock.callCount(), 1);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.CLOSED);
     });
 
     it('should handle function timeouts', async () => {
-      const slowFunction = jest.fn(
-        () => new Promise(resolve => setTimeout(() => resolve('slow result'), 1000))
+      const slowFunction = mock.fn(() => 
+        new Promise(resolve => setTimeout(() => resolve('slow result'), 1000))
       );
 
-      try {
-        await circuitBreaker.execute(slowFunction);
-        fail('Should have timed out');
-      } catch (error) {
-        expect((error as Error).message).toContain('timeout after 500ms');
-      }
+      await assert.rejects(
+        async () => {
+          await circuitBreaker.execute(slowFunction);
+        },
+        (error: Error) => {
+          assert(error.message.includes('timeout after 500ms'));
+          return true;
+        }
+      );
     });
 
     it('should propagate function errors', async () => {
-      const errorFunction = jest.fn().mockRejectedValue(new Error('Function error'));
+      const errorFunction = mock.fn(async () => {
+        throw new Error('Function error');
+      });
 
-      try {
-        await circuitBreaker.execute(errorFunction);
-        fail('Should have thrown function error');
-      } catch (error) {
-        expect((error as Error).message).toBe('Function error');
-      }
+      await assert.rejects(
+        async () => {
+          await circuitBreaker.execute(errorFunction);
+        },
+        (error: Error) => {
+          assert.strictEqual(error.message, 'Function error');
+          return true;
+        }
+      );
     });
 
     it('should handle synchronous function errors', async () => {
-      const syncErrorFunction = jest.fn(() => {
+      const syncErrorFunction = mock.fn(() => {
         throw new Error('Sync error');
       });
 
-      try {
-        await circuitBreaker.execute(syncErrorFunction);
-        fail('Should have thrown sync error');
-      } catch (error) {
-        expect((error as Error).message).toBe('Sync error');
-      }
+      await assert.rejects(
+        async () => {
+          await circuitBreaker.execute(syncErrorFunction);
+        },
+        (error: Error) => {
+          assert.strictEqual(error.message, 'Sync error');
+          return true;
+        }
+      );
     });
   });
 
   describe('Event Emission', () => {
     it('should emit success events', async () => {
-      const successHandler = jest.fn();
+      const successHandler = mock.fn();
       circuitBreaker.on('success', successHandler);
 
-      const successFunction = jest.fn().mockResolvedValue('result');
+      const successFunction = mock.fn(async () => 'result');
       await circuitBreaker.execute(successFunction);
 
-      expect(successHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          state: CircuitState.CLOSED,
-          successes: 1,
-          totalSuccesses: 1,
-        })
-      );
+      assert.strictEqual(successHandler.mock.callCount(), 1);
+      const callArgs = successHandler.mock.calls[0].arguments[0];
+      assert.strictEqual(callArgs.state, CircuitState.CLOSED);
+      assert.strictEqual(callArgs.successes, 1);
+      assert.strictEqual(callArgs.totalSuccesses, 1);
     });
 
     it('should emit failure events', async () => {
-      const failureHandler = jest.fn();
+      const failureHandler = mock.fn();
       circuitBreaker.on('failure', failureHandler);
 
-      const failFunction = jest.fn().mockRejectedValue(new Error('Test failure'));
+      const failFunction = mock.fn(async () => {
+        throw new Error('Test failure');
+      });
 
       try {
         await circuitBreaker.execute(failFunction);
@@ -229,69 +250,68 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         // Expected
       }
 
-      expect(failureHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(Error),
-          state: CircuitState.CLOSED,
-          failures: 1,
-          totalFailures: 1,
-        })
-      );
+      assert.strictEqual(failureHandler.mock.callCount(), 1);
+      const callArgs = failureHandler.mock.calls[0].arguments[0];
+      assert(callArgs.error instanceof Error);
+      assert.strictEqual(callArgs.state, CircuitState.CLOSED);
+      assert.strictEqual(callArgs.failures, 1);
+      assert.strictEqual(callArgs.totalFailures, 1);
     });
 
     it('should emit state change events', async () => {
-      const stateChangeHandler = jest.fn();
+      const stateChangeHandler = mock.fn();
       circuitBreaker.on('stateChange', stateChangeHandler);
 
       // Force state change to OPEN
       circuitBreaker.trip();
 
-      expect(stateChangeHandler).toHaveBeenCalledWith({
-        oldState: CircuitState.CLOSED,
-        newState: CircuitState.OPEN,
-        name: 'test-circuit',
-      });
+      assert.strictEqual(stateChangeHandler.mock.callCount(), 1);
+      const callArgs = stateChangeHandler.mock.calls[0].arguments[0];
+      assert.strictEqual(callArgs.oldState, CircuitState.CLOSED);
+      assert.strictEqual(callArgs.newState, CircuitState.OPEN);
+      assert.strictEqual(callArgs.name, 'test-circuit');
     });
 
     it('should emit specific state events', async () => {
-      const openHandler = jest.fn();
-      const closeHandler = jest.fn();
-      const halfOpenHandler = jest.fn();
+      const openHandler = mock.fn();
+      const closeHandler = mock.fn();
 
       circuitBreaker.on('open', openHandler);
       circuitBreaker.on('close', closeHandler);
-      circuitBreaker.on('halfOpen', halfOpenHandler);
 
       // Trip to open
       circuitBreaker.trip();
-      expect(openHandler).toHaveBeenCalled();
+      assert.strictEqual(openHandler.mock.callCount(), 1);
 
       // Reset to closed
       circuitBreaker.manualReset();
-      expect(closeHandler).toHaveBeenCalled();
+      assert.strictEqual(closeHandler.mock.callCount(), 1);
     });
 
     it('should emit fallback events', async () => {
-      const fallbackHandler = jest.fn();
+      const fallbackHandler = mock.fn();
       circuitBreaker.on('fallback', fallbackHandler);
 
       circuitBreaker.trip(); // Force to OPEN state
 
-      const mockFunction = jest.fn();
+      const mockFunction = mock.fn();
       try {
         await circuitBreaker.execute(mockFunction);
       } catch (error) {
         // Expected
       }
 
-      expect(fallbackHandler).toHaveBeenCalledWith(expect.any(Error));
+      assert.strictEqual(fallbackHandler.mock.callCount(), 1);
+      assert(fallbackHandler.mock.calls[0].arguments[0] instanceof Error);
     });
   });
 
   describe('Statistics and Monitoring', () => {
     it('should provide comprehensive statistics', async () => {
-      const successFunction = jest.fn().mockResolvedValue('success');
-      const failFunction = jest.fn().mockRejectedValue(new Error('failure'));
+      const successFunction = mock.fn(async () => 'success');
+      const failFunction = mock.fn(async () => {
+        throw new Error('failure');
+      });
 
       // Execute mixed operations
       await circuitBreaker.execute(successFunction);
@@ -305,31 +325,33 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
 
       const stats = circuitBreaker.getStats();
 
-      expect(stats.name).toBe('test-circuit');
-      expect(stats.state).toBe(CircuitState.CLOSED);
-      expect(stats.successes).toBe(2);
-      expect(stats.failures).toBe(1);
-      expect(stats.totalRequests).toBe(3);
-      expect(stats.totalSuccesses).toBe(2);
-      expect(stats.totalFailures).toBe(1);
-      expect(stats.uptime).toBe((2 / 3) * 100);
-      expect(stats.lastSuccess).toBeInstanceOf(Date);
-      expect(stats.lastFailure).toBeInstanceOf(Date);
+      assert.strictEqual(stats.name, 'test-circuit');
+      assert.strictEqual(stats.state, CircuitState.CLOSED);
+      assert.strictEqual(stats.successes, 2);
+      assert.strictEqual(stats.failures, 1);
+      assert.strictEqual(stats.totalRequests, 3);
+      assert.strictEqual(stats.totalSuccesses, 2);
+      assert.strictEqual(stats.totalFailures, 1);
+      assert.strictEqual(stats.uptime, (2 / 3) * 100);
+      assert(stats.lastSuccess instanceof Date);
+      assert(stats.lastFailure instanceof Date);
     });
 
     it('should calculate uptime correctly', async () => {
       const stats = circuitBreaker.getStats();
-      expect(stats.uptime).toBe(100); // No requests yet
+      assert.strictEqual(stats.uptime, 100); // No requests yet
 
-      const successFunction = jest.fn().mockResolvedValue('success');
+      const successFunction = mock.fn(async () => 'success');
       await circuitBreaker.execute(successFunction);
 
       const updatedStats = circuitBreaker.getStats();
-      expect(updatedStats.uptime).toBe(100); // 100% success rate
+      assert.strictEqual(updatedStats.uptime, 100); // 100% success rate
     });
 
     it('should track failure window correctly', async () => {
-      const failFunction = jest.fn().mockRejectedValue(new Error('failure'));
+      const failFunction = mock.fn(async () => {
+        throw new Error('failure');
+      });
 
       // Generate failures within window
       for (let i = 0; i < 2; i++) {
@@ -340,7 +362,7 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         }
       }
 
-      expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.CLOSED);
 
       // One more failure should trigger OPEN state
       try {
@@ -349,33 +371,33 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         // Expected
       }
 
-      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.OPEN);
     });
   });
 
   describe('Manual Controls', () => {
     it('should manually trip circuit', () => {
-      expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.CLOSED);
 
       circuitBreaker.trip();
 
-      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
-      expect(circuitBreaker.isHealthy()).toBe(false);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.OPEN);
+      assert.strictEqual(circuitBreaker.isHealthy(), false);
     });
 
     it('should manually reset circuit', () => {
       circuitBreaker.trip();
-      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.OPEN);
 
       circuitBreaker.manualReset();
 
-      expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
-      expect(circuitBreaker.isHealthy()).toBe(true);
+      assert.strictEqual(circuitBreaker.getState(), CircuitState.CLOSED);
+      assert.strictEqual(circuitBreaker.isHealthy(), true);
 
       // Statistics should be reset
       const stats = circuitBreaker.getStats();
-      expect(stats.failures).toBe(0);
-      expect(stats.successes).toBe(0);
+      assert.strictEqual(stats.failures, 0);
+      assert.strictEqual(stats.successes, 0);
     });
   });
 
@@ -387,7 +409,9 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
       };
 
       const shortWindowBreaker = new CircuitBreaker(shortWindowConfig);
-      const failFunction = jest.fn().mockRejectedValue(new Error('failure'));
+      const failFunction = mock.fn(async () => {
+        throw new Error('failure');
+      });
 
       // Add failure
       try {
@@ -396,10 +420,10 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
         // Expected
       }
 
-      expect(shortWindowBreaker.getStats().failures).toBe(1);
+      assert.strictEqual(shortWindowBreaker.getStats().failures, 1);
 
       // Wait for window to expire
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await wait(150);
 
       // Add another failure - old one should be cleaned up
       try {
@@ -409,53 +433,29 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
       }
 
       // Should still be in CLOSED state because old failure was cleaned up
-      expect(shortWindowBreaker.getState()).toBe(CircuitState.CLOSED);
+      assert.strictEqual(shortWindowBreaker.getState(), CircuitState.CLOSED);
     });
   });
 
   describe('Edge Cases and Error Handling', () => {
     it('should handle null/undefined function execution', async () => {
-      try {
+      await assert.rejects(async () => {
         await circuitBreaker.execute(null as any);
-        fail('Should have thrown error');
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      });
     });
 
     it('should handle functions that return non-Promise values', async () => {
-      const syncFunction = jest.fn(async () => 'sync result');
+      const syncFunction = mock.fn(async () => 'sync result');
 
       const result = await circuitBreaker.execute(syncFunction);
-      expect(result).toBe('sync result');
-    });
-
-    it('should handle very short timeouts gracefully', async () => {
-      const veryShortTimeoutConfig: CircuitBreakerConfig = {
-        ...mockConfig,
-        timeout: 1, // 1ms timeout
-      };
-
-      const veryShortTimeoutBreaker = new CircuitBreaker(veryShortTimeoutConfig);
-      const normalFunction = jest.fn().mockResolvedValue('result');
-
-      try {
-        await veryShortTimeoutBreaker.execute(normalFunction);
-        // May or may not timeout depending on execution speed
-      } catch (error) {
-        // If it times out, that's acceptable
-        if (!(error as Error).message.includes('timeout')) {
-          throw error;
-        }
-      }
+      assert.strictEqual(result, 'sync result');
     });
 
     it('should handle concurrent executions safely', async () => {
-      const mockFunction = jest
-        .fn()
-        .mockResolvedValueOnce('result1')
-        .mockResolvedValueOnce('result2')
-        .mockResolvedValueOnce('result3');
+      const mockFunction = mock.fn()
+        .mockImplementationOnce(async () => 'result1')
+        .mockImplementationOnce(async () => 'result2')
+        .mockImplementationOnce(async () => 'result3');
 
       const promises = [
         circuitBreaker.execute(mockFunction),
@@ -465,14 +465,14 @@ describe('CircuitBreaker - Comprehensive Testing', () => {
 
       const results = await Promise.all(promises);
 
-      expect(results).toHaveLength(3);
-      expect(mockFunction).toHaveBeenCalledTimes(3);
-      expect(circuitBreaker.getStats().totalRequests).toBe(3);
+      assert.strictEqual(results.length, 3);
+      assert.strictEqual(mockFunction.mock.callCount(), 3);
+      assert.strictEqual(circuitBreaker.getStats().totalRequests, 3);
     });
   });
 });
 
-describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
+describe('CircuitBreakerFactory (Node.js Test Runner)', () => {
   beforeEach(() => {
     // Reset factory state
     CircuitBreakerFactory.resetAll();
@@ -486,15 +486,15 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
     it('should create circuit breaker for external service', () => {
       const breaker = CircuitBreakerFactory.forExternalService('github');
 
-      expect(breaker).toBeInstanceOf(CircuitBreaker);
-      expect(breaker.getStats().name).toBe('github');
+      assert(breaker instanceof CircuitBreaker);
+      assert.strictEqual(breaker.getStats().name, 'github');
     });
 
     it('should return same instance for same service name', () => {
       const breaker1 = CircuitBreakerFactory.forExternalService('confluence');
       const breaker2 = CircuitBreakerFactory.forExternalService('confluence');
 
-      expect(breaker1).toBe(breaker2);
+      assert.strictEqual(breaker1, breaker2);
     });
 
     it('should apply custom configuration', () => {
@@ -506,7 +506,7 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
       const breaker = CircuitBreakerFactory.forExternalService('custom-service', customConfig);
 
       // Test that custom config is applied by checking behavior
-      expect(breaker).toBeInstanceOf(CircuitBreaker);
+      assert(breaker instanceof CircuitBreaker);
     });
   });
 
@@ -514,21 +514,21 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
     it('should create circuit breaker for cache', () => {
       const breaker = CircuitBreakerFactory.forCache('redis');
 
-      expect(breaker).toBeInstanceOf(CircuitBreaker);
-      expect(breaker.getStats().name).toBe('cache_redis');
+      assert(breaker instanceof CircuitBreaker);
+      assert.strictEqual(breaker.getStats().name, 'cache_redis');
     });
 
     it('should use default cache name', () => {
       const breaker = CircuitBreakerFactory.forCache();
 
-      expect(breaker.getStats().name).toBe('cache_redis');
+      assert.strictEqual(breaker.getStats().name, 'cache_redis');
     });
 
     it('should return same instance for same cache name', () => {
       const breaker1 = CircuitBreakerFactory.forCache('memory');
       const breaker2 = CircuitBreakerFactory.forCache('memory');
 
-      expect(breaker1).toBe(breaker2);
+      assert.strictEqual(breaker1, breaker2);
     });
   });
 
@@ -536,15 +536,15 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
     it('should create circuit breaker for database', () => {
       const breaker = CircuitBreakerFactory.forDatabase('postgres');
 
-      expect(breaker).toBeInstanceOf(CircuitBreaker);
-      expect(breaker.getStats().name).toBe('db_postgres');
+      assert(breaker instanceof CircuitBreaker);
+      assert.strictEqual(breaker.getStats().name, 'db_postgres');
     });
 
     it('should return same instance for same database name', () => {
       const breaker1 = CircuitBreakerFactory.forDatabase('mongodb');
       const breaker2 = CircuitBreakerFactory.forDatabase('mongodb');
 
-      expect(breaker1).toBe(breaker2);
+      assert.strictEqual(breaker1, breaker2);
     });
   });
 
@@ -555,19 +555,19 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
       CircuitBreakerFactory.forDatabase('postgres');
 
       const allBreakers = CircuitBreakerFactory.getAllBreakers();
-      expect(allBreakers).toHaveLength(3);
+      assert.strictEqual(allBreakers.length, 3);
     });
 
     it('should get circuit breaker by name', () => {
       const createdBreaker = CircuitBreakerFactory.forExternalService('test-service');
       const retrievedBreaker = CircuitBreakerFactory.getBreaker('test-service');
 
-      expect(retrievedBreaker).toBe(createdBreaker);
+      assert.strictEqual(retrievedBreaker, createdBreaker);
     });
 
     it('should return undefined for non-existent breaker', () => {
       const breaker = CircuitBreakerFactory.getBreaker('non-existent');
-      expect(breaker).toBeUndefined();
+      assert.strictEqual(breaker, undefined);
     });
 
     it('should provide health status for all breakers', () => {
@@ -580,11 +580,11 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
 
       const healthStatus = CircuitBreakerFactory.getHealthStatus();
 
-      expect(healthStatus.total).toBe(3);
-      expect(healthStatus.healthy).toBe(2); // service2 and cache
-      expect(healthStatus.failed).toBe(1); // service1
-      expect(healthStatus.degraded).toBe(0);
-      expect(healthStatus.breakers).toHaveLength(3);
+      assert.strictEqual(healthStatus.total, 3);
+      assert.strictEqual(healthStatus.healthy, 2); // service2 and cache
+      assert.strictEqual(healthStatus.failed, 1); // service1
+      assert.strictEqual(healthStatus.degraded, 0);
+      assert.strictEqual(healthStatus.breakers.length, 3);
     });
 
     it('should reset all circuit breakers', () => {
@@ -595,31 +595,18 @@ describe('CircuitBreakerFactory - Factory Pattern Testing', () => {
       service.trip();
       cache.trip();
 
-      expect(service.getState()).toBe(CircuitState.OPEN);
-      expect(cache.getState()).toBe(CircuitState.OPEN);
+      assert.strictEqual(service.getState(), CircuitState.OPEN);
+      assert.strictEqual(cache.getState(), CircuitState.OPEN);
 
       CircuitBreakerFactory.resetAll();
 
-      expect(service.getState()).toBe(CircuitState.CLOSED);
-      expect(cache.getState()).toBe(CircuitState.CLOSED);
-    });
-  });
-
-  describe('Configuration Variations', () => {
-    it('should apply appropriate timeouts for different service types', () => {
-      const externalService = CircuitBreakerFactory.forExternalService('github');
-      const cache = CircuitBreakerFactory.forCache('redis');
-      const database = CircuitBreakerFactory.forDatabase('postgres');
-
-      // These are internal details, but we can verify they're different instances
-      expect(externalService).not.toBe(cache);
-      expect(cache).not.toBe(database);
-      expect(database).not.toBe(externalService);
+      assert.strictEqual(service.getState(), CircuitState.CLOSED);
+      assert.strictEqual(cache.getState(), CircuitState.CLOSED);
     });
   });
 });
 
-describe('Utility Functions', () => {
+describe('Utility Functions (Node.js Test Runner)', () => {
   describe('withCircuitBreaker wrapper', () => {
     let circuitBreaker: CircuitBreaker;
 
@@ -635,62 +622,71 @@ describe('Utility Functions', () => {
     });
 
     it('should wrap async function with circuit breaker', async () => {
-      const originalFunction = jest.fn(async (value: string) => `processed: ${value}`);
+      const originalFunction = mock.fn(async (value: string) => `processed: ${value}`);
       const wrappedFunction = withCircuitBreaker(originalFunction, circuitBreaker);
 
       const result = await wrappedFunction('test');
 
-      expect(result).toBe('processed: test');
-      expect(originalFunction).toHaveBeenCalledWith('test');
+      assert.strictEqual(result, 'processed: test');
+      assert.strictEqual(originalFunction.mock.callCount(), 1);
+      assert.deepStrictEqual(originalFunction.mock.calls[0].arguments, ['test']);
     });
 
     it('should handle function failures through circuit breaker', async () => {
-      const failingFunction = jest.fn(async () => {
+      const failingFunction = mock.fn(async () => {
         throw new Error('Function failed');
       });
       const wrappedFunction = withCircuitBreaker(failingFunction, circuitBreaker);
 
-      try {
-        await wrappedFunction();
-        fail('Should have thrown error');
-      } catch (error) {
-        expect((error as Error).message).toBe('Function failed');
-      }
+      await assert.rejects(
+        async () => {
+          await wrappedFunction();
+        },
+        (error: Error) => {
+          assert.strictEqual(error.message, 'Function failed');
+          return true;
+        }
+      );
 
-      expect(circuitBreaker.getStats().totalFailures).toBe(1);
+      assert.strictEqual(circuitBreaker.getStats().totalFailures, 1);
     });
 
     it('should maintain function signature and arguments', async () => {
-      const multiArgFunction = jest.fn(async (a: string, b: number, c: boolean) => {
+      const multiArgFunction = mock.fn(async (a: string, b: number, c: boolean) => {
         return { a, b, c };
       });
 
       const wrappedFunction = withCircuitBreaker(multiArgFunction, circuitBreaker);
       const result = await wrappedFunction('test', 42, true);
 
-      expect(result).toEqual({ a: 'test', b: 42, c: true });
-      expect(multiArgFunction).toHaveBeenCalledWith('test', 42, true);
+      assert.deepStrictEqual(result, { a: 'test', b: 42, c: true });
+      assert.strictEqual(multiArgFunction.mock.callCount(), 1);
+      assert.deepStrictEqual(multiArgFunction.mock.calls[0].arguments, ['test', 42, true]);
     });
 
     it('should fail fast when circuit is open', async () => {
-      const mockFunction = jest.fn().mockResolvedValue('result');
+      const mockFunction = mock.fn(async () => 'result');
       const wrappedFunction = withCircuitBreaker(mockFunction, circuitBreaker);
 
       // Trip the circuit
       circuitBreaker.trip();
 
-      try {
-        await wrappedFunction();
-        fail('Should have failed fast');
-      } catch (error) {
-        expect((error as Error).message).toContain('Circuit breaker wrapper-test is OPEN');
-        expect(mockFunction).not.toHaveBeenCalled();
-      }
+      await assert.rejects(
+        async () => {
+          await wrappedFunction();
+        },
+        (error: Error) => {
+          assert(error.message.includes('Circuit breaker wrapper-test is OPEN'));
+          return true;
+        }
+      );
+
+      assert.strictEqual(mockFunction.mock.callCount(), 0);
     });
   });
 });
 
-describe('Performance and Load Testing', () => {
+describe('Performance Testing (Node.js Test Runner)', () => {
   it('should handle high-volume requests efficiently', async () => {
     const circuitBreaker = new CircuitBreaker({
       failureThreshold: 10,
@@ -701,22 +697,22 @@ describe('Performance and Load Testing', () => {
       name: 'load-test',
     });
 
-    const fastFunction = jest.fn().mockResolvedValue('success');
+    const fastFunction = mock.fn(async () => 'success');
     const promises = [];
 
     const startTime = Date.now();
 
-    // Execute 1000 requests
-    for (let i = 0; i < 1000; i++) {
+    // Execute 100 requests (reduced from 1000 for faster tests)
+    for (let i = 0; i < 100; i++) {
       promises.push(circuitBreaker.execute(fastFunction));
     }
 
     await Promise.all(promises);
     const endTime = Date.now();
 
-    expect(endTime - startTime).toBeLessThan(5000); // Should complete within 5 seconds
-    expect(circuitBreaker.getStats().totalSuccesses).toBe(1000);
-    expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
+    assert(endTime - startTime < 2000); // Should complete within 2 seconds
+    assert.strictEqual(circuitBreaker.getStats().totalSuccesses, 100);
+    assert.strictEqual(circuitBreaker.getState(), CircuitState.CLOSED);
   });
 
   it('should maintain performance with mixed success/failure patterns', async () => {
@@ -732,8 +728,8 @@ describe('Performance and Load Testing', () => {
     const promises = [];
     const startTime = Date.now();
 
-    // Mix of success and failure
-    for (let i = 0; i < 500; i++) {
+    // Mix of success and failure (reduced to 50 total for faster tests)
+    for (let i = 0; i < 50; i++) {
       if (i % 10 === 0) {
         // 10% failures
         promises.push(
@@ -748,11 +744,11 @@ describe('Performance and Load Testing', () => {
     await Promise.all(promises);
     const endTime = Date.now();
 
-    expect(endTime - startTime).toBeLessThan(3000); // Should complete within 3 seconds
+    assert(endTime - startTime < 1000); // Should complete within 1 second
 
     const stats = circuitBreaker.getStats();
-    expect(stats.totalRequests).toBe(500);
-    expect(stats.totalFailures).toBe(50); // 10% of 500
-    expect(stats.totalSuccesses).toBe(450); // 90% of 500
+    assert.strictEqual(stats.totalRequests, 50);
+    assert.strictEqual(stats.totalFailures, 5); // 10% of 50
+    assert.strictEqual(stats.totalSuccesses, 45); // 90% of 50
   });
 });

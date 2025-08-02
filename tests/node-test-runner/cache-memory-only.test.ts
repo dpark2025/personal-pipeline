@@ -1,14 +1,15 @@
 /**
- * Memory-only cache tests that don't require Redis
+ * Memory-only Cache Tests using Node.js Test Runner
+ * 
+ * Tests cache operations with memory-only strategy (no Redis)
  */
 
-// Unmock the cache module for this test since we want to test the real implementation
-jest.unmock('../../../src/utils/cache');
+import { describe, it, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert';
+import { CacheService, createCacheKey } from '../../src/utils/cache.js';
+import type { CacheConfig } from '../../src/types/index.js';
 
-import { CacheService, createCacheKey } from '../../../src/utils/cache';
-import { CacheConfig } from '../../../src/types';
-
-describe('CacheService (Memory-Only)', () => {
+describe('CacheService (Memory-Only - Node.js Test Runner)', () => {
   let cacheService: CacheService;
 
   beforeEach(() => {
@@ -67,14 +68,14 @@ describe('CacheService (Memory-Only)', () => {
       await cacheService.set(key, value);
       const result = await cacheService.get(key);
 
-      expect(result).toEqual(value);
+      assert.deepStrictEqual(result, value);
     });
 
     it('should return null for non-existent keys', async () => {
       const key = createCacheKey('runbooks', 'non-existent');
       const result = await cacheService.get(key);
 
-      expect(result).toBeNull();
+      assert.strictEqual(result, null);
     });
 
     it('should delete values', async () => {
@@ -82,10 +83,10 @@ describe('CacheService (Memory-Only)', () => {
       const value = { step: 'test' };
 
       await cacheService.set(key, value);
-      expect(await cacheService.get(key)).toEqual(value);
+      assert.deepStrictEqual(await cacheService.get(key), value);
 
       await cacheService.delete(key);
-      expect(await cacheService.get(key)).toBeNull();
+      assert.strictEqual(await cacheService.get(key), null);
     });
   });
 
@@ -96,16 +97,16 @@ describe('CacheService (Memory-Only)', () => {
       // Miss
       await cacheService.get(key);
       let stats = cacheService.getStats();
-      expect(stats.misses).toBe(1);
-      expect(stats.hits).toBe(0);
+      assert.strictEqual(stats.misses, 1);
+      assert.strictEqual(stats.hits, 0);
 
       // Set and hit
       await cacheService.set(key, { data: 'test' });
       await cacheService.get(key);
       stats = cacheService.getStats();
-      expect(stats.hits).toBe(1);
-      expect(stats.misses).toBe(1);
-      expect(stats.hit_rate).toBe(0.5);
+      assert.strictEqual(stats.hits, 1);
+      assert.strictEqual(stats.misses, 1);
+      assert.strictEqual(stats.hit_rate, 0.5);
     });
   });
 
@@ -113,9 +114,9 @@ describe('CacheService (Memory-Only)', () => {
     it('should report healthy status', async () => {
       const health = await cacheService.healthCheck();
 
-      expect(health.memory_cache.healthy).toBe(true);
-      expect(health.overall_healthy).toBe(true);
-      expect(health.redis_cache).toBeUndefined();
+      assert.strictEqual(health.memory_cache.healthy, true);
+      assert.strictEqual(health.overall_healthy, true);
+      assert.strictEqual(health.redis_cache, undefined);
     });
   });
 });
@@ -124,7 +125,7 @@ describe('Cache Key Creation', () => {
   it('should create proper cache keys', () => {
     const key = createCacheKey('runbooks', 'my-runbook-123');
 
-    expect(key.type).toBe('runbooks');
-    expect(key.identifier).toBe('my-runbook-123');
+    assert.strictEqual(key.type, 'runbooks');
+    assert.strictEqual(key.identifier, 'my-runbook-123');
   });
 });

@@ -78,3 +78,26 @@ jest.mock('./helpers/test-data-generator', () => ({
 
 // Global test timeout
 jest.setTimeout(10000);
+
+// Global setup and teardown for test isolation
+beforeEach(() => {
+  // Reset singletons and factories to prevent test interference
+  try {
+    // Clear CircuitBreakerFactory if available
+    const { CircuitBreakerFactory } = require('../src/utils/circuit-breaker');
+    CircuitBreakerFactory.clearAll();
+  } catch (error) {
+    // Module might not be loaded yet, which is fine
+  }
+  
+  try {
+    // Clear cache service if available
+    const { CacheService } = require('../src/utils/cache');
+    const instance = CacheService.getInstance();
+    if (instance) {
+      instance.clearAll();
+    }
+  } catch (error) {
+    // Service might not be initialized, which is fine
+  }
+});

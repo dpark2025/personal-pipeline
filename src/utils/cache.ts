@@ -206,7 +206,7 @@ export class CacheService {
 
       // Delete from Redis if available
       if (this.redisManager && this.config.strategy !== 'memory_only') {
-        await this.redisManager.executeOperation(redis => redis.del(cacheKey));
+        await this.redisManager.executeOperation(redis => redis.del(this.buildRedisKey(cacheKey)));
       }
 
       logger.debug('Cache DELETE', { key: cacheKey, type: key.type });
@@ -467,8 +467,9 @@ export class CacheService {
       return null;
     }
 
+    const redisKey = this.buildRedisKey(key);
     const result = await this.redisManager.executeOperation(async redis => {
-      const data = await redis.get(key);
+      const data = await redis.get(redisKey);
       if (!data) {
         return null;
       }
@@ -483,14 +484,19 @@ export class CacheService {
       return;
     }
 
+    const redisKey = this.buildRedisKey(key);
     await this.redisManager.executeOperation(async redis => {
       const serialized = JSON.stringify(entry);
-      await redis.setex(key, ttl, serialized);
+      await redis.setex(redisKey, ttl, serialized);
     });
   }
 
   private buildCacheKey(key: CacheKey): string {
     return `${key.type}:${key.identifier}`;
+  }
+
+  private buildRedisKey(cacheKey: string): string {
+    return `${this.config.redis.key_prefix}${cacheKey}`;
   }
 
   private getTTL(contentType: CacheContentType): number {
