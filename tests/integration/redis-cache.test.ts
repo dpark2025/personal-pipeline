@@ -1,6 +1,6 @@
 /**
  * Redis Cache Integration Tests
- * 
+ *
  * Tests Redis integration scenarios, including connection failures,
  * fallback mechanisms, and circuit breaker behavior.
  * Uses memory-only strategy to avoid requiring actual Redis instance.
@@ -24,15 +24,15 @@ describe('Redis Cache Integration Tests', () => {
     },
     redis: {
       enabled: true,
-      url: 'redis://localhost:6379',  // This will fail in test environment
+      url: 'redis://localhost:6379', // This will fail in test environment
       ttl_seconds: 60,
       key_prefix: 'test:redis:',
-      connection_timeout_ms: 1000,    // Short timeout for faster test failure
-      retry_attempts: 1,               // Minimal retries for faster tests
+      connection_timeout_ms: 1000, // Short timeout for faster test failure
+      retry_attempts: 1, // Minimal retries for faster tests
       retry_delay_ms: 100,
       max_retry_delay_ms: 1000,
       backoff_multiplier: 2,
-      connection_retry_limit: 2,       // Quick circuit breaker
+      connection_retry_limit: 2, // Quick circuit breaker
     },
     content_types: {
       runbooks: {
@@ -58,7 +58,7 @@ describe('Redis Cache Integration Tests', () => {
     // Create a fresh cache service instance that will attempt Redis connection
     // but gracefully fall back to memory-only when Redis is unavailable
     cacheService = new CacheService(hybridConfig);
-    
+
     // Wait briefly for Redis connection attempt to complete
     // The cache service initializes synchronously, but Redis connection is async
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -76,7 +76,7 @@ describe('Redis Cache Integration Tests', () => {
       const stats = cacheService.getStats();
       assert.strictEqual(stats.hits, 0);
       assert.strictEqual(stats.misses, 0);
-      
+
       // The service should operate normally even with Redis issues
       // (Redis connection status may vary depending on initialization timing)
       assert(typeof stats.redis_connected === 'boolean');
@@ -135,7 +135,7 @@ describe('Redis Cache Integration Tests', () => {
       // Runbook should be cleared, procedure should remain
       const runbook = await cacheService.get(createCacheKey('runbooks', 'rb1'));
       const procedure = await cacheService.get(createCacheKey('procedures', 'proc1'));
-      
+
       assert.strictEqual(runbook, null);
       assert.deepStrictEqual(procedure, { type: 'procedure' });
     });
@@ -185,9 +185,7 @@ describe('Redis Cache Integration Tests', () => {
       for (let i = 0; i < 20; i++) {
         const key = createCacheKey('runbooks', `perf-test-${i}`);
         operations.push(
-          cacheService.set(key, { id: i, data: `test-${i}` }).then(() =>
-            cacheService.get(key)
-          )
+          cacheService.set(key, { id: i, data: `test-${i}` }).then(() => cacheService.get(key))
         );
       }
 
@@ -225,7 +223,7 @@ describe('Redis Cache Integration Tests', () => {
       for (let i = 0; i < 10; i++) {
         const runbook = await cacheService.get(createCacheKey('runbooks', `concurrent-${i}`));
         const procedure = await cacheService.get(createCacheKey('procedures', `concurrent-${i}`));
-        
+
         assert.deepStrictEqual(runbook, { id: i });
         assert.deepStrictEqual(procedure, { id: i + 100 });
       }
@@ -298,7 +296,7 @@ describe('Redis Cache Integration Tests', () => {
       assert.strictEqual(stats.hits, 2);
       assert.strictEqual(stats.misses, 1);
       assert.strictEqual(stats.total_operations, 3);
-      assert.strictEqual(stats.hit_rate, 2/3);
+      assert.strictEqual(stats.hit_rate, 2 / 3);
     });
   });
 });

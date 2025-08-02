@@ -155,7 +155,17 @@ export type Document = SearchResult;
  * Authentication configuration for sources
  */
 export const AuthConfig = z.object({
-  type: z.enum(['bearer_token', 'basic_auth', 'api_key', 'oauth2', 'personal_token', 'github_app', 'basic', 'bearer', 'cookie']),
+  type: z.enum([
+    'bearer_token',
+    'basic_auth',
+    'api_key',
+    'oauth2',
+    'personal_token',
+    'github_app',
+    'basic',
+    'bearer',
+    'cookie',
+  ]),
   token_env: z.string().optional(),
   username_env: z.string().optional(),
   password_env: z.string().optional(),
@@ -393,11 +403,13 @@ export type AppConfig = z.infer<typeof AppConfig>;
 export const GitHubAuthConfig = z.object({
   type: z.enum(['personal_token', 'github_app']),
   token_env: z.string().optional(),
-  app_config: z.object({
-    app_id: z.string(),
-    private_key_env: z.string(),
-    installation_id: z.string().optional(),
-  }).optional(),
+  app_config: z
+    .object({
+      app_id: z.string(),
+      private_key_env: z.string(),
+      installation_id: z.string().optional(),
+    })
+    .optional(),
 });
 export type GitHubAuthConfig = z.infer<typeof GitHubAuthConfig>;
 

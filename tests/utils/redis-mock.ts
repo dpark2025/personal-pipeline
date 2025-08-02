@@ -1,6 +1,6 @@
 /**
  * Redis Mock Utility for Testing
- * 
+ *
  * Provides a complete Redis mock that simulates Redis behavior without requiring
  * a real Redis instance. Supports all Redis operations used by the cache service.
  */
@@ -232,7 +232,7 @@ export function mockRedisConnection(options: RedisMockOptions = {}): RedisMock {
  */
 export function mockIoRedis(options: RedisMockOptions = {}) {
   const MockedRedis = createRedisMock(options);
-  
+
   // Mock the default export of ioredis
   return MockedRedis;
 }

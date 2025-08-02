@@ -1,6 +1,6 @@
 /**
  * Test Data Generators
- * 
+ *
  * Utilities for generating consistent test data across different test suites.
  * Provides factory functions for creating realistic test scenarios.
  */
@@ -36,12 +36,7 @@ export function generateProcedureData(id: string, overrides: Record<string, any>
   return {
     id,
     title: `Test Procedure ${id}`,
-    steps: [
-      'Initialize system',
-      'Run diagnostic',
-      'Execute procedure',
-      'Verify results',
-    ],
+    steps: ['Initialize system', 'Run diagnostic', 'Execute procedure', 'Verify results'],
     estimated_time_minutes: 15,
     difficulty: 'medium',
     prerequisites: ['system_access', 'admin_rights'],
@@ -95,13 +90,13 @@ export function generateKnowledgeBaseData(id: string, overrides: Record<string, 
  */
 export function generateCacheKeyTestSet(count: number = 5) {
   const keys: Array<{ key: CacheKey; data: any }> = [];
-  
+
   for (let i = 0; i < count; i++) {
     // Generate different types of cache keys
     const types = ['runbooks', 'procedures', 'decision_trees', 'knowledge_base'] as const;
     const type = types[i % types.length];
     const id = `test-${type}-${i + 1}`;
-    
+
     let data;
     switch (type) {
       case 'runbooks':
@@ -117,34 +112,31 @@ export function generateCacheKeyTestSet(count: number = 5) {
         data = generateKnowledgeBaseData(id);
         break;
     }
-    
+
     keys.push({
       key: createCacheKey(type, id),
       data,
     });
   }
-  
+
   return keys;
 }
 
 /**
  * Generate performance test data set with configurable size
  */
-export function generatePerformanceTestData(options: {
-  runbooks?: number;
-  procedures?: number;
-  decision_trees?: number;
-  knowledge_base?: number;
-} = {}) {
-  const {
-    runbooks = 10,
-    procedures = 10,
-    decision_trees = 5,
-    knowledge_base = 15,
-  } = options;
-  
+export function generatePerformanceTestData(
+  options: {
+    runbooks?: number;
+    procedures?: number;
+    decision_trees?: number;
+    knowledge_base?: number;
+  } = {}
+) {
+  const { runbooks = 10, procedures = 10, decision_trees = 5, knowledge_base = 15 } = options;
+
   const data: Array<{ key: CacheKey; data: any }> = [];
-  
+
   // Generate runbooks
   for (let i = 1; i <= runbooks; i++) {
     data.push({
@@ -155,7 +147,7 @@ export function generatePerformanceTestData(options: {
       }),
     });
   }
-  
+
   // Generate procedures
   for (let i = 1; i <= procedures; i++) {
     data.push({
@@ -166,7 +158,7 @@ export function generatePerformanceTestData(options: {
       }),
     });
   }
-  
+
   // Generate decision trees
   for (let i = 1; i <= decision_trees; i++) {
     data.push({
@@ -180,7 +172,7 @@ export function generatePerformanceTestData(options: {
       }),
     });
   }
-  
+
   // Generate knowledge base articles
   for (let i = 1; i <= knowledge_base; i++) {
     data.push({
@@ -191,7 +183,7 @@ export function generatePerformanceTestData(options: {
       }),
     });
   }
-  
+
   return data;
 }
 
@@ -237,16 +229,16 @@ export function generateConcurrentTestScenarios(operationCount: number = 20) {
     data?: any;
     expectedResult?: any;
   }> = [];
-  
+
   for (let i = 0; i < operationCount; i++) {
     const types = ['runbooks', 'procedures', 'decision_trees', 'knowledge_base'] as const;
     const operations = ['set', 'get', 'delete'] as const;
-    
+
     const type = types[i % types.length];
     const operation = operations[i % operations.length];
     const id = `concurrent-${operation}-${i}`;
     const key = createCacheKey(type, id);
-    
+
     if (operation === 'set') {
       let data;
       switch (type) {
@@ -270,6 +262,6 @@ export function generateConcurrentTestScenarios(operationCount: number = 20) {
       scenarios.push({ operation, key, expectedResult: 'success' });
     }
   }
-  
+
   return scenarios;
 }

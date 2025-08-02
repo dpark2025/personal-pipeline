@@ -1,6 +1,6 @@
 /**
  * Test Helper Utilities
- * 
+ *
  * Common helper functions for test setup, cleanup, and test environment management.
  * Provides utilities for service lifecycle management and test isolation.
  */
@@ -37,7 +37,7 @@ export async function waitForServiceInitialization(
   const {
     maxAttempts = 20,
     intervalMs = 50,
-    checkFunction = (service) => {
+    checkFunction = service => {
       try {
         const stats = service.getStats();
         return typeof stats.redis_connected === 'boolean';
@@ -53,7 +53,7 @@ export async function waitForServiceInitialization(
     }
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
-  
+
   throw new Error(`Service initialization timed out after ${maxAttempts * intervalMs}ms`);
 }
 
@@ -138,16 +138,16 @@ export async function retryOperation<T>(
       return await operation();
     } catch (error) {
       lastError = error;
-      
+
       if (attempt === maxAttempts || !shouldRetry(error)) {
         throw error;
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, delayMs));
       delayMs = Math.min(delayMs * backoffMultiplier, maxDelayMs);
     }
   }
-  
+
   throw lastError;
 }
 
@@ -169,7 +169,7 @@ export async function waitForCondition(
   } = options;
 
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeoutMs) {
     const result = await condition();
     if (result) {
@@ -177,7 +177,7 @@ export async function waitForCondition(
     }
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
-  
+
   throw new Error(`${timeoutMessage} (${timeoutMs}ms)`);
 }
 
@@ -228,8 +228,10 @@ export class MemoryMonitor {
     samples: number;
   } {
     const final = this.samples[this.samples.length - 1] || this.initialMemory;
-    const peak = this.samples.reduce((max, sample) => 
-      sample.heapUsed > max.heapUsed ? sample : max, this.initialMemory);
+    const peak = this.samples.reduce(
+      (max, sample) => (sample.heapUsed > max.heapUsed ? sample : max),
+      this.initialMemory
+    );
 
     return {
       initialMemoryMB: this.initialMemory.heapUsed / 1024 / 1024,
@@ -255,24 +257,26 @@ export function getTestEnvironmentInfo(): {
     nodeVersion: process.version,
     platform: process.platform,
     arch: process.arch,
-    totalMemoryMB: (process.memoryUsage().heapTotal) / 1024 / 1024,
-    availableMemoryMB: (process.memoryUsage().heapUsed) / 1024 / 1024,
+    totalMemoryMB: process.memoryUsage().heapTotal / 1024 / 1024,
+    availableMemoryMB: process.memoryUsage().heapUsed / 1024 / 1024,
   };
 }
 
 /**
  * Setup common test hooks for consistent environment
  */
-export function setupTestHooks(options: {
-  cleanupServices?: boolean;
-  logEnvironmentInfo?: boolean;
-} = {}) {
+export function setupTestHooks(
+  options: {
+    cleanupServices?: boolean;
+    logEnvironmentInfo?: boolean;
+  } = {}
+) {
   const { cleanupServices = true, logEnvironmentInfo = false } = options;
-  
+
   if (logEnvironmentInfo) {
     console.log('Test Environment Info:', getTestEnvironmentInfo());
   }
-  
+
   // Global cleanup after each test
   if (cleanupServices) {
     // Note: This would need to be called from test files since we can't add global hooks here
@@ -282,6 +286,6 @@ export function setupTestHooks(options: {
       },
     };
   }
-  
+
   return {};
 }

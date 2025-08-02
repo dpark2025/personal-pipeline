@@ -1,6 +1,6 @@
 /**
  * Enhanced File System Source Adapter
- * 
+ *
  * Phase 2 implementation with advanced capabilities:
  * - Recursive directory scanning with configurable depth
  * - Advanced file type detection with MIME types
@@ -9,7 +9,7 @@
  * - File pattern matching (include/exclude)
  * - Enhanced metadata extraction
  * - File system watching for real-time updates
- * 
+ *
  * Authored by: Integration Specialist (Barry)
  * Date: 2025-08-01
  */
@@ -37,17 +37,17 @@ import { logger } from '../utils/logger.js';
 // Enhanced configuration interface for FileSystem adapter
 interface FileSystemConfig extends SourceConfig {
   type: 'file';
-  base_paths?: string[];                    // Multiple root directories
-  recursive?: boolean;                      // Enable recursive scanning
-  max_depth?: number;                       // Maximum recursion depth
+  base_paths?: string[]; // Multiple root directories
+  recursive?: boolean; // Enable recursive scanning
+  max_depth?: number; // Maximum recursion depth
   file_patterns?: {
-    include?: string[];                     // Glob patterns to include
-    exclude?: string[];                     // Glob patterns to exclude  
+    include?: string[]; // Glob patterns to include
+    exclude?: string[]; // Glob patterns to exclude
   };
-  supported_extensions?: string[];          // File extensions to process
-  extract_metadata?: boolean;               // Enable metadata extraction
-  pdf_extraction?: boolean;                 // Enable PDF text extraction
-  watch_changes?: boolean;                  // File system watching
+  supported_extensions?: string[]; // File extensions to process
+  extract_metadata?: boolean; // Enable metadata extraction
+  pdf_extraction?: boolean; // Enable PDF text extraction
+  watch_changes?: boolean; // File system watching
 }
 
 interface EnhancedFileDocument {
@@ -88,11 +88,19 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
 
   constructor(config: FileSystemConfig) {
     super(config);
-    
+
     // Initialize configuration with defaults
     this.basePaths = config.base_paths || [config.base_url || './docs'];
-    this.supportedExtensions = config.supported_extensions || 
-      ['.md', '.txt', '.json', '.yml', '.yaml', '.pdf', '.rst', '.adoc'];
+    this.supportedExtensions = config.supported_extensions || [
+      '.md',
+      '.txt',
+      '.json',
+      '.yml',
+      '.yaml',
+      '.pdf',
+      '.rst',
+      '.adoc',
+    ];
     this.filePatterns = config.file_patterns || {};
     this.recursive = config.recursive ?? true;
     this.maxDepth = config.max_depth ?? 10;
@@ -201,7 +209,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
     try {
       // Build glob patterns for this directory
       const patterns = this.buildGlobPatterns(dirPath);
-      
+
       // Find matching files
       const files = await glob(patterns.include, {
         ignore: patterns.exclude,
@@ -238,14 +246,10 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
 
     // Build include patterns
     if (this.filePatterns.include && this.filePatterns.include.length > 0) {
-      include.push(...this.filePatterns.include.map(pattern => 
-        path.join(dirPath, pattern)
-      ));
+      include.push(...this.filePatterns.include.map(pattern => path.join(dirPath, pattern)));
     } else {
       // Default: include all supported extensions
-      include.push(...this.supportedExtensions.map(ext => 
-        path.join(dirPath, `*${ext}`)
-      ));
+      include.push(...this.supportedExtensions.map(ext => path.join(dirPath, `*${ext}`)));
     }
 
     // Build exclude patterns
@@ -256,7 +260,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
       '**/dist/**',
       '**/build/**',
     ];
-    
+
     exclude.push(...defaultExcludes);
     if (this.filePatterns.exclude) {
       exclude.push(...this.filePatterns.exclude);
@@ -271,7 +275,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
   private async indexFile(filePath: string, basePath: string): Promise<void> {
     try {
       const stats = await fs.stat(filePath);
-      
+
       // Skip if file is too large (>10MB by default)
       const maxSize = 10 * 1024 * 1024;
       if (stats.size > maxSize) {
@@ -281,7 +285,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
 
       // Detect file type
       const fileType = await this.detectFileType(filePath);
-      
+
       // Skip unsupported file types
       if (!this.isSupported(filePath, fileType)) {
         return;
@@ -299,7 +303,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
       // Create document
       const id = this.generateDocumentId(filePath);
       const relativePath = path.relative(basePath, filePath);
-      
+
       const document: EnhancedFileDocument = {
         id,
         path: filePath,
@@ -315,8 +319,8 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
       };
 
       this.documents.set(id, document);
-      logger.debug('Indexed file', { 
-        filePath: relativePath, 
+      logger.debug('Indexed file', {
+        filePath: relativePath,
         size: stats.size,
         mimeType: fileType?.mime,
       });
@@ -328,15 +332,17 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
   /**
    * Detect file type using magic bytes
    */
-  private async detectFileType(filePath: string): Promise<{ ext: string; mime: string } | undefined> {
+  private async detectFileType(
+    filePath: string
+  ): Promise<{ ext: string; mime: string } | undefined> {
     try {
       const fileType = await fileTypeFromFile(filePath);
-      
+
       // If file-type returns a result, use it
       if (fileType) {
         return fileType;
       }
-      
+
       // file-type returns undefined for text files, so fallback to extension-based detection
       const ext = path.extname(filePath).toLowerCase();
       const mimeMap: Record<string, string> = {
@@ -349,7 +355,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
         '.rst': 'text/x-rst',
         '.adoc': 'text/asciidoc',
       };
-      
+
       return {
         ext: ext.slice(1),
         mime: mimeMap[ext] || 'application/octet-stream',
@@ -367,7 +373,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
         '.rst': 'text/x-rst',
         '.adoc': 'text/asciidoc',
       };
-      
+
       return {
         ext: ext.slice(1),
         mime: mimeMap[ext] || 'application/octet-stream',
@@ -380,7 +386,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
    */
   private isSupported(filePath: string, fileType?: { ext: string; mime: string }): boolean {
     const ext = path.extname(filePath).toLowerCase();
-    
+
     // Check by extension
     if (this.supportedExtensions.includes(ext)) {
       return true;
@@ -398,7 +404,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
    * Read file content based on type
    */
   private async readFileContent(
-    filePath: string, 
+    filePath: string,
     fileType?: { ext: string; mime: string }
   ): Promise<string | null> {
     try {
@@ -437,12 +443,15 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
   /**
    * Extract searchable content from document
    */
-  private extractSearchableContent(content: string, fileType?: { ext: string; mime: string }): string {
+  private extractSearchableContent(
+    content: string,
+    fileType?: { ext: string; mime: string }
+  ): string {
     // For markdown, extract headings and important sections
     if (fileType?.ext === 'md' || fileType?.mime === 'text/markdown') {
       const headings = content.match(/^#+\s+.+$/gm) || [];
       const lists = content.match(/^[\*\-\+]\s+.+$/gm) || [];
-      
+
       return [
         ...headings,
         ...lists,
@@ -469,9 +478,9 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
    */
   private extractJsonSearchableContent(obj: any, depth = 0): string {
     if (depth > 3) return '';
-    
+
     const parts: string[] = [];
-    
+
     if (typeof obj === 'object' && obj !== null) {
       for (const [key, value] of Object.entries(obj)) {
         parts.push(key);
@@ -482,7 +491,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
         }
       }
     }
-    
+
     return parts.join(' ');
   }
 
@@ -506,7 +515,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
       // Extract additional metadata based on file type
       if (fileType?.ext === 'md' || fileType?.mime === 'text/markdown') {
         const content = await fs.readFile(filePath, 'utf-8');
-        
+
         // Extract front matter if present
         const frontMatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
         if (frontMatterMatch) {
@@ -537,7 +546,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
    */
   private buildSearchIndex(): void {
     const documents = Array.from(this.documents.values());
-    
+
     this.searchIndex = new Fuse(documents, {
       includeScore: true,
       threshold: 0.4,
@@ -568,7 +577,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
     for (const basePath of this.basePaths) {
       const watcher = chokidar.watch(basePath, {
         ignored: [
-          /(^|[\/\\])\../,  // Ignore dotfiles
+          /(^|[\/\\])\../, // Ignore dotfiles
           /node_modules/,
           /.git/,
           /dist/,
@@ -580,10 +589,10 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
       });
 
       watcher
-        .on('add', (filePath) => this.handleFileAdd(filePath, basePath))
-        .on('change', (filePath) => this.handleFileChange(filePath, basePath))
-        .on('unlink', (filePath) => this.handleFileRemove(filePath))
-        .on('error', (error) => logger.error('Watcher error', { error }));
+        .on('add', filePath => this.handleFileAdd(filePath, basePath))
+        .on('change', filePath => this.handleFileChange(filePath, basePath))
+        .on('unlink', filePath => this.handleFileRemove(filePath))
+        .on('error', error => logger.error('Watcher error', { error }));
 
       this.watchers.push(watcher);
     }
@@ -605,7 +614,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
    */
   private async handleFileChange(filePath: string, basePath: string): Promise<void> {
     logger.debug('File changed', { filePath });
-    
+
     // Re-index the file
     await this.indexFile(filePath, basePath);
     this.buildSearchIndex();
@@ -617,7 +626,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
   private handleFileRemove(filePath: string): void {
     logger.debug('File removed', { filePath });
     const id = this.generateDocumentId(filePath);
-    
+
     if (this.documents.has(id)) {
       this.documents.delete(id);
       this.buildSearchIndex();
@@ -669,9 +678,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
     // Apply confidence threshold filter
     if (filters?.confidence_threshold !== undefined) {
       const threshold = filters.confidence_threshold;
-      results = results.filter(result => 
-        (1 - (result.score || 0)) >= threshold
-      );
+      results = results.filter(result => 1 - (result.score || 0) >= threshold);
     }
 
     // Transform to SearchResult format
@@ -772,11 +779,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
   /**
    * Search for runbooks
    */
-  async searchRunbooks(
-    alertType: string,
-    severity: string,
-    systems: string[]
-  ): Promise<Runbook[]> {
+  async searchRunbooks(alertType: string, severity: string, systems: string[]): Promise<Runbook[]> {
     // Build search queries
     const queries = [
       alertType,
@@ -785,7 +788,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
     ];
 
     const allResults: SearchResult[] = [];
-    
+
     for (const query of queries) {
       const results = await this.search(query, { categories: ['runbooks'] });
       allResults.push(...results);
@@ -798,7 +801,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
 
     // Convert to runbooks
     const runbooks: Runbook[] = [];
-    
+
     for (const result of uniqueResults) {
       try {
         // Try to parse JSON runbooks

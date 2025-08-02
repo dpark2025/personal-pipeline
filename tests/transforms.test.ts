@@ -88,7 +88,10 @@ describe('REST API Transforms Unit Tests (Node.js Test Runner)', () => {
 
       // Validate agent state
       assert(Array.isArray(decisionTreeRequest.current_agent_state.attempted_steps));
-      assert.strictEqual(typeof decisionTreeRequest.current_agent_state.execution_time_seconds, 'number');
+      assert.strictEqual(
+        typeof decisionTreeRequest.current_agent_state.execution_time_seconds,
+        'number'
+      );
     });
   });
 
