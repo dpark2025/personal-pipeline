@@ -192,11 +192,12 @@ export class RedisMock extends EventEmitter {
 
   simulateReconnect(): void {
     this.emit('reconnecting');
-    setTimeout(() => {
+    // Use Promise.resolve().then() for more deterministic timing in tests
+    Promise.resolve().then(() => {
       this.connected = true;
       this.status = 'ready';
       this.emit('ready');
-    }, 100);
+    });
   }
 
   getKeyCount(): number {
