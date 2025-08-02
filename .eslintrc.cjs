@@ -3,11 +3,10 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json'
+    project: './tsconfig.eslint.json'
   },
   plugins: [
-    '@typescript-eslint',
-    'jest'
+    '@typescript-eslint'
   ],
   extends: [
     'eslint:recommended',
@@ -15,8 +14,7 @@ module.exports = {
   ],
   env: {
     node: true,
-    es2022: true,
-    jest: true
+    es2022: true
   },
   rules: {
     // TypeScript specific rules
@@ -54,19 +52,11 @@ module.exports = {
     'max-lines-per-function': ['warn', 100],
     'max-params': ['warn', 5],
     
-    // Jest specific rules
-    'jest/no-disabled-tests': 'warn',
-    'jest/no-focused-tests': 'error',
-    'jest/no-identical-title': 'error',
-    'jest/prefer-to-have-length': 'warn',
-    'jest/valid-expect': 'error'
+    // Node.js Test Runner - no specific linting rules needed
   },
   overrides: [
     {
       files: ['**/*.test.ts', '**/*.spec.ts'],
-      env: {
-        jest: true
-      },
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-unsafe-assignment': 'off',
