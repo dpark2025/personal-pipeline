@@ -15,7 +15,8 @@
       "Bash(chmod:*)",
       "Bash(npm run test-mcp:*)",
       "Bash(npm run generate-sample-data:*)",
-      "Bash(npm run validate-config:*)"
+      "Bash(npm run validate-config:*)",
+      "mcp__serena__check_onboarding_performed"
     ],
     "deny": []
   }

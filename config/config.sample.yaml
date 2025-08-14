@@ -37,6 +37,16 @@ sources:
     enabled: true
     timeout_ms: 5000
     max_retries: 1
+    # Enhanced FileSystem Adapter features
+    watch_changes: true              # Monitor file changes for real-time updates
+    pdf_extraction: true             # Extract text from PDF files
+    recursive: true                  # Scan subdirectories recursively
+    max_depth: 5                     # Maximum directory depth to scan
+    extract_metadata: true           # Extract file metadata (author, tags, etc.)
+    supported_extensions: ['.md', '.txt', '.json', '.yml', '.yaml', '.pdf', '.rst', '.adoc']
+    file_patterns:
+      include: []                    # Optional: specific patterns to include
+      exclude: ['**/node_modules/**', '**/.git/**']  # Patterns to exclude
 # Caching Configuration
 # Personal Pipeline supports flexible caching strategies with automatic fallback
 cache:
