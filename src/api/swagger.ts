@@ -189,7 +189,7 @@ export function validateOpenAPISpec(): { valid: boolean; errors?: string[] } {
       errors.push('Missing OpenAPI version');
     }
 
-    if (!openAPISpec.info || !openAPISpec.info.title) {
+    if (!openAPISpec.info?.title) {
       errors.push('Missing API info or title');
     }
 
@@ -198,7 +198,7 @@ export function validateOpenAPISpec(): { valid: boolean; errors?: string[] } {
     }
 
     // Check for required components
-    if (!openAPISpec.components || !openAPISpec.components.schemas) {
+    if (!openAPISpec.components?.schemas) {
       errors.push('Missing schema components');
     }
 

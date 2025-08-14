@@ -466,7 +466,7 @@ function transformMCPError(
 ): RestResponse {
   const content = extractMCPContent(mcpResult);
 
-  let errorInfo: any = {
+  const errorInfo: any = {
     code: 'MCP_TOOL_ERROR',
     message: 'MCP tool execution failed',
     severity: 'medium' as const,
@@ -727,7 +727,7 @@ export function transformSearchResultsResponse(content: any): RestResponse {
   return {
     success: true,
     data: {
-      results: results,
+      results,
       total_results: totalResults,
       confidence_scores: confidenceScores,
       search_info: {

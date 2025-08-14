@@ -1,7 +1,5 @@
 # Claude.local.md
 
-This document provides project overrides for claude should consider when doing work in this repository. It should supercede and directives at the user or system level.
-
 ## Project Planning Strategies
 
 * **ALL project goal-related documents** should be placed into the `planning` directory at the root of the repository.

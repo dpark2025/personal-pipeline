@@ -247,7 +247,7 @@ class GitHubRateLimiter {
     this.hourlyRequestCount++;
 
     // Update GitHub rate limit info from response headers
-    if (response && response.headers) {
+    if (response?.headers) {
       const remaining = response.headers['x-ratelimit-remaining'];
       const reset = response.headers['x-ratelimit-reset'];
 
@@ -300,7 +300,7 @@ export class GitHubApiGuard {
     const errors: string[] = [];
 
     // Validate authentication
-    if (!config.auth || !config.auth.token_env) {
+    if (!config.auth?.token_env) {
       if (config.auth?.type !== 'github_app' || !config.auth.app_config) {
         errors.push('GitHub token environment variable is required');
       }

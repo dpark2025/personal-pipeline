@@ -409,7 +409,7 @@ export class PPMCPTools {
         logger.debug('Cache hit for runbook search', {
           alert_type,
           severity,
-          cache_key: cacheKey.identifier.substring(0, 50) + '...',
+          cache_key: `${cacheKey.identifier.substring(0, 50)  }...`,
         });
         return {
           ...cachedResult,
@@ -458,7 +458,7 @@ export class PPMCPTools {
         alert_type,
         severity,
         results_count: allRunbooks.length,
-        cache_key: cacheKey.identifier.substring(0, 50) + '...',
+        cache_key: `${cacheKey.identifier.substring(0, 50)  }...`,
       });
     }
 
@@ -480,7 +480,7 @@ export class PPMCPTools {
       if (cachedResult) {
         logger.debug('Cache hit for decision tree', {
           alert_context: alert_context?.alert_type || 'unknown',
-          cache_key: cacheKey.identifier.substring(0, 50) + '...',
+          cache_key: `${cacheKey.identifier.substring(0, 50)  }...`,
         });
         return {
           ...cachedResult,
@@ -531,7 +531,7 @@ export class PPMCPTools {
       await this.cacheService.set(cacheKey, result);
       logger.debug('Cached decision tree result', {
         alert_context: alert_context?.alert_type || 'unknown',
-        cache_key: cacheKey.identifier.substring(0, 50) + '...',
+        cache_key: `${cacheKey.identifier.substring(0, 50)  }...`,
       });
     }
 
@@ -709,7 +709,7 @@ export class PPMCPTools {
         logger.debug('Cache hit for knowledge base search', {
           query: query.substring(0, 50) + (query.length > 50 ? '...' : ''),
           categories,
-          cache_key: cacheKey.identifier.substring(0, 50) + '...',
+          cache_key: `${cacheKey.identifier.substring(0, 50)  }...`,
         });
         return cachedResult;
       }
@@ -747,7 +747,7 @@ export class PPMCPTools {
       logger.debug('Cached knowledge base search result', {
         query: query.substring(0, 50) + (query.length > 50 ? '...' : ''),
         results_count: limitedResults.length,
-        cache_key: cacheKey.identifier.substring(0, 50) + '...',
+        cache_key: `${cacheKey.identifier.substring(0, 50)  }...`,
       });
     }
 

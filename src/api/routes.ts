@@ -452,7 +452,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
           logger.info('Smart routing: redirecting to search_runbooks', {
             original_query: req.body.query,
             transformed_alert_type: transformedBody.alert_type,
-            categories: categories,
+            categories,
           });
         }
 
@@ -512,7 +512,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
           // Transform MCP response to REST format with enhanced context
           const requestId = req.headers['x-request-id'] as string;
           const context = {
-            toolName: toolName,
+            toolName,
             ...(requestId && { requestId }),
             startTime,
           };
@@ -863,7 +863,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
           affected_systems: ['any'],
           context: {
             list_all: true,
-            category: category,
+            category,
             limit: parseInt(limit as string) || 50,
           },
         });

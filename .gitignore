@@ -174,3 +174,16 @@ temp-delete.sh
 docs/API-VERSION-*.md
 
 # Serena files are kept - agent Serena needs these
+
+# Claude Code local settings and temp files
+.claude/settings.local.json
+PROJECT_STATUS.md
+test-runbook.txt
+
+# Configuration files with test data or secrets
+config/*-test.yaml
+config/confluence-test.yaml
+config/CONFIG_OVERVIEW.md
+
+# Test data and fixtures
+test-data/

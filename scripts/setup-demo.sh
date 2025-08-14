@@ -618,8 +618,7 @@ show_demo_info() {
     echo -e "${WHITE}🎉 Personal Pipeline MCP Server Demo Environment${NC}"
     echo -e "${WHITE}=================================================${NC}"
     echo
-    echo -e "${GREEN}✅ Demo Features Available:${NC}"
-    echo -e "   🏠 MCP Server: http://localhost:${SERVER_PORT}"
+    echo -e "${GREEN}✅ Demo API Endpoints (Browse in browser or curl):${NC}"
     echo -e "   ❤️  Health Endpoint: http://localhost:${SERVER_PORT}/health"
     echo -e "   📊 Performance Metrics: http://localhost:${SERVER_PORT}/performance"
     echo -e "   🔍 Cache Status: http://localhost:${SERVER_PORT}/health/cache"

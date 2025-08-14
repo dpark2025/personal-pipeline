@@ -272,16 +272,25 @@ show_status() {
     echo -e "${BLUE}📊 Demo Environment Status${NC}"
     echo -e "${BLUE}==========================${NC}"
     
-    # Check server status
-    if curl -s "http://localhost:${SERVER_PORT}/health" &> /dev/null; then
-        echo -e "${YELLOW}⚠️  MCP Server: Still running${NC}"
+    # Wait a moment for processes to fully stop
+    sleep 1
+    
+    # Check server status with timeout and more specific test
+    if timeout 2 curl -s "http://localhost:${SERVER_PORT}/health" | grep -q "healthy" 2>/dev/null; then
+        echo -e "${YELLOW}⚠️  MCP Server: Still running on port ${SERVER_PORT}${NC}"
     else
-        echo -e "${GREEN}✅ MCP Server: Stopped${NC}"
+        # Double-check by looking for actual Personal Pipeline processes
+        local pp_processes=$(pgrep -f "personal-pipeline\|dist/index.js" 2>/dev/null || true)
+        if [ -n "$pp_processes" ]; then
+            echo -e "${YELLOW}⚠️  MCP Server: Process still running (PID: $pp_processes)${NC}"
+        else
+            echo -e "${GREEN}✅ MCP Server: Stopped${NC}"
+        fi
     fi
     
     # Check Redis status
-    if redis-cli -p "$REDIS_PORT" ping &> /dev/null; then
-        echo -e "${YELLOW}⚠️  Redis: Still running${NC}"
+    if timeout 2 redis-cli -p "$REDIS_PORT" ping 2>/dev/null | grep -q "PONG"; then
+        echo -e "${BLUE}ℹ️  Redis: Running on port ${REDIS_PORT} (shared service)${NC}"
     else
         echo -e "${GREEN}✅ Redis: Stopped${NC}"
     fi

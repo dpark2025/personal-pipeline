@@ -25,7 +25,7 @@ import { EnhancedFileSystemAdapter } from '../adapters/file-enhanced.js';
 import { GitHubAdapter } from '../adapters/github.js';
 import { WebAdapter } from '../adapters/web.js';
 import { CacheService, initializeCacheService } from '../utils/cache.js';
-import { AppConfig, CacheConfig } from '../types/index.js';
+import { AppConfig, CacheConfig, FileSystemConfig } from '../types/index.js';
 import { performance } from 'perf_hooks';
 import { initializePerformanceMonitor, getPerformanceMonitor } from '../utils/performance.js';
 import {
@@ -975,7 +975,7 @@ export class PersonalPipelineServer {
   private registerSourceAdapters(): void {
     // Register file system adapter factory
     this.sourceRegistry.registerFactory('file', config => {
-      return new EnhancedFileSystemAdapter(config as any);
+      return new EnhancedFileSystemAdapter(config as FileSystemConfig);
     });
 
     // Register GitHub adapter factory
@@ -1332,7 +1332,7 @@ export class PersonalPipelineServer {
       });
     }
 
-    return lines.join('\n') + '\n';
+    return `${lines.join('\n')  }\n`;
   }
 
   // ========================================================================

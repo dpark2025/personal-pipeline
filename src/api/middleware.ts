@@ -847,7 +847,7 @@ function identifyOptimizationOpportunities(
   }
 
   // User agent specific optimizations
-  if (requestMetrics.userAgent && requestMetrics.userAgent.includes('Mobile')) {
+  if (requestMetrics.userAgent?.includes('Mobile')) {
     if (responseSize > 25000) {
       opportunities.push('optimize_mobile_payload');
     }

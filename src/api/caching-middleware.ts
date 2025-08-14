@@ -444,7 +444,7 @@ export function analyzeCachePerformance(cacheService: any): {
     eviction_rate: number;
   };
 } {
-  if (!cacheService || !cacheService.getStats) {
+  if (!cacheService?.getStats) {
     return {
       hit_rate: 0,
       total_requests: 0,

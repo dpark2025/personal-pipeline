@@ -447,20 +447,22 @@ export class MonitoringService extends EventEmitter {
    * Send console notification
    */
   private sendConsoleNotification(alert: Alert): void {
-    const severityColors = {
-      critical: '\x1b[1;31m', // Bright red
-      high: '\x1b[1;33m', // Bright yellow
-      medium: '\x1b[1;36m', // Bright cyan
-      low: '\x1b[1;37m', // Bright white
+    // Log alert with appropriate severity level
+    const logMessage = `🚨 ALERT [${alert.severity.toUpperCase()}] ${alert.title}`;
+    const logDetails = {
+      description: alert.description,
+      time: alert.timestamp.toLocaleString(),
+      id: alert.id,
+      severity: alert.severity
     };
 
-    const color = severityColors[alert.severity];
-    const reset = '\x1b[0m';
-
-    console.log(`${color}🚨 ALERT [${alert.severity.toUpperCase()}] ${alert.title}${reset}`);
-    console.log(`   ${alert.description}`);
-    console.log(`   Time: ${alert.timestamp.toLocaleString()}`);
-    console.log(`   ID: ${alert.id}`);
+    if (alert.severity === 'critical') {
+      logger.error(logMessage, logDetails);
+    } else if (alert.severity === 'high') {
+      logger.warn(logMessage, logDetails);
+    } else {
+      logger.info(logMessage, logDetails);
+    }
   }
 
   /**

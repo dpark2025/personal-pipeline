@@ -486,6 +486,47 @@ export const GitHubConfig = SourceConfig.extend({
 export type GitHubConfig = z.infer<typeof GitHubConfig>;
 
 /**
+ * Enhanced FileSystem adapter configuration
+ */
+export const FileSystemConfig = SourceConfig.extend({
+  type: z.literal('file'),
+  base_paths: z.array(z.string()).optional(), // Multiple root directories
+  recursive: z.boolean().default(true), // Enable recursive scanning
+  max_depth: z.number().default(10), // Maximum recursion depth
+  file_patterns: z.object({
+    include: z.array(z.string()).optional(), // Glob patterns to include
+    exclude: z.array(z.string()).optional(), // Glob patterns to exclude
+  }).optional(),
+  supported_extensions: z.array(z.string()).optional(), // File extensions to process
+  extract_metadata: z.boolean().default(true), // Enable metadata extraction
+  pdf_extraction: z.boolean().default(true), // Enable PDF text extraction
+  watch_changes: z.boolean().default(false), // File system watching
+});
+export type FileSystemConfig = z.infer<typeof FileSystemConfig>;
+
+// ============================================================================
+// Confluence Adapter Types
+// ============================================================================
+
+/**
+ * Confluence adapter configuration
+ */
+export const ConfluenceConfig = SourceConfig.extend({
+  type: z.literal('confluence'),
+  base_url: z.string(), // Required for Confluence
+  space_keys: z.array(z.string()).optional(), // Limit to specific spaces
+  auth: z.object({
+    type: z.enum(['bearer_token', 'basic']),
+    token_env: z.string().optional(),
+    username_env: z.string().optional(),
+    password_env: z.string().optional(),
+  }),
+  rate_limit: z.number().default(10), // Requests per second
+  max_results: z.number().default(50), // Max results per query
+});
+export type ConfluenceConfig = z.infer<typeof ConfluenceConfig>;
+
+/**
  * GitHub repository metadata
  */
 export const GitHubRepositoryMetadata = z.object({

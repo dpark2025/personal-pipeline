@@ -503,7 +503,7 @@ export class WebAdapter extends SourceAdapter {
       // Type-safe error handling
       const error = err as Error | any;
 
-      if (error && error.response && error.response.statusCode) {
+      if (error?.response?.statusCode) {
         if (error.response.statusCode === 429) {
           throw new WebRateLimitError('Rate limit exceeded', url);
         } else if (error.response.statusCode === 401 || error.response.statusCode === 403) {
