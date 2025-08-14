@@ -25,7 +25,7 @@ let pdf: any;
 import Fuse from 'fuse.js';
 import { SourceAdapter } from './base.js';
 import {
-  SourceConfig,
+  FileSystemConfig,
   SearchResult,
   SearchFilters,
   HealthCheck,
@@ -34,21 +34,7 @@ import {
 } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
-// Enhanced configuration interface for FileSystem adapter
-interface FileSystemConfig extends SourceConfig {
-  type: 'file';
-  base_paths?: string[]; // Multiple root directories
-  recursive?: boolean; // Enable recursive scanning
-  max_depth?: number; // Maximum recursion depth
-  file_patterns?: {
-    include?: string[]; // Glob patterns to include
-    exclude?: string[]; // Glob patterns to exclude
-  };
-  supported_extensions?: string[]; // File extensions to process
-  extract_metadata?: boolean; // Enable metadata extraction
-  pdf_extraction?: boolean; // Enable PDF text extraction
-  watch_changes?: boolean; // File system watching
-}
+// FileSystemConfig is now imported from types/index.ts
 
 interface EnhancedFileDocument {
   id: string;
@@ -77,7 +63,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
   private searchIndex: Fuse<EnhancedFileDocument> | null = null;
   private basePaths: string[];
   private supportedExtensions: string[];
-  private filePatterns: { include?: string[]; exclude?: string[] };
+  private filePatterns: { include?: string[] | undefined; exclude?: string[] | undefined };
   private recursive: boolean;
   private maxDepth: number;
   private extractMetadata: boolean;
@@ -101,7 +87,7 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
       '.rst',
       '.adoc',
     ];
-    this.filePatterns = config.file_patterns || {};
+    this.filePatterns = config.file_patterns ?? {};
     this.recursive = config.recursive ?? true;
     this.maxDepth = config.max_depth ?? 10;
     this.extractMetadata = config.extract_metadata ?? true;
