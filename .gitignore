@@ -187,3 +187,6 @@ config/CONFIG_OVERVIEW.md
 
 # Test data and fixtures
 test-data/
+
+# Local configuration (contains user-specific settings)
+config/config.yaml
