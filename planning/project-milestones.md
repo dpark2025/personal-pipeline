@@ -230,14 +230,30 @@
 **Duration**: Weeks 4-6  
 **Goal**: Support multiple documentation sources with advanced search
 
-### Milestone 2.1: Source Adapter Framework (Week 4)
+**UPDATED SCOPE** (MVP Focus):
+Phase 2 implements 3 high-value MVP source adapters:
+1. ✅ Enhanced FileSystemAdapter (completed 2025-08-01)
+2. ✅ ConfluenceAdapter (completed 2025-08-14)
+3. GitHub Adapter (repository access, markdown processing, wiki support)
+4. Web Adapter (universal HTTP client for any web-based documentation)
+
+**MVP Rationale**: Focus on the most universally valuable adapters that provide maximum coverage and flexibility for diverse documentation sources.
+
+**Scope Changes from Original Milestone**:
+- ❌ **Removed**: DiscordAdapter (deferred to Phase 3)
+- ❌ **Removed**: Database Adapter (deferred to Phase 3 - MVP focus)
+- ❌ **Removed**: Notion Adapter (deferred to Phase 3 - MVP focus)
+- ✅ **Added**: ConfluenceAdapter (enterprise-grade with CQL search)
+- ℹ️ **Updated**: Web Adapter (enhanced from simple WebAdapter to universal HTTP client)
+
+### Milestone 2.1: Source Adapter Framework (Week 4) ✅ **PARTIALLY COMPLETED**
 **Deliverables:**
-- [x] Enhanced FileSystemAdapter with Phase 2 capabilities ✅ **COMPLETED**
-- [ ] GitHub repository adapter
-- [ ] WebAdapter (enhanced web scraping)
-- [ ] DiscordAdapter (bi-directional integration)
-- [ ] Configuration system for sources
-- [ ] Source health monitoring
+- [x] Enhanced FileSystemAdapter with Phase 2 capabilities ✅ **COMPLETED** (2025-08-01)
+- [x] ~~ConfluenceAdapter with enhanced capabilities~~ ✅ **COMPLETED** - See [PHASE-2-IMPLEMENTATION-PLAN.md](PHASE-2-IMPLEMENTATION-PLAN.md)
+- [ ] GitHub repository adapter (planned - Week 4/5)
+- [ ] Web Adapter (universal HTTP client) (planned - Week 5/6)
+- [ ] Configuration system for sources ✅ **COMPLETED** (existing)
+- [ ] Source health monitoring ✅ **COMPLETED** (existing)
 - [ ] **NEW**: Documentation Indexer tool
 - [ ] **NEW**: MCP Tool Explorer interface
 - [ ] **NEW**: Integration Test Suite
@@ -257,10 +273,21 @@
 - Discord bot setup and permissions
 - YAML configuration parsing
 
-**Risks:**
-- API rate limiting issues
-- Web scraping legal/technical challenges
-- Discord API changes and compliance
+**Implementation Details**: See [PHASE-2-IMPLEMENTATION-PLAN.md](PHASE-2-IMPLEMENTATION-PLAN.md) (Days 1-3)
+
+**Dependencies:** ✅ **PARTIALLY RESOLVED**
+- ✅ Confluence API access and authentication (implemented)
+- ✅ Enhanced content processing capabilities (implemented)
+- [ ] GitHub API access and authentication
+- [ ] Database connection frameworks
+- [ ] Notion API integration
+- [ ] Web scraping compliance and rate limiting
+
+**Risks:** ✅ **PARTIALLY MITIGATED**
+- ✅ API rate limiting issues (handled for Confluence)
+- [ ] Web scraping legal/technical challenges
+- [ ] Database performance and security concerns
+- [ ] Notion API changes and compliance
 
 ---
 
