@@ -1,0 +1,31 @@
+{
+  "source": "demo-runbooks",
+  "last_updated": "2025-08-15T03:52:49.762Z",
+  "document_count": 3,
+  "fingerprints": {
+    "77ad0060a52f864d4e14be8eecc547bbe33a6a09eef2eefb05609a059bc91bd5": {
+      "id": "77ad0060a52f864d4e14be8eecc547bbe33a6a09eef2eefb05609a059bc91bd5",
+      "content_hash": "767b3177c3bdddcf4c80c5c1a712ff1ffbc8a8f7f19e7dcf5a7b8f0f06cd8f7f",
+      "metadata_hash": "b13001f396094fc1b4c5e8c2edb5b8f4d3665f6e668ef3756e84e326dfc917d4",
+      "structure_hash": "2864f5814f1ef87eccc62cf5a1032f14c6d31e8023be16b38b5f229770424c0c",
+      "last_modified": "2025-08-14T16:06:52.318Z",
+      "size_bytes": 2985
+    },
+    "e5031166b52b08b64926d25204c4b646545f610209d1a5d1f3ce4bcc067f57b9": {
+      "id": "e5031166b52b08b64926d25204c4b646545f610209d1a5d1f3ce4bcc067f57b9",
+      "content_hash": "42e4a1cbdb970e5e1c3a5ba90b9c49777675e175912de2e09399711a3b4d2a11",
+      "metadata_hash": "1a3258580c2f0ee3f44c3ca1eb0ed11055de9f16f4ad6ac972a47e25c4c7a868",
+      "structure_hash": "2864f5814f1ef87eccc62cf5a1032f14c6d31e8023be16b38b5f229770424c0c",
+      "last_modified": "2025-08-14T16:06:52.318Z",
+      "size_bytes": 2977
+    },
+    "6a25159f779265a60690dcd96a4e5b575165b130777452b9dd348cb18122b82d": {
+      "id": "6a25159f779265a60690dcd96a4e5b575165b130777452b9dd348cb18122b82d",
+      "content_hash": "24e00fd3b080fbb0eb305f1553304edc565fb4638a1475df11c0419b9bc5897f",
+      "metadata_hash": "5682a16e1fc4c6e50bc09549ae6ea38b7b3d9e676fac33bbc0e80ad987479cac",
+      "structure_hash": "2864f5814f1ef87eccc62cf5a1032f14c6d31e8023be16b38b5f229770424c0c",
+      "last_modified": "2025-08-14T16:06:52.318Z",
+      "size_bytes": 4081
+    }
+  }
+}

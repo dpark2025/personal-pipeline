@@ -1,1025 +1,1390 @@
 /**
- * Web Adapter for Personal Pipeline MCP Server
- *
- * Provides web crawling and content extraction capabilities with
- * responsible crawling practices, rate limiting, and robots.txt compliance.
+ * WebAdapter - Universal HTTP Client for Web-Based Documentation Sources
+ * 
+ * Authored by: Barry Young (Integration Specialist)
+ * Date: 2025-08-14
+ * 
+ * This adapter provides universal connectivity to web-based documentation sources,
+ * REST APIs, and content management systems via HTTP/HTTPS. It supports multiple
+ * authentication methods, content formats, and intelligent content processing.
  */
 
-import { SourceAdapter } from './base.js';
-import {
-  SourceConfig,
-  SearchResult,
-  SearchFilters,
-  HealthCheck,
-  Runbook,
-  ConfidenceScore,
-  DocumentCategory,
-} from '../types/index.js';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as cheerio from 'cheerio';
-// @ts-ignore
-import got from 'got';
-// @ts-ignore
-const { HTTPError } = got;
-import pLimit from 'p-limit';
-import robotsParser from 'robots-parser';
-import normalizeUrl from 'normalize-url';
-import Fuse from 'fuse.js';
-import NodeCache from 'node-cache';
-import { URL } from 'url';
-import { createHash } from 'crypto';
-import { logger } from '../utils/logger.js';
+import TurndownService from 'turndown';
+import { parseString as parseXML } from 'xml2js';
+import { JSONPath } from 'jsonpath-plus';
+import { SourceAdapter } from './base.js';
+import { 
+  SearchResult, 
+  SearchFilters, 
+  Runbook, 
+  HealthStatus, 
+  SourceMetadata,
+  SourceConfig 
+} from '../types/index.js';
+import { CacheService } from '../utils/cache.js';
+import { Logger } from 'winston';
+import logger from '../utils/logger.js';
 
-// Use the winston logger instance
+// ============================
+// Type Definitions
+// ============================
 
-// ============================================================================
-// Types and Interfaces
-// ============================================================================
-
-interface WebConfig extends SourceConfig {
+export interface WebConfig extends SourceConfig {
   type: 'web';
-  base_urls: string[];
-  max_depth?: number;
-  url_patterns?: {
-    include?: string[];
-    exclude?: string[];
+  
+  // Endpoint Definitions
+  endpoints: WebEndpoint[];
+  
+  // Authentication Configuration
+  auth: {
+    type: 'api_key' | 'bearer_token' | 'basic_auth' | 'custom_headers' | 'none';
+    
+    // API Key Authentication
+    api_key_header?: string;          // Header name (e.g., "X-API-Key")
+    api_key_query?: string;           // Query parameter name
+    api_key_env: string;              // Environment variable
+    
+    // Bearer Token Authentication
+    bearer_token_env?: string;        // Environment variable for token
+    
+    // Basic Authentication
+    username_env?: string;            // Environment variable for username
+    password_env?: string;            // Environment variable for password
+    
+    // Custom Headers
+    custom_headers?: Record<string, string>; // Static headers
+    header_envs?: Record<string, string>;    // Headers from env vars
   };
-  rate_limit?: {
-    requests_per_second?: number;
-    concurrent_requests?: number;
+  
+  // Global Performance Settings
+  performance: {
+    default_timeout_ms: number;       // Default request timeout
+    max_concurrent_requests: number;  // Global concurrent limit
+    default_retry_attempts: number;   // Default retry count
+    default_cache_ttl: string;        // Default cache duration
+    user_agent: string;               // User agent string
   };
-  content_selectors?: {
-    main?: string;
-    title?: string;
-    exclude?: string[];
+  
+  // Content Processing Configuration
+  content_processing: {
+    max_content_size_mb: number;      // Skip large responses
+    follow_redirects: boolean;        // Follow HTTP redirects
+    validate_ssl: boolean;            // SSL certificate validation
+    extract_links: boolean;           // Extract internal links
   };
-  cache_ttl?: string;
-  respect_robots_txt?: boolean;
-  user_agent?: string;
-  max_urls_per_domain?: number;
 }
 
-interface CrawlResult {
-  url: string;
-  content: string;
-  title: string;
-  metadata: {
-    description?: string;
-    author?: string;
-    keywords?: string[];
-    lastModified?: string;
-  };
-  links: string[];
-  depth: number;
+export interface WebEndpoint {
+  name: string;                       // Endpoint identifier
+  url: string;                        // Base URL or full endpoint URL
+  method: 'GET' | 'POST';            // HTTP method
+  
+  // Content Processing
+  content_type: 'html' | 'json' | 'xml' | 'text' | 'auto';
+  selectors?: ContentSelectors;       // For HTML content
+  json_paths?: string[];              // JSONPath expressions
+  xml_xpaths?: string[];              // XPath expressions
+  
+  // Performance Settings
+  rate_limit?: number;                // Requests per minute
+  timeout_ms?: number;                // Request timeout override
+  retry_attempts?: number;            // Retry count override
+  cache_ttl?: string;                 // Cache duration override
+  
+  // Request Configuration
+  headers?: Record<string, string>;   // Additional headers
+  query_params?: Record<string, string>; // Static query parameters
+  body?: string;                      // POST body (for POST requests)
+  
+  // Content Filtering
+  include_patterns?: string[];        // Regex patterns to include
+  exclude_patterns?: string[];        // Regex patterns to exclude
+  min_content_length?: number;        // Minimum content length
+  max_content_length?: number;        // Maximum content length
 }
 
-interface IndexedDocument {
-  id: string;
-  url: string;
+export interface ContentSelectors {
+  title?: string;           // CSS selector for title
+  content?: string;         // CSS selector for main content
+  metadata?: string;        // CSS selector for metadata
+  links?: string;           // CSS selector for navigation links
+  exclude?: string[];       // CSS selectors to exclude
+}
+
+export interface ExtractedContent {
   title: string;
   content: string;
-  category: DocumentCategory;
+  raw_content: string;
   metadata: Record<string, any>;
-  lastIndexed: string;
-  runbookIndicators:
-    | {
-        hasNumberedSteps: boolean;
-        hasProcedureKeywords: boolean;
-        hasCommands: boolean;
-        confidence: number;
-      }
-    | undefined;
+  links?: string[];
+  searchable_content: string;
 }
 
-interface URLQueueItem {
+export interface WebResponse {
+  data: any;
+  status: number;
+  headers: Record<string, string>;
   url: string;
-  depth: number;
-  referrer?: string;
+  content_type: string;
 }
 
-// ============================================================================
-// Error Classes
-// ============================================================================
+export interface RateLimitState {
+  requestCount: number;
+  windowStart: number;
+}
 
-class WebAdapterError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public url?: string,
-    public statusCode?: number
-  ) {
+// ============================
+// Error Classes
+// ============================
+
+export class WebAdapterError extends Error {
+  constructor(message: string, public readonly endpoint?: string) {
     super(message);
     this.name = 'WebAdapterError';
   }
 }
 
-// WebCrawlError removed - using base WebAdapterError
-
-class WebAuthenticationError extends WebAdapterError {
-  constructor(message: string, url: string) {
-    super(message, 'AUTH_ERROR', url, 401);
-    this.name = 'WebAuthenticationError';
+export class AuthenticationError extends Error {
+  constructor(message: string, public readonly endpoint?: string) {
+    super(message);
+    this.name = 'AuthenticationError';
   }
 }
 
-class WebRateLimitError extends WebAdapterError {
-  constructor(message: string, url: string) {
-    super(message, 'RATE_LIMIT_ERROR', url, 429);
-    this.name = 'WebRateLimitError';
+export class RateLimitError extends Error {
+  constructor(message: string, public readonly endpoint?: string) {
+    super(message);
+    this.name = 'RateLimitError';
   }
 }
 
-// WebContentExtractionError removed - using base WebAdapterError
-
-// ============================================================================
+// ============================
 // Main WebAdapter Class
-// ============================================================================
+// ============================
 
+/**
+ * Universal HTTP client adapter for web-based documentation sources
+ */
 export class WebAdapter extends SourceAdapter {
-  protected override config: WebConfig;
-  private httpClient: any;
-  private urlCache: Set<string>;
-  private contentCache: NodeCache;
-  private robotsCache: Map<string, any>;
-  private indexedDocuments: Map<string, IndexedDocument>;
-  private fuseIndex?: Fuse<IndexedDocument>;
-  private crawlQueue: URLQueueItem[];
-  private rateLimiter?: ReturnType<typeof pLimit>;
-  private crawlStartTime?: Date;
-  private stats: {
-    urlsCrawled: number;
-    urlsSkipped: number;
-    errors: number;
-    totalResponseTime: number;
-  };
+  name = 'web';
+  type = 'http' as const;
 
-  constructor(config: WebConfig) {
-    super(config);
-    this.config = this.normalizeConfig(config);
+  private config: WebConfig;
+  private logger: Logger;
+  private httpClient: AxiosInstance;
+  private turndownService: TurndownService;
+  private documentIndex: Map<string, ExtractedContent> = new Map();
+  private rateLimitStates: Map<string, RateLimitState> = new Map();
 
-    // Initialize HTTP client with conservative defaults
-    this.httpClient = got.extend({
-      timeout: {
-        request: 30000, // 30 seconds
-      },
-      retry: {
-        limit: 2,
-        methods: ['GET'],
-      },
-      headers: {
-        'User-Agent': this.config.user_agent || 'PersonalPipeline-MCP/1.0 (Documentation Indexer)',
-      },
-      followRedirect: true,
-      maxRedirects: 5,
+  constructor(config: WebConfig, cacheService?: CacheService) {
+    super();
+    this.config = config;
+    this.logger = logger.child({ adapter: 'web', name: config.name });
+    this.cache = cacheService;
+    
+    this.httpClient = this.createHttpClient();
+    this.turndownService = new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced'
     });
-
-    // Initialize caches and state
-    this.urlCache = new Set();
-    this.contentCache = new NodeCache({
-      stdTTL: this.parseCacheTTL(this.config.cache_ttl || '1h'),
-      checkperiod: 600, // Check for expired keys every 10 minutes
-    });
-    this.robotsCache = new Map();
-    this.indexedDocuments = new Map();
-    this.crawlQueue = [];
-    this.stats = {
-      urlsCrawled: 0,
-      urlsSkipped: 0,
-      errors: 0,
-      totalResponseTime: 0,
-    };
   }
-
-  private normalizeConfig(config: WebConfig): WebConfig {
-    return {
-      ...config,
-      max_depth: config.max_depth ?? 1,
-      rate_limit: {
-        requests_per_second: config.rate_limit?.requests_per_second ?? 2,
-        concurrent_requests: config.rate_limit?.concurrent_requests ?? 3,
-      },
-      respect_robots_txt: config.respect_robots_txt ?? true,
-      max_urls_per_domain: config.max_urls_per_domain ?? 100,
-    };
-  }
-
-  private parseCacheTTL(ttl: string | undefined): number {
-    if (!ttl) return 3600; // Default 1 hour
-    const match = ttl.match(/^(\d+)([smhd])$/);
-    if (!match) return 3600; // Default 1 hour
-
-    const [, value, unit] = match;
-    if (!value || !unit) return 3600; // Default 1 hour
-    const multipliers = { s: 1, m: 60, h: 3600, d: 86400 };
-    return parseInt(value) * multipliers[unit as keyof typeof multipliers];
-  }
-
-  // ============================================================================
-  // SourceAdapter Implementation
-  // ============================================================================
 
   async initialize(): Promise<void> {
-    logger.info('Initializing WebAdapter', { name: this.config.name });
+    this.logger.info('Initializing WebAdapter', {
+      endpoints: this.config.endpoints.length,
+      authType: this.config.auth.type,
+      maxConcurrent: this.config.performance.max_concurrent_requests
+    });
 
-    // Set up rate limiter
-    this.rateLimiter = pLimit(this.config.rate_limit!.concurrent_requests!);
-
-    // Set up authentication if configured
-    if (this.config.auth) {
-      await this.configureAuthentication();
-    }
-
-    // Initialize crawl queue with base URLs
-    this.crawlQueue = this.config.base_urls.map(url => ({
-      url: normalizeUrl(url),
-      depth: 0,
-    }));
-
-    this.isInitialized = true;
-    logger.info('WebAdapter initialized successfully');
+    // Validate configuration
+    this.validateConfiguration();
+    
+    // Test connectivity to endpoints
+    await this.validateEndpointConnectivity();
+    
+    this.logger.info('WebAdapter initialized successfully');
   }
 
   async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
-    if (!this.isInitialized) {
-      throw new WebAdapterError('Adapter not initialized', 'NOT_INITIALIZED');
-    }
-
-    // Ensure index is built
-    if (!this.fuseIndex) {
-      await this.buildSearchIndex();
-    }
-
-    // Perform fuzzy search
-    const fuseResults = this.fuseIndex!.search(query, {
-      limit: filters?.limit || 20,
+    const startTime = Date.now();
+    
+    this.logger.debug('Starting web search', {
+      query,
+      filters,
+      endpoints: this.config.endpoints.length
     });
 
-    // Transform results
-    const results = fuseResults.map(result =>
-      this.transformToSearchResult(result.item, result.score || 0)
-    );
-
-    // Apply category filter if specified
-    if (filters?.category) {
-      return results.filter(r => r.category === filters.category);
+    // Check cache first
+    const cacheKey = this.generateCacheKey('search', { query, filters });
+    if (this.cache) {
+      const cached = await this.cache.get(cacheKey, 'search');
+      if (cached) {
+        this.logger.debug('Returning cached search results', {
+          query,
+          resultCount: cached.length,
+          cacheKey
+        });
+        return cached;
+      }
     }
 
-    // Apply confidence threshold (lowered default for better fuzzy search)
-    const threshold = filters?.min_confidence || 0.3;
-    return results.filter(r => r.confidence_score >= threshold);
+    try {
+      // Search across all endpoints in parallel (limited by max_concurrent)
+      const searchPromises = this.config.endpoints.map(endpoint => 
+        this.searchEndpoint(query, endpoint, filters)
+      );
+      
+      const endpointResults = await Promise.allSettled(searchPromises);
+      
+      // Aggregate results and handle failures
+      const allResults: SearchResult[] = [];
+      endpointResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          allResults.push(...result.value);
+        } else {
+          this.logger.warn('Endpoint search failed', {
+            endpoint: this.config.endpoints[index].name,
+            error: result.reason.message
+          });
+        }
+      });
+      
+      // Apply confidence scoring and ranking
+      const scoredResults = allResults.map(result => ({
+        ...result,
+        confidence_score: this.calculateWebConfidence(result, query),
+        match_reasons: this.generateWebMatchReasons(result, query),
+        retrieval_time_ms: Date.now() - startTime
+      }));
+      
+      // Filter and rank results
+      const finalResults = this.filterAndRankResults(scoredResults, filters);
+      
+      // Cache results
+      if (this.cache && finalResults.length > 0) {
+        const ttl = this.parseCacheTTL(this.config.performance.default_cache_ttl);
+        await this.cache.set(cacheKey, finalResults, 'search', ttl);
+      }
+      
+      const duration = Date.now() - startTime;
+      this.logger.info('Web search completed', {
+        query,
+        resultCount: finalResults.length,
+        duration,
+        endpoints: this.config.endpoints.length
+      });
+      
+      return finalResults;
+    } catch (error: any) {
+      this.logger.error('Web search failed', {
+        query,
+        error: error.message
+      });
+      throw new WebAdapterError(`Search failed: ${error.message}`);
+    }
   }
 
   async getDocument(id: string): Promise<SearchResult | null> {
-    const doc = this.indexedDocuments.get(id);
-    if (!doc) return null;
-
-    return this.transformToSearchResult(doc, 1.0);
+    this.logger.debug('Getting document', { id });
+    
+    // Check cache first
+    const cacheKey = this.generateCacheKey('document', { id });
+    if (this.cache) {
+      const cached = await this.cache.get(cacheKey, 'documents');
+      if (cached) {
+        this.logger.debug('Returning cached document', { id });
+        return cached;
+      }
+    }
+    
+    // Try to find document in local index
+    const content = this.documentIndex.get(id);
+    if (content) {
+      const result = this.convertContentToSearchResult(content, 'direct-access');
+      
+      // Cache result
+      if (this.cache) {
+        const ttl = this.parseCacheTTL(this.config.performance.default_cache_ttl);
+        await this.cache.set(cacheKey, result, 'documents', ttl);
+      }
+      
+      return result;
+    }
+    
+    this.logger.warn('Document not found', { id });
+    return null;
   }
 
-  async searchRunbooks(
-    alertType: string,
-    severity: string,
-    affectedSystems: string[]
-  ): Promise<Runbook[]> {
-    // Build runbook-specific search query
-    const searchTerms = [
+  async searchRunbooks(alertType: string, severity: string, affectedSystems: string[]): Promise<Runbook[]> {
+    this.logger.debug('Searching for runbooks', {
+      alertType,
+      severity,
+      affectedSystems
+    });
+
+    // Build operational search terms
+    const operationalTerms = [
       alertType,
       severity,
       ...affectedSystems,
-      'runbook',
-      'procedure',
-      'troubleshoot',
-      'steps',
-      'resolve',
+      'runbook', 'procedure', 'troubleshooting', 'incident', 'operations'
     ].join(' ');
-
-    const results = await this.search(searchTerms, {
-      category: 'runbook',
-      min_confidence: 0.6,
+    
+    // Search for operational content
+    const searchResults = await this.search(operationalTerms, {
+      categories: ['runbooks', 'procedures', 'operations'],
+      confidence_threshold: 0.3
     });
-
-    // Extract runbooks from search results
+    
+    // Extract runbook structures
     const runbooks: Runbook[] = [];
-    for (const result of results) {
-      const runbook = await this.extractRunbookFromContent(result);
-      if (runbook) {
-        runbooks.push(runbook);
+    for (const result of searchResults) {
+      try {
+        if (this.isLikelyRunbookContent(result, alertType, severity)) {
+          const runbook = await this.extractRunbookStructure(result, alertType, severity);
+          if (runbook) {
+            runbooks.push(runbook);
+          }
+        }
+      } catch (error: any) {
+        this.logger.warn('Failed to extract runbook structure', {
+          resultId: result.id,
+          error: error.message
+        });
       }
     }
-
+    
+    this.logger.info('Runbook search completed', {
+      alertType,
+      runbookCount: runbooks.length
+    });
+    
     return runbooks;
   }
 
-  async healthCheck(): Promise<HealthCheck> {
-    const startTime = Date.now();
-    const health: HealthCheck = {
-      source_name: this.config.name,
-      healthy: true,
-      response_time_ms: 0,
-      last_check: new Date().toISOString(),
-      metadata: {},
-    };
-
+  async healthCheck(): Promise<HealthStatus> {
+    const checks: Record<string, boolean> = {};
+    const errors: string[] = [];
+    
     try {
-      // Check if we can reach at least one base URL
-      const testUrl = this.config.base_urls[0];
-      if (!testUrl) {
-        throw new Error('No base URLs configured');
+      // Test each endpoint
+      for (const endpoint of this.config.endpoints.slice(0, 3)) { // Limit health checks
+        try {
+          const response = await this.executeHttpRequest(endpoint);
+          checks[endpoint.name] = response.status < 400;
+        } catch (error: any) {
+          checks[endpoint.name] = false;
+          errors.push(`${endpoint.name}: ${error.message}`);
+        }
       }
-      await this.httpClient.head(testUrl, { timeout: { request: 5000 } });
-
-      health.metadata = {
-        urls_crawled: this.stats.urlsCrawled,
-        documents_indexed: this.indexedDocuments.size,
-        cache_size: this.contentCache.keys().length,
-        avg_response_time:
-          this.stats.urlsCrawled > 0
-            ? Math.round(this.stats.totalResponseTime / this.stats.urlsCrawled)
-            : 0,
+      
+      const healthyEndpoints = Object.values(checks).filter(Boolean).length;
+      const totalEndpoints = Object.keys(checks).length;
+      const isHealthy = healthyEndpoints > 0; // At least one endpoint working
+      
+      return {
+        status: isHealthy ? 'healthy' : 'unhealthy',
+        checks,
+        errors: errors.length > 0 ? errors : undefined,
+        metadata: {
+          totalEndpoints,
+          healthyEndpoints,
+          authType: this.config.auth.type,
+          timestamp: new Date().toISOString()
+        }
       };
-    } catch (error) {
-      health.healthy = false;
-      health.error_message = error instanceof Error ? error.message : 'Health check failed';
+    } catch (error: any) {
+      return {
+        status: 'unhealthy',
+        checks: {},
+        errors: [error.message],
+        metadata: {
+          timestamp: new Date().toISOString()
+        }
+      };
     }
-
-    health.response_time_ms = Date.now() - startTime;
-    return health;
   }
 
-  async refreshIndex(force?: boolean): Promise<boolean> {
+  async getMetadata(): Promise<SourceMetadata> {
+    return {
+      name: this.config.name,
+      type: 'web',
+      description: `Web adapter with ${this.config.endpoints.length} endpoints`,
+      version: '1.0.0',
+      capabilities: [
+        'search',
+        'document_retrieval',
+        'runbook_extraction',
+        'multi_format_processing',
+        'rate_limiting',
+        'authentication'
+      ],
+      configuration: {
+        endpoints: this.config.endpoints.length,
+        auth_type: this.config.auth.type,
+        max_concurrent: this.config.performance.max_concurrent_requests,
+        default_timeout: this.config.performance.default_timeout_ms
+      },
+      health: await this.healthCheck()
+    };
+  }
+
+  async refreshIndex(force = false): Promise<boolean> {
+    this.logger.info('Refreshing web adapter index', { force });
+    
     try {
-      if (!force && this.indexedDocuments.size > 0) {
-        logger.info('Using cached index', { documents: this.indexedDocuments.size });
-        return true;
+      // Clear existing index if forcing refresh
+      if (force) {
+        this.documentIndex.clear();
+        if (this.cache) {
+          await this.cache.clear();
+        }
       }
-
-      logger.info('Starting web crawl', {
-        urls: this.config.base_urls,
-        max_depth: this.config.max_depth,
-      });
-
-      // Reset state for new crawl
-      this.urlCache.clear();
-      this.crawlQueue = this.config.base_urls.map(url => ({
-        url: normalizeUrl(url),
-        depth: 0,
-      }));
-      this.crawlStartTime = new Date();
-
-      // Crawl all URLs in queue
-      await this.crawl();
-
-      // Rebuild search index
-      await this.buildSearchIndex();
-
-      logger.info('Web crawl completed', {
-        urls_crawled: this.stats.urlsCrawled,
-        documents_indexed: this.indexedDocuments.size,
-        duration_ms: Date.now() - this.crawlStartTime.getTime(),
-      });
-
+      
+      // Re-validate endpoints
+      await this.validateEndpointConnectivity();
+      
+      this.logger.info('Web adapter index refreshed successfully');
       return true;
-    } catch (error) {
-      logger.error('Failed to refresh index', { error });
+    } catch (error: any) {
+      this.logger.error('Failed to refresh web adapter index', {
+        error: error.message
+      });
       return false;
     }
   }
 
-  async getMetadata(): Promise<{
-    name: string;
-    type: string;
-    documentCount: number;
-    lastIndexed: string;
-    avgResponseTime: number;
-    successRate: number;
-  }> {
-    return {
-      name: this.config.name,
-      type: 'web',
-      documentCount: this.indexedDocuments.size,
-      lastIndexed: this.crawlStartTime?.toISOString() || 'never',
-      avgResponseTime:
-        this.stats.urlsCrawled > 0
-          ? Math.round(this.stats.totalResponseTime / this.stats.urlsCrawled)
-          : 0,
-      successRate:
-        this.stats.urlsCrawled > 0
-          ? (this.stats.urlsCrawled - this.stats.errors) / this.stats.urlsCrawled
-          : 0,
-    };
+  async cleanup(): Promise<void> {
+    this.logger.info('Cleaning up WebAdapter');
+    
+    // Clear local caches
+    this.documentIndex.clear();
+    this.rateLimitStates.clear();
+    
+    this.logger.info('WebAdapter cleanup completed');
   }
 
-  override async cleanup(): Promise<void> {
-    this.contentCache.flushAll();
-    this.urlCache.clear();
-    this.robotsCache.clear();
-    this.indexedDocuments.clear();
-    this.fuseIndex = undefined as any;
-    await super.cleanup();
-  }
+  // ============================
+  // Private Helper Methods
+  // ============================
 
-  // ============================================================================
-  // Crawling Implementation
-  // ============================================================================
-
-  private async crawl(): Promise<void> {
-    const requestsPerSecond = this.config.rate_limit!.requests_per_second!;
-    const minInterval = 1000 / requestsPerSecond;
-    let lastRequestTime = 0;
-
-    while (this.crawlQueue.length > 0 && this.urlCache.size < this.config.max_urls_per_domain!) {
-      const batch = this.crawlQueue.splice(0, this.config.rate_limit!.concurrent_requests!);
-
-      const promises = batch.map(async item => {
-        // Rate limiting
-        const now = Date.now();
-        const timeSinceLastRequest = now - lastRequestTime;
-        if (timeSinceLastRequest < minInterval) {
-          await new Promise(resolve => setTimeout(resolve, minInterval - timeSinceLastRequest));
-        }
-        lastRequestTime = Date.now();
-
-        return this.rateLimiter!(async () => {
-          await this.crawlURL(item);
-        });
-      });
-
-      await Promise.all(promises);
-    }
-  }
-
-  private async crawlURL(item: URLQueueItem): Promise<void> {
-    const { url, depth } = item;
-
-    // Skip if already crawled
-    if (this.urlCache.has(url)) {
-      this.stats.urlsSkipped++;
-      return;
-    }
-
-    // Check URL patterns
-    if (!this.shouldCrawlURL(url)) {
-      this.stats.urlsSkipped++;
-      return;
-    }
-
-    // Check robots.txt
-    if (this.config.respect_robots_txt && !(await this.isAllowedByRobots(url))) {
-      logger.debug('URL blocked by robots.txt', { url });
-      this.stats.urlsSkipped++;
-      return;
-    }
-
-    try {
-      // Mark as visited
-      this.urlCache.add(url);
-
-      // Fetch content
-      const startTime = Date.now();
-      const response = await this.httpClient.get(url);
-      this.stats.totalResponseTime += Date.now() - startTime;
-      this.stats.urlsCrawled++;
-
-      // Extract content
-      const crawlResult = await this.extractContent(response.body, url, depth);
-
-      // Index the document
-      await this.indexDocument(crawlResult);
-
-      // Add discovered links to queue if within depth limit
-      if (depth < this.config.max_depth!) {
-        const newLinks = crawlResult.links.filter(link => !this.urlCache.has(link)).slice(0, 10); // Limit new links per page
-
-        for (const link of newLinks) {
-          this.crawlQueue.push({
-            url: link,
-            depth: depth + 1,
-            referrer: url,
-          });
-        }
-      }
-    } catch (err) {
-      this.stats.errors++;
-
-      // Type-safe error handling
-      const error = err as Error | any;
-
-      if (error?.response?.statusCode) {
-        if (error.response.statusCode === 429) {
-          throw new WebRateLimitError('Rate limit exceeded', url);
-        } else if (error.response.statusCode === 401 || error.response.statusCode === 403) {
-          throw new WebAuthenticationError('Authentication failed', url);
-        }
-      }
-
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Failed to crawl URL', { url, error: errorMessage });
-    }
-  }
-
-  private shouldCrawlURL(url: string): boolean {
-    // Check include patterns
-    if (this.config.url_patterns?.include) {
-      const matches = this.config.url_patterns.include.some(pattern =>
-        new RegExp(pattern).test(url)
-      );
-      if (!matches) return false;
-    }
-
-    // Check exclude patterns
-    if (this.config.url_patterns?.exclude) {
-      const matches = this.config.url_patterns.exclude.some(pattern =>
-        new RegExp(pattern).test(url)
-      );
-      if (matches) return false;
-    }
-
-    return true;
-  }
-
-  private async isAllowedByRobots(url: string): Promise<boolean> {
-    try {
-      const urlObj = new URL(url);
-      const robotsUrl = `${urlObj.protocol}//${urlObj.host}/robots.txt`;
-
-      if (!this.robotsCache.has(robotsUrl)) {
-        try {
-          const response = await this.httpClient.get(robotsUrl);
-          const robots = (robotsParser as any)(robotsUrl, response.body);
-          this.robotsCache.set(robotsUrl, robots);
-        } catch {
-          // If robots.txt doesn't exist, allow crawling
-          return true;
-        }
-      }
-
-      const robots = this.robotsCache.get(robotsUrl);
-      return robots ? robots.isAllowed(url, this.config.user_agent) : true;
-    } catch {
-      return true;
-    }
-  }
-
-  // ============================================================================
-  // Content Extraction
-  // ============================================================================
-
-  private async extractContent(html: string, url: string, depth: number): Promise<CrawlResult> {
-    const $ = cheerio.load(html);
-
-    // Remove noise elements
-    this.removeNoiseElements($);
-
-    // Extract content based on selectors or auto-detection
-    const content = this.extractMainContent($);
-    const title = this.extractTitle($, url);
-    const metadata = this.extractMetadata($);
-    const links = this.extractLinks($, url);
-
-    return {
-      url,
-      content,
-      title,
-      metadata,
-      links,
-      depth,
-    };
-  }
-
-  private removeNoiseElements($: cheerio.Root): void {
-    // Remove common noise elements
-    const noiseSelectors = [
-      'script',
-      'style',
-      'noscript',
-      'iframe',
-      'svg',
-      'path',
-      ...(this.config.content_selectors?.exclude || []),
-    ];
-
-    noiseSelectors.forEach(selector => {
-      $(selector).remove();
+  private createHttpClient(): AxiosInstance {
+    const client = axios.create({
+      timeout: this.config.performance.default_timeout_ms,
+      headers: this.buildGlobalHeaders(),
+      validateStatus: (status) => status < 500, // Don't throw on 4xx
+      maxRedirects: this.config.content_processing.follow_redirects ? 5 : 0
     });
 
-    // Remove common navigation/advertisement patterns
-    $('[class*="nav"]').remove();
-    $('[class*="menu"]').remove();
-    $('[class*="sidebar"]').remove();
-    $('[class*="footer"]').remove();
-    $('[class*="header"]').remove();
-    $('[class*="advertisement"]').remove();
-    $('[class*="banner"]').remove();
+    // Add request interceptor for logging
+    client.interceptors.request.use((config) => {
+      this.logger.debug('HTTP request', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        headers: this.sanitizeHeaders(config.headers || {})
+      });
+      return config;
+    });
+
+    // Add response interceptor for logging
+    client.interceptors.response.use(
+      (response) => {
+        this.logger.debug('HTTP response', {
+          status: response.status,
+          url: response.config.url,
+          contentType: response.headers['content-type'],
+          size: this.getResponseSize(response)
+        });
+        return response;
+      },
+      (error) => {
+        this.logger.error('HTTP error', {
+          status: error.response?.status,
+          url: error.config?.url,
+          message: error.message
+        });
+        return Promise.reject(error);
+      }
+    );
+
+    return client;
   }
 
-  private extractMainContent($: cheerio.Root): string {
-    // Use configured selector if available
-    if (this.config.content_selectors?.main) {
-      const content = $(this.config.content_selectors.main).text();
-      if (content.trim()) return content.trim();
+  private buildGlobalHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'User-Agent': this.config.performance.user_agent || 'PersonalPipeline-WebAdapter/1.0'
+    };
+
+    // Add authentication headers
+    if (this.config.auth.type === 'api_key' && this.config.auth.api_key_header) {
+      const apiKey = process.env[this.config.auth.api_key_env];
+      if (apiKey) {
+        headers[this.config.auth.api_key_header] = apiKey;
+      }
+    } else if (this.config.auth.type === 'bearer_token' && this.config.auth.bearer_token_env) {
+      const token = process.env[this.config.auth.bearer_token_env];
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    } else if (this.config.auth.type === 'basic_auth' && this.config.auth.username_env && this.config.auth.password_env) {
+      const username = process.env[this.config.auth.username_env];
+      const password = process.env[this.config.auth.password_env];
+      if (username && password) {
+        const credentials = Buffer.from(`${username}:${password}`).toString('base64');
+        headers['Authorization'] = `Basic ${credentials}`;
+      }
+    } else if (this.config.auth.type === 'custom_headers') {
+      // Add static custom headers
+      if (this.config.auth.custom_headers) {
+        Object.assign(headers, this.config.auth.custom_headers);
+      }
+      
+      // Add dynamic headers from environment variables
+      if (this.config.auth.header_envs) {
+        for (const [headerName, envVar] of Object.entries(this.config.auth.header_envs)) {
+          const value = process.env[envVar];
+          if (value) {
+            headers[headerName] = value;
+          }
+        }
+      }
     }
 
-    // Auto-detection: Find the element with the most text content
-    const contentBlocks = $('article, main, [role="main"], .content, #content, .post, .entry');
+    return headers;
+  }
 
-    if (contentBlocks.length > 0) {
-      let maxLength = 0;
-      let bestContent = '';
+  private validateConfiguration(): void {
+    if (!this.config.endpoints || this.config.endpoints.length === 0) {
+      throw new WebAdapterError('No endpoints configured');
+    }
+    
+    for (const endpoint of this.config.endpoints) {
+      if (!endpoint.name || !endpoint.url) {
+        throw new WebAdapterError(`Invalid endpoint configuration: missing name or URL`);
+      }
+      
+      if (!['GET', 'POST'].includes(endpoint.method)) {
+        throw new WebAdapterError(`Unsupported HTTP method: ${endpoint.method}`);
+      }
+      
+      if (!['html', 'json', 'xml', 'text', 'auto'].includes(endpoint.content_type)) {
+        throw new WebAdapterError(`Unsupported content type: ${endpoint.content_type}`);
+      }
+    }
+    
+    // Validate authentication configuration
+    if (this.config.auth.type !== 'none') {
+      const requiredEnvVars: string[] = [];
+      
+      if (this.config.auth.type === 'api_key') {
+        requiredEnvVars.push(this.config.auth.api_key_env);
+      } else if (this.config.auth.type === 'bearer_token') {
+        requiredEnvVars.push(this.config.auth.bearer_token_env!);
+      } else if (this.config.auth.type === 'basic_auth') {
+        requiredEnvVars.push(this.config.auth.username_env!, this.config.auth.password_env!);
+      }
+      
+      for (const envVar of requiredEnvVars) {
+        if (envVar && !process.env[envVar]) {
+          this.logger.warn(`Missing environment variable: ${envVar}`);
+        }
+      }
+    }
+  }
 
-      contentBlocks.each((_, elem) => {
-        const text = $(elem).text().trim();
-        if (text.length > maxLength) {
-          maxLength = text.length;
-          bestContent = text;
+  private async validateEndpointConnectivity(): Promise<void> {
+    const testPromises = this.config.endpoints.map(async (endpoint) => {
+      try {
+        const response = await this.executeHttpRequest(endpoint);
+        this.logger.debug('Endpoint connectivity validated', {
+          endpoint: endpoint.name,
+          status: response.status
+        });
+        return { endpoint: endpoint.name, success: true };
+      } catch (error: any) {
+        this.logger.warn('Endpoint connectivity failed', {
+          endpoint: endpoint.name,
+          error: error.message
+        });
+        return { endpoint: endpoint.name, success: false, error: error.message };
+      }
+    });
+    
+    const results = await Promise.allSettled(testPromises);
+    const failedEndpoints = results
+      .filter(result => result.status === 'fulfilled' && !result.value.success)
+      .map(result => result.status === 'fulfilled' ? result.value.endpoint : 'unknown');
+    
+    if (failedEndpoints.length === this.config.endpoints.length) {
+      this.logger.warn('All endpoints failed connectivity test - continuing anyway');
+    }
+    
+    if (failedEndpoints.length > 0) {
+      this.logger.warn('Some endpoints failed connectivity test', {
+        failedEndpoints,
+        totalEndpoints: this.config.endpoints.length
+      });
+    }
+  }
+
+  private async searchEndpoint(
+    query: string, 
+    endpoint: WebEndpoint, 
+    filters?: SearchFilters
+  ): Promise<SearchResult[]> {
+    try {
+      // Apply rate limiting
+      await this.checkRateLimit(endpoint);
+      
+      // Execute HTTP request
+      const response = await this.executeHttpRequest(endpoint, query);
+      
+      // Process response content
+      const extractedContent = await this.processContent(response, endpoint);
+      
+      // Store in document index
+      const documentId = this.generateDocumentId(endpoint.name, extractedContent.title);
+      this.documentIndex.set(documentId, extractedContent);
+      
+      // Convert to search results
+      return this.convertToSearchResults(extractedContent, endpoint, query);
+    } catch (error: any) {
+      this.logger.error('Endpoint search failed', {
+        endpoint: endpoint.name,
+        error: error.message
+      });
+      
+      // Don't throw - let other endpoints continue
+      return [];
+    }
+  }
+
+  private async executeHttpRequest(endpoint: WebEndpoint, query?: string): Promise<WebResponse> {
+    const config: AxiosRequestConfig = {
+      method: endpoint.method,
+      url: endpoint.url,
+      timeout: endpoint.timeout_ms || this.config.performance.default_timeout_ms,
+      headers: {
+        ...this.buildGlobalHeaders(),
+        ...endpoint.headers
+      }
+    };
+
+    // Add query parameters
+    if (endpoint.query_params) {
+      config.params = { ...config.params, ...endpoint.query_params };
+    }
+
+    // Add search query for GET requests
+    if (query && endpoint.method === 'GET') {
+      config.params = { ...config.params, q: query, query: query, search: query };
+    }
+
+    // Add API key as query parameter if configured
+    if (this.config.auth.type === 'api_key' && this.config.auth.api_key_query) {
+      const apiKey = process.env[this.config.auth.api_key_env];
+      if (apiKey) {
+        config.params = { ...config.params, [this.config.auth.api_key_query]: apiKey };
+      }
+    }
+
+    // Add request body for POST requests
+    if (endpoint.method === 'POST') {
+      let body = endpoint.body || '{}';
+      if (query) {
+        body = body.replace('${query}', query);
+      }
+      config.data = body;
+      config.headers!['Content-Type'] = 'application/json';
+    }
+
+    try {
+      const response = await this.httpClient.request(config);
+      
+      return {
+        data: response.data,
+        status: response.status,
+        headers: response.headers as Record<string, string>,
+        url: response.config.url || endpoint.url,
+        content_type: response.headers['content-type'] || 'unknown'
+      };
+    } catch (error: any) {
+      if (error.response) {
+        const status = error.response.status;
+        
+        if (status === 401 || status === 403) {
+          throw new AuthenticationError(`Authentication failed for ${endpoint.name}: ${status}`, endpoint.name);
+        }
+        
+        if (status === 429) {
+          throw new RateLimitError(`Rate limit exceeded for ${endpoint.name}`, endpoint.name);
+        }
+        
+        throw new WebAdapterError(`HTTP ${status} error for ${endpoint.name}: ${error.message}`, endpoint.name);
+      }
+      
+      throw new WebAdapterError(`Request failed for ${endpoint.name}: ${error.message}`, endpoint.name);
+    }
+  }
+
+  private async processContent(response: WebResponse, endpoint: WebEndpoint): Promise<ExtractedContent> {
+    const contentType = this.detectContentType(response, endpoint);
+    
+    this.logger.debug('Processing content', {
+      endpoint: endpoint.name,
+      contentType,
+      size: typeof response.data === 'string' ? response.data.length : JSON.stringify(response.data).length
+    });
+
+    switch (contentType) {
+      case 'html':
+        return this.processHTML(response.data, endpoint.selectors || {}, endpoint.name);
+      case 'json':
+        return this.processJSON(response.data, endpoint.json_paths || [], endpoint.name);
+      case 'xml':
+        return await this.processXML(response.data, endpoint.xml_xpaths || [], endpoint.name);
+      case 'text':
+        return this.processText(response.data, endpoint.name);
+      default:
+        throw new WebAdapterError(`Unsupported content type: ${contentType}`, endpoint.name);
+    }
+  }
+
+  private detectContentType(response: WebResponse, endpoint: WebEndpoint): string {
+    if (endpoint.content_type !== 'auto') {
+      return endpoint.content_type;
+    }
+
+    const contentType = response.content_type.toLowerCase();
+    
+    if (contentType.includes('application/json')) {
+      return 'json';
+    } else if (contentType.includes('text/html')) {
+      return 'html';
+    } else if (contentType.includes('application/xml') || contentType.includes('text/xml')) {
+      return 'xml';
+    } else {
+      return 'text';
+    }
+  }
+
+  private processHTML(html: string, selectors: ContentSelectors, endpointName: string): ExtractedContent {
+    try {
+      const $ = cheerio.load(html);
+      
+      // Extract title
+      let title = '';
+      if (selectors.title) {
+        title = $(selectors.title).first().text().trim();
+      } else {
+        title = $('title').text().trim() || $('h1').first().text().trim() || '';
+      }
+      
+      // Remove excluded elements
+      if (selectors.exclude) {
+        selectors.exclude.forEach(excludeSelector => {
+          $(excludeSelector).remove();
+        });
+      }
+      
+      // Extract main content
+      let contentHtml = '';
+      if (selectors.content) {
+        contentHtml = $(selectors.content).html() || '';
+      } else {
+        $('script, style, nav, header, footer, aside, .sidebar, .navigation').remove();
+        contentHtml = $('main').html() || $('article').html() || $('body').html() || html;
+      }
+      
+      // Convert to markdown
+      const markdown = this.htmlToMarkdown(contentHtml);
+      
+      // Extract metadata
+      const metadata = this.extractHTMLMetadata($);
+      
+      // Extract links if requested
+      let links: string[] = [];
+      if (selectors.links) {
+        links = $(selectors.links).map((_, el) => $(el).attr('href')).get().filter(Boolean);
+      }
+      
+      // Generate searchable content
+      const searchableContent = this.generateSearchableContent(title, markdown, metadata);
+      
+      return {
+        title: title || 'Web Document',
+        content: markdown,
+        raw_content: html,
+        metadata,
+        links,
+        searchable_content: searchableContent
+      };
+    } catch (error: any) {
+      this.logger.error('HTML processing failed', {
+        endpoint: endpointName,
+        error: error.message
+      });
+      throw new WebAdapterError(`HTML processing failed: ${error.message}`, endpointName);
+    }
+  }
+
+  private processJSON(data: any, jsonPaths: string[], endpointName: string): ExtractedContent {
+    try {
+      const extractedData: any = {};
+      
+      if (jsonPaths.length > 0) {
+        for (const path of jsonPaths) {
+          try {
+            const result = JSONPath({ path, json: data });
+            const pathKey = path.replace(/^\$\.?/, '').replace(/\[\*\]/g, '');
+            extractedData[pathKey] = result;
+          } catch (error: any) {
+            this.logger.warn('JSONPath extraction failed', {
+              endpoint: endpointName,
+              path,
+              error: error.message
+            });
+          }
+        }
+      } else {
+        Object.assign(extractedData, data);
+      }
+      
+      const title = this.extractJSONTitle(extractedData);
+      const content = this.jsonToMarkdown(extractedData);
+      const searchableContent = this.generateSearchableContent(title, content, extractedData);
+      
+      return {
+        title,
+        content,
+        raw_content: JSON.stringify(data, null, 2),
+        metadata: extractedData,
+        searchable_content: searchableContent
+      };
+    } catch (error: any) {
+      this.logger.error('JSON processing failed', {
+        endpoint: endpointName,
+        error: error.message
+      });
+      throw new WebAdapterError(`JSON processing failed: ${error.message}`, endpointName);
+    }
+  }
+
+  private async processXML(xmlData: string, xpaths: string[], endpointName: string): Promise<ExtractedContent> {
+    return new Promise((resolve, reject) => {
+      parseXML(xmlData, { explicitArray: false }, (err, result) => {
+        if (err) {
+          this.logger.error('XML parsing failed', {
+            endpoint: endpointName,
+            error: err.message
+          });
+          reject(new WebAdapterError(`XML parsing failed: ${err.message}`, endpointName));
+          return;
+        }
+        
+        try {
+          const extractedData = result || {};
+          const title = this.extractXMLTitle(extractedData);
+          const content = this.jsonToMarkdown(extractedData);
+          const searchableContent = this.generateSearchableContent(title, content, extractedData);
+          
+          resolve({
+            title,
+            content,
+            raw_content: xmlData,
+            metadata: extractedData,
+            searchable_content: searchableContent
+          });
+        } catch (error: any) {
+          this.logger.error('XML processing failed', {
+            endpoint: endpointName,
+            error: error.message
+          });
+          reject(new WebAdapterError(`XML processing failed: ${error.message}`, endpointName));
         }
       });
-
-      if (bestContent) return bestContent;
-    }
-
-    // Fallback: Get all paragraph text
-    const paragraphs = $('p')
-      .map((_, el) => $(el).text().trim())
-      .get();
-    return paragraphs.filter(p => p.length > 50).join('\n\n');
+    });
   }
 
-  private extractTitle($: cheerio.Root, url: string): string {
-    // Use configured selector if available
-    if (this.config.content_selectors?.title) {
-      const title = $(this.config.content_selectors.title).text();
-      if (title.trim()) return title.trim();
+  private processText(text: string, endpointName: string): ExtractedContent {
+    try {
+      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+      const title = lines[0] || 'Text Document';
+      const content = text.trim();
+      const searchableContent = this.generateSearchableContent(title, content, {});
+      
+      return {
+        title,
+        content,
+        raw_content: text,
+        metadata: { lines: lines.length, characters: text.length },
+        searchable_content: searchableContent
+      };
+    } catch (error: any) {
+      this.logger.error('Text processing failed', {
+        endpoint: endpointName,
+        error: error.message
+      });
+      throw new WebAdapterError(`Text processing failed: ${error.message}`, endpointName);
     }
-
-    // Try common title selectors
-    const titleSelectors = ['h1', 'title', '[class*="title"]', 'meta[property="og:title"]'];
-
-    for (const selector of titleSelectors) {
-      const title = selector.startsWith('meta')
-        ? $(selector).attr('content')
-        : $(selector).first().text();
-
-      if (title?.trim()) return title.trim();
-    }
-
-    // Fallback to URL
-    return new URL(url).pathname.split('/').pop() || 'Untitled';
   }
 
-  private extractMetadata($: cheerio.Root): CrawlResult['metadata'] {
-    const description =
-      $('meta[name="description"]').attr('content') ||
-      $('meta[property="og:description"]').attr('content');
-    const author = $('meta[name="author"]').attr('content');
-    const keywordsAttr = $('meta[name="keywords"]').attr('content');
-    const lastModified =
-      $('meta[name="last-modified"]').attr('content') ||
-      $('meta[property="article:modified_time"]').attr('content');
+  private htmlToMarkdown(html: string): string {
+    try {
+      return this.turndownService.turndown(html);
+    } catch (error: any) {
+      this.logger.warn('HTML to Markdown conversion failed, using plain text', {
+        error: error.message
+      });
+      const $ = cheerio.load(html);
+      return $.text();
+    }
+  }
 
-    const metadata: CrawlResult['metadata'] = {};
-    if (description) metadata.description = description;
-    if (author) metadata.author = author;
-    if (keywordsAttr) metadata.keywords = keywordsAttr.split(',').map(k => k.trim());
-    if (lastModified) metadata.lastModified = lastModified;
-
+  private extractHTMLMetadata($: cheerio.CheerioAPI): Record<string, any> {
+    const metadata: Record<string, any> = {};
+    
+    $('meta').each((_, el) => {
+      const name = $(el).attr('name') || $(el).attr('property');
+      const content = $(el).attr('content');
+      if (name && content) {
+        metadata[name] = content;
+      }
+    });
+    
     return metadata;
   }
 
-  private extractLinks($: cheerio.Root, baseUrl: string): string[] {
-    const links: string[] = [];
-    const baseUrlObj = new URL(baseUrl);
-
-    $('a[href]').each((_, elem) => {
-      const href = $(elem).attr('href');
-      if (!href) return;
-
-      try {
-        // Resolve relative URLs
-        const absoluteUrl = new URL(href, baseUrl).toString();
-        const urlObj = new URL(absoluteUrl);
-
-        // Only include links from the same domain
-        if (urlObj.hostname === baseUrlObj.hostname) {
-          links.push(normalizeUrl(absoluteUrl));
-        }
-      } catch {
-        // Invalid URL, skip
+  private extractJSONTitle(data: any): string {
+    const titleFields = ['title', 'name', 'label', 'heading', 'subject'];
+    
+    for (const field of titleFields) {
+      if (data[field] && typeof data[field] === 'string') {
+        return data[field];
       }
-    });
-
-    return [...new Set(links)]; // Remove duplicates
+    }
+    
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === 'string' && value.length > 0 && value.length < 100) {
+        return value;
+      }
+    }
+    
+    return 'JSON Document';
   }
 
-  // ============================================================================
-  // Document Indexing
-  // ============================================================================
+  private extractXMLTitle(data: any): string {
+    if (data.title) return String(data.title);
+    if (data.name) return String(data.name);
+    
+    const keys = Object.keys(data);
+    if (keys.length > 0) {
+      return `XML Document (${keys[0]})`;
+    }
+    
+    return 'XML Document';
+  }
 
-  private async indexDocument(crawlResult: CrawlResult): Promise<void> {
-    const documentId = this.generateDocumentId(crawlResult.url);
-    const category = this.detectDocumentCategory(crawlResult);
-    const runbookIndicators = this.detectRunbookIndicators(crawlResult);
-
-    const document: IndexedDocument = {
-      id: documentId,
-      url: crawlResult.url,
-      title: crawlResult.title,
-      content: crawlResult.content,
-      category,
-      metadata: {
-        ...crawlResult.metadata,
-        depth: crawlResult.depth,
-        contentLength: crawlResult.content.length,
-      },
-      lastIndexed: new Date().toISOString(),
-      runbookIndicators: runbookIndicators || undefined,
+  private jsonToMarkdown(data: any): string {
+    const lines: string[] = [];
+    
+    const processValue = (key: string, value: any, depth = 0): void => {
+      const indent = '  '.repeat(depth);
+      
+      if (Array.isArray(value)) {
+        lines.push(`${indent}**${key}:**`);
+        value.forEach((item, index) => {
+          if (typeof item === 'object') {
+            lines.push(`${indent}- Item ${index + 1}:`);
+            Object.entries(item).forEach(([k, v]) => processValue(k, v, depth + 1));
+          } else {
+            lines.push(`${indent}- ${item}`);
+          }
+        });
+      } else if (typeof value === 'object' && value !== null) {
+        lines.push(`${indent}**${key}:**`);
+        Object.entries(value).forEach(([k, v]) => processValue(k, v, depth + 1));
+      } else {
+        lines.push(`${indent}**${key}:** ${value}`);
+      }
     };
-
-    this.indexedDocuments.set(documentId, document);
-
-    // Cache the content
-    this.contentCache.set(documentId, document);
+    
+    Object.entries(data).forEach(([key, value]) => processValue(key, value));
+    
+    return lines.join('\n');
   }
 
-  private generateDocumentId(url: string): string {
-    return createHash('sha256').update(url).digest('hex').substring(0, 16);
-  }
-
-  private detectDocumentCategory(crawlResult: CrawlResult): DocumentCategory {
-    const { url, title, content } = crawlResult;
-    const lowerContent = content.toLowerCase();
-    const lowerTitle = title.toLowerCase();
-    const lowerUrl = url.toLowerCase();
-
-    // Check for runbook indicators
-    if (
-      lowerUrl.includes('runbook') ||
-      lowerUrl.includes('procedure') ||
-      lowerUrl.includes('troubleshoot') ||
-      lowerTitle.includes('runbook') ||
-      lowerTitle.includes('procedure') ||
-      lowerContent.includes('step 1') ||
-      lowerContent.includes('troubleshooting steps')
-    ) {
-      return 'runbook';
+  private generateSearchableContent(title: string, content: string, metadata: Record<string, any>): string {
+    const parts = [title, content];
+    
+    for (const value of Object.values(metadata)) {
+      if (typeof value === 'string') {
+        parts.push(value);
+      } else if (Array.isArray(value)) {
+        parts.push(...value.filter(v => typeof v === 'string'));
+      }
     }
-
-    // Check for API documentation
-    if (
-      lowerUrl.includes('api') ||
-      lowerTitle.includes('api') ||
-      lowerContent.includes('endpoint') ||
-      (lowerContent.includes('request') && lowerContent.includes('response'))
-    ) {
-      return 'api';
-    }
-
-    // Check for guides
-    if (
-      lowerUrl.includes('guide') ||
-      lowerUrl.includes('tutorial') ||
-      lowerTitle.includes('guide') ||
-      lowerTitle.includes('how to')
-    ) {
-      return 'guide';
-    }
-
-    return 'general';
+    
+    return parts
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .trim();
   }
 
-  private detectRunbookIndicators(crawlResult: CrawlResult): IndexedDocument['runbookIndicators'] {
-    const { content } = crawlResult;
-
-    const indicators = {
-      hasNumberedSteps: /step \d+|^\d+\./gm.test(content),
-      hasProcedureKeywords: /procedure|troubleshoot|resolve|fix|diagnose|investigate/i.test(
-        content
-      ),
-      hasCommands: /```|`[^`]+`|^\$\s+|^>\s+/gm.test(content),
-      confidence: 0,
-    };
-
-    // Calculate confidence score
-    let confidence = 0;
-    if (indicators.hasNumberedSteps) confidence += 0.4;
-    if (indicators.hasProcedureKeywords) confidence += 0.3;
-    if (indicators.hasCommands) confidence += 0.3;
-
-    indicators.confidence = Math.min(confidence, 1.0);
-
-    return indicators;
+  private async checkRateLimit(endpoint: WebEndpoint): Promise<void> {
+    const limit = endpoint.rate_limit || 60;
+    const state = this.getOrCreateLimitState(endpoint.name);
+    
+    if (state.requestCount >= limit) {
+      const waitTime = 60000 - (Date.now() - state.windowStart);
+      if (waitTime > 0) {
+        this.logger.info(`Rate limit reached for ${endpoint.name}, waiting ${waitTime}ms`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        this.resetLimitWindow(endpoint.name);
+      }
+    }
+    
+    state.requestCount++;
   }
 
-  // ============================================================================
-  // Search Implementation
-  // ============================================================================
+  private getOrCreateLimitState(endpointName: string): RateLimitState {
+    if (!this.rateLimitStates.has(endpointName)) {
+      this.rateLimitStates.set(endpointName, {
+        requestCount: 0,
+        windowStart: Date.now()
+      });
+    }
+    
+    const state = this.rateLimitStates.get(endpointName)!;
+    
+    if (Date.now() - state.windowStart >= 60000) {
+      this.resetLimitWindow(endpointName);
+    }
+    
+    return state;
+  }
 
-  private async buildSearchIndex(): Promise<void> {
-    const documents = Array.from(this.indexedDocuments.values());
-
-    this.fuseIndex = new Fuse(documents, {
-      keys: [
-        { name: 'title', weight: 0.3 },
-        { name: 'content', weight: 0.5 },
-        { name: 'url', weight: 0.1 },
-        { name: 'metadata.keywords', weight: 0.1 },
-      ],
-      threshold: 0.5, // More lenient matching (higher = more lenient)
-      includeScore: true,
-      ignoreLocation: true,
-      minMatchCharLength: 2, // Allow shorter matches
+  private resetLimitWindow(endpointName: string): void {
+    this.rateLimitStates.set(endpointName, {
+      requestCount: 0,
+      windowStart: Date.now()
     });
   }
 
-  private transformToSearchResult(doc: IndexedDocument, fuseScore: number): SearchResult {
-    // Convert Fuse score (0 = perfect match, 1 = no match) to confidence score
-    const confidence = 1 - fuseScore;
-
-    return {
-      id: doc.id,
+  private convertToSearchResults(
+    content: ExtractedContent, 
+    endpoint: WebEndpoint, 
+    query: string
+  ): SearchResult[] {
+    const result: SearchResult = {
+      id: this.generateDocumentId(endpoint.name, content.title),
+      title: content.title,
+      content: content.content,
       source: this.config.name,
-      source_name: this.config.name,
       source_type: 'web',
-      title: doc.title,
-      content: doc.content.substring(0, 1000), // Limit content in search results
-      url: doc.url,
-      category: doc.category,
-      confidence_score: confidence as ConfidenceScore,
-      match_reasons: this.generateMatchReasons(doc),
-      retrieval_time_ms: 0, // Will be set by caller
-      last_updated: doc.lastIndexed,
+      confidence_score: 0.8,
+      match_reasons: [],
+      retrieval_time_ms: 0,
       metadata: {
-        ...doc.metadata,
-        extracted_at: doc.lastIndexed,
-      },
+        endpoint: endpoint.name,
+        url: endpoint.url,
+        content_type: endpoint.content_type,
+        ...content.metadata
+      }
+    };
+    
+    return [result];
+  }
+
+  private convertContentToSearchResult(content: ExtractedContent, source: string): SearchResult {
+    return {
+      id: this.generateDocumentId(source, content.title),
+      title: content.title,
+      content: content.content,
+      source: this.config.name,
+      source_type: 'web',
+      confidence_score: 1.0,
+      match_reasons: ['Direct document access'],
+      retrieval_time_ms: 0,
+      metadata: content.metadata
     };
   }
 
-  private generateMatchReasons(doc: IndexedDocument): string[] {
+  private calculateWebConfidence(result: SearchResult, query: string): number {
+    const queryLower = query.toLowerCase();
+    const titleLower = result.title.toLowerCase();
+    const contentLower = result.content.toLowerCase();
+    
+    let confidence = 0.0;
+    
+    // Title relevance (40%)
+    if (titleLower.includes(queryLower)) {
+      confidence += 0.4;
+    } else {
+      const titleWords = queryLower.split(/\s+/);
+      const titleMatches = titleWords.filter(word => titleLower.includes(word)).length;
+      confidence += (titleMatches / titleWords.length) * 0.4;
+    }
+    
+    // Content relevance (35%)
+    if (contentLower.includes(queryLower)) {
+      confidence += 0.35;
+    } else {
+      const contentWords = queryLower.split(/\s+/);
+      const contentMatches = contentWords.filter(word => contentLower.includes(word)).length;
+      confidence += (contentMatches / contentWords.length) * 0.35;
+    }
+    
+    // Endpoint relevance (25%)
+    const endpointName = result.metadata?.endpoint?.toLowerCase() || '';
+    if (endpointName.includes('runbook') || endpointName.includes('ops')) {
+      confidence += 0.25;
+    } else if (endpointName.includes('doc') || endpointName.includes('api')) {
+      confidence += 0.15;
+    } else {
+      confidence += 0.1;
+    }
+    
+    return Math.min(confidence, 1.0);
+  }
+
+  private generateWebMatchReasons(result: SearchResult, query: string): string[] {
     const reasons: string[] = [];
-
-    if (doc.category === 'runbook') {
-      reasons.push('Document identified as runbook');
+    const queryLower = query.toLowerCase();
+    const titleLower = result.title.toLowerCase();
+    const contentLower = result.content.toLowerCase();
+    
+    if (titleLower.includes(queryLower)) {
+      reasons.push('Exact title match');
+    } else if (queryLower.split(/\s+/).some(word => titleLower.includes(word))) {
+      reasons.push('Partial title match');
     }
-
-    if (doc.runbookIndicators && doc.runbookIndicators.hasNumberedSteps) {
-      reasons.push('Contains numbered procedure steps');
+    
+    if (contentLower.includes(queryLower)) {
+      reasons.push('Exact content match');
+    } else if (queryLower.split(/\s+/).some(word => contentLower.includes(word))) {
+      reasons.push('Partial content match');
     }
-
-    if (doc.runbookIndicators && doc.runbookIndicators.hasProcedureKeywords) {
-      reasons.push('Contains troubleshooting keywords');
+    
+    const endpointName = result.metadata?.endpoint?.toLowerCase() || '';
+    if (endpointName.includes('runbook')) {
+      reasons.push('Runbook endpoint');
+    } else if (endpointName.includes('doc')) {
+      reasons.push('Documentation endpoint');
     }
-
-    if (doc.runbookIndicators && doc.runbookIndicators.hasCommands) {
-      reasons.push('Contains executable commands');
+    
+    if (reasons.length === 0) {
+      reasons.push('General relevance');
     }
-
+    
     return reasons;
   }
 
-  // ============================================================================
-  // Runbook Extraction
-  // ============================================================================
+  private filterAndRankResults(results: SearchResult[], filters?: SearchFilters): SearchResult[] {
+    let filtered = results;
+    
+    if (filters?.confidence_threshold) {
+      filtered = filtered.filter(result => result.confidence_score >= filters.confidence_threshold!);
+    }
+    
+    if (filters?.categories) {
+      filtered = filtered.filter(result => {
+        const endpointName = result.metadata?.endpoint?.toLowerCase() || '';
+        return filters.categories!.some(category => 
+          endpointName.includes(category.toLowerCase())
+        );
+      });
+    }
+    
+    filtered.sort((a, b) => b.confidence_score - a.confidence_score);
+    
+    if (filters?.limit) {
+      filtered = filtered.slice(0, filters.limit);
+    }
+    
+    return filtered;
+  }
 
-  private async extractRunbookFromContent(result: SearchResult): Promise<Runbook | null> {
+  private isLikelyRunbookContent(result: SearchResult, alertType: string, severity: string): boolean {
+    const content = result.content.toLowerCase();
+    const title = result.title.toLowerCase();
+    const endpoint = result.metadata?.endpoint?.toLowerCase() || '';
+    
+    const runbookKeywords = ['runbook', 'procedure', 'troubleshoot', 'incident', 'operations', 'ops'];
+    const hasRunbookKeywords = runbookKeywords.some(keyword => 
+      title.includes(keyword) || content.includes(keyword) || endpoint.includes(keyword)
+    );
+    
+    const alertTypeNormalized = alertType.replace(/_/g, ' ').toLowerCase();
+    const hasAlertRelevance = content.includes(alertTypeNormalized) || title.includes(alertTypeNormalized);
+    
+    const hasSeverityRelevance = content.includes(severity.toLowerCase()) || title.includes(severity.toLowerCase());
+    
+    return hasRunbookKeywords && (hasAlertRelevance || hasSeverityRelevance);
+  }
+
+  private async extractRunbookStructure(result: SearchResult, alertType: string, severity: string): Promise<Runbook | null> {
     try {
-      // This is a simplified extraction - in production, would use more sophisticated parsing
-      const procedures = this.extractProcedureSteps(result.content);
-
-      if (procedures.length === 0) return null;
-
-      const runbook: Runbook = {
-        id: result.id,
-        title: result.title,
-        version: '1.0.0',
-        description: result.content.substring(0, 200),
-        triggers: this.extractTriggers(result.content),
-        severity_mapping: {
-          critical: 'critical',
-          high: 'high',
-          medium: 'medium',
-          low: 'low',
-          info: 'info',
-        },
-        decision_tree: {
-          id: `dt-${result.id}`,
-          name: 'Default Decision Tree',
-          description: 'Extracted from web content',
-          branches: [],
-          default_action: 'Follow documented procedures',
-        },
-        procedures,
-        metadata: {
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          author: 'WebAdapter',
-          confidence_score: result.confidence_score,
-        },
-      };
-
-      return runbook;
-    } catch (error) {
-      logger.error('Failed to extract runbook', { error, result_id: result.id });
+      if (result.metadata?.content_type === 'json') {
+        try {
+          const jsonContent = JSON.parse(result.content);
+          if (this.isValidRunbookJSON(jsonContent)) {
+            return jsonContent;
+          }
+        } catch {
+          // Not valid JSON, continue to synthetic generation
+        }
+      }
+      
+      return this.createSyntheticRunbook(result, alertType, severity);
+    } catch (error: any) {
+      this.logger.warn('Failed to extract runbook structure', {
+        resultId: result.id,
+        error: error.message
+      });
       return null;
     }
   }
 
-  private extractProcedureSteps(content: string): Runbook['procedures'] {
-    const steps: Runbook['procedures'] = [];
-
-    // Look for numbered steps
-    const stepMatches = content.matchAll(/(?:step\s+)?(\d+)[.)]\s*([^\n]+)/gi);
-
-    let stepNumber = 1;
-    for (const match of stepMatches) {
-      steps.push({
-        id: `step-${stepNumber}`,
-        name: `Step ${stepNumber}`,
-        description: match[2]?.trim() || 'Step description',
-        expected_outcome: 'Step completed successfully',
-      });
-      stepNumber++;
-    }
-
-    return steps;
+  private isValidRunbookJSON(obj: any): boolean {
+    return obj && 
+           typeof obj === 'object' && 
+           obj.id && 
+           obj.title && 
+           (obj.procedures || obj.steps || obj.actions);
   }
 
-  private extractTriggers(content: string): string[] {
-    const triggers: string[] = [];
+  private createSyntheticRunbook(result: SearchResult, alertType: string, severity: string): Runbook {
+    const procedures = this.extractProceduresFromContent(result.content);
+    
+    return {
+      id: result.id,
+      title: result.title,
+      version: '1.0',
+      description: `Runbook extracted from ${result.source}`,
+      triggers: [alertType],
+      severity_mapping: {
+        [severity]: severity,
+        critical: 'critical',
+        high: 'high',
+        medium: 'medium',
+        low: 'low',
+        info: 'info'
+      },
+      decision_tree: {
+        id: 'main',
+        name: 'Main Decision Tree',
+        description: 'Primary decision flow for this runbook',
+        branches: [],
+        default_action: 'escalate'
+      },
+      procedures,
+      escalation_path: 'Standard escalation procedure',
+      metadata: {
+        confidence_score: result.confidence_score,
+        author: 'WebAdapter',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        source: result.source,
+        source_url: result.metadata?.url || '',
+        success_rate: 0.85
+      }
+    };
+  }
 
-    // Common alert patterns
-    const alertPatterns = [
-      /alert[:\s]+([^\n.]+)/gi,
-      /error[:\s]+([^\n.]+)/gi,
-      /warning[:\s]+([^\n.]+)/gi,
-      /when[:\s]+([^\n.]+)/gi,
+  private extractProceduresFromContent(content: string): any[] {
+    const procedures: any[] = [];
+    
+    const stepPatterns = [
+      /^\d+\.\s*(.+)$/gm,
+      /^Step \d+:\s*(.+)$/gm,
+      /^\*\s*(.+)$/gm,
+      /^-\s*(.+)$/gm
     ];
-
-    for (const pattern of alertPatterns) {
-      const matches = content.matchAll(pattern);
-      for (const match of matches) {
-        if (match[1]) {
-          triggers.push(match[1].trim().toLowerCase().replace(/\s+/g, '_'));
-        }
+    
+    let stepCounter = 1;
+    
+    for (const pattern of stepPatterns) {
+      const matches = content.match(pattern);
+      if (matches && matches.length > 0) {
+        matches.forEach(match => {
+          const description = match.replace(/^\d+\.\s*|^Step \d+:\s*|^\*\s*|^-\s*/, '').trim();
+          if (description.length > 10) {
+            procedures.push({
+              id: `step_${stepCounter}`,
+              name: `Step ${stepCounter}`,
+              description,
+              expected_outcome: 'Step completed successfully',
+              timeout_seconds: 300
+            });
+            stepCounter++;
+          }
+        });
+        break;
       }
     }
-
-    return [...new Set(triggers)].slice(0, 5); // Limit to 5 unique triggers
+    
+    if (procedures.length === 0) {
+      procedures.push({
+        id: 'step_1',
+        name: 'Primary Procedure',
+        description: content.substring(0, 500),
+        expected_outcome: 'Procedure completed successfully',
+        timeout_seconds: 600
+      });
+    }
+    
+    return procedures;
   }
 
-  // ============================================================================
-  // Authentication
-  // ============================================================================
+  private generateDocumentId(endpoint: string, title: string): string {
+    const cleanTitle = title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+    return `${endpoint}-${cleanTitle}`;
+  }
 
-  private async configureAuthentication(): Promise<void> {
-    if (!this.config.auth) return;
+  private generateCacheKey(operation: string, params: Record<string, any>): string {
+    const paramString = JSON.stringify(params);
+    const hash = Buffer.from(paramString).toString('base64').substring(0, 8);
+    return `web:${operation}:${hash}`;
+  }
 
-    const auth = this.config.auth;
-
-    switch (auth.type) {
-      case 'basic':
-        if ('credentials' in auth && auth.credentials?.username && auth.credentials?.password) {
-          this.httpClient = this.httpClient.extend({
-            username: auth.credentials.username,
-            password: auth.credentials.password,
-          });
-        }
-        break;
-
-      case 'bearer':
-        if ('credentials' in auth && auth.credentials?.token) {
-          this.httpClient = this.httpClient.extend({
-            headers: {
-              Authorization: `Bearer ${auth.credentials.token}`,
-            },
-          });
-        }
-        break;
-
-      case 'cookie':
-        if ('credentials' in auth && auth.credentials?.cookie) {
-          this.httpClient = this.httpClient.extend({
-            headers: {
-              Cookie: auth.credentials.cookie,
-            },
-          });
-        }
-        break;
-
-      // Handle other auth types if needed
-      default:
-        logger.warn('Unsupported authentication type for WebAdapter', { type: auth.type });
-        break;
+  private parseCacheTTL(ttlString: string): number {
+    const match = ttlString.match(/^(\d+)([hmsd])$/);
+    if (!match) return 3600;
+    
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    
+    switch (unit) {
+      case 's': return value;
+      case 'm': return value * 60;
+      case 'h': return value * 3600;
+      case 'd': return value * 86400;
+      default: return 3600;
     }
   }
 
-  // ============================================================================
-  // Base Class Method Implementations
-  // ============================================================================
+  private sanitizeHeaders(headers: Record<string, any>): Record<string, string> {
+    const sanitized: Record<string, string> = {};
+    for (const [key, value] of Object.entries(headers)) {
+      if (key.toLowerCase().includes('authorization') || key.toLowerCase().includes('key')) {
+        sanitized[key] = '[REDACTED]';
+      } else {
+        sanitized[key] = String(value);
+      }
+    }
+    return sanitized;
+  }
 
-  /**
-   * Check if the adapter is properly initialized
-   * Explicit override for Jest compatibility
-   */
-  override isReady(): boolean {
-    return this.isInitialized;
+  private getResponseSize(response: AxiosResponse): string {
+    const contentLength = response.headers['content-length'];
+    if (contentLength) {
+      const bytes = parseInt(contentLength);
+      return bytes > 1024 ? `${Math.round(bytes / 1024)}KB` : `${bytes}B`;
+    }
+    return 'unknown';
   }
 }
