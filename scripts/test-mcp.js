@@ -83,11 +83,11 @@ const TEST_SCENARIOS = {
   search_runbooks: [
     { alert_type: 'disk_space', severity: 'critical', affected_systems: ['web-server-01'] },
     { alert_type: 'memory_leak', severity: 'high', affected_systems: ['app-server-02'] },
-    { alert_type: 'cpu_high', severity: 'medium' },
+    { alert_type: 'cpu_high', severity: 'medium', affected_systems: ['api-server-01'] },
   ],
   get_decision_tree: [
-    { scenario_type: 'disk_space' },
-    { scenario_type: 'memory_leak', context: { system_type: 'java' } },
+    { alert_context: { scenario_type: 'disk_space' } },
+    { alert_context: { scenario_type: 'memory_leak', system_type: 'java' } },
   ],
   get_procedure: [
     { procedure_id: 'emergency_procedure' },
@@ -95,8 +95,8 @@ const TEST_SCENARIOS = {
     { procedure_id: 'diagnostic_procedure' },
   ],
   get_escalation_path: [
-    { alert_type: 'disk_space', severity: 'critical', business_hours: false },
-    { alert_type: 'security_incident', severity: 'high', business_hours: true },
+    { severity: 'critical', business_hours: false },
+    { severity: 'high', business_hours: true },
   ],
   list_sources: [
     { enabled_only: true },
@@ -105,12 +105,12 @@ const TEST_SCENARIOS = {
   ],
   search_knowledge_base: [
     { query: 'disk space troubleshooting', max_results: 5 },
-    { query: 'memory leak detection', filters: { category: 'troubleshooting' } },
+    { query: 'memory leak detection', categories: ['troubleshooting'] },
     { query: 'security best practices' },
   ],
   record_resolution_feedback: [
-    { incident_id: 'INC-001', resolution_successful: true, feedback: 'Resolved quickly using standard procedure' },
-    { incident_id: 'INC-002', resolution_successful: false, feedback: 'Required escalation to specialist team' },
+    { runbook_id: 'RB-DISK-001', procedure_id: 'emergency_procedure', outcome: 'success', resolution_time_minutes: 15, notes: 'Resolved quickly using standard procedure' },
+    { runbook_id: 'RB-MEM-001', procedure_id: 'diagnostic_procedure', outcome: 'escalated', resolution_time_minutes: 45, notes: 'Required escalation to specialist team' },
   ],
 };
 

@@ -67,6 +67,12 @@ npm run generate-sample-data  # Generate realistic test data and runbooks
 npm run validate-config       # Validate YAML config with schema checking
 npm run test-mcp             # Interactive MCP client testing tool
 
+# Enhanced MCP Tool Explorer (NEW - Milestone 2.1) ⭐ 100% OPERATIONAL
+npm run mcp-explorer                    # Enhanced interactive CLI with auto-completion
+npm run mcp-explorer:analytics          # Performance analytics dashboard
+npm run mcp-explorer:test-suite         # Enhanced automated test suite (24/24 scenarios passing)
+npm run mcp-explorer:clear-session      # Clear session data and history
+
 # Performance & Monitoring (Milestone 1.3-1.4)
 npm run benchmark            # Performance benchmark suite
 npm run benchmark:quick      # Quick performance test (5 concurrent, 15s)

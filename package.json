@@ -27,6 +27,10 @@
     "generate-sample-data": "node scripts/generate-sample-data.js",
     "validate-config": "node scripts/validate-config.js",
     "test-mcp": "node scripts/test-mcp.js",
+    "mcp-explorer": "tsx scripts/mcp-explorer.ts",
+    "mcp-explorer:analytics": "tsx scripts/mcp-explorer.ts --analytics",
+    "mcp-explorer:test-suite": "tsx scripts/mcp-explorer.ts --test-suite",
+    "mcp-explorer:clear-session": "tsx scripts/mcp-explorer.ts --clear-session",
     "test:runner": "node scripts/test-runner.js",
     "test:runner:parallel": "node scripts/test-runner.js --parallel",
     "test:runner:verbose": "node scripts/test-runner.js --verbose --coverage",
@@ -65,7 +69,14 @@
     "index-docs:parallel": "tsx scripts/index-docs.ts --parallel --batch-size 50",
     "index-docs:verbose": "tsx scripts/index-docs.ts --verbose --show-changes",
     "index-docs:dry-run": "tsx scripts/index-docs.ts --dry-run --verbose",
-    "index-docs:quality": "tsx scripts/index-docs.ts --quality-analysis --duplicate-detection"
+    "index-docs:quality": "tsx scripts/index-docs.ts --quality-analysis --duplicate-detection",
+    "test:integration": "tsx scripts/integration-tests.ts",
+    "test:integration:quick": "tsx scripts/integration-tests.ts --quick",
+    "test:integration:thorough": "tsx scripts/integration-tests.ts --thorough",
+    "test:integration:no-github": "tsx scripts/integration-tests.ts --no-github",
+    "test:integration:no-confluence": "tsx scripts/integration-tests.ts --no-confluence",
+    "generate:integration-test-data": "tsx scripts/generate-integration-test-data.ts",
+    "test:integration:setup": "tsx scripts/generate-integration-test-data.ts && npm run test:integration"
   },
   "keywords": [
     "mcp",
