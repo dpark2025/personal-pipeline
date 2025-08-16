@@ -1,0 +1,31 @@
+{
+  "id": "RB-MEM-001",
+  "title": "Memory Leak Investigation and Resolution",
+  "content": "# Memory Leak Investigation and Resolution\n\n## Overview\nSystematic approach to identifying and resolving memory leaks in production systems.\n\n## Alert Criteria\n- **Alert Type**: memory_leak, high_memory, oom_killer\n- **Severity**: High (>80% memory), Critical (>90% memory)\n- **Affected Systems**: Java applications, Node.js services, databases\n\n## Investigation Procedure\n\n### Step 1: Initial Assessment\n```bash\n# Check overall memory usage\nfree -h\n\n# Identify memory-consuming processes\nps aux --sort=-%mem | head -20\n\n# Check for OOM killer activity\ndmesg | grep -i \"killed process\"\n```\n\n### Step 2: Application-Specific Analysis\n\n#### For Java Applications\n```bash\n# Generate heap dump\njcmd <PID> GC.run_finalization\njcmd <PID> VM.classloader_stats\n\n# Analyze garbage collection\njstat -gc <PID> 5s 10\n```\n\n#### For Node.js Applications\n```bash\n# Generate heap snapshot\nkill -USR2 <PID>\n\n# Monitor memory usage\nnode --inspect-brk=0.0.0.0:9229 app.js\n```\n\n### Step 3: Immediate Mitigation\n```bash\n# Restart problematic service\nsudo systemctl restart <service-name>\n\n# Temporarily increase memory limits\necho 'vm.overcommit_memory=1' >> /etc/sysctl.conf\nsysctl -p\n```\n\n## Escalation Thresholds\n- Memory usage >95% for more than 5 minutes\n- OOM killer activity detected\n- Critical services becoming unresponsive\n- Memory growth rate >10% per hour\n\n## Recovery Validation\n- [ ] Memory usage stabilized below 70%\n- [ ] No OOM killer activity\n- [ ] All services responding normally\n- [ ] Application performance metrics normal\n\n## Long-term Actions\n1. Implement memory profiling\n2. Set up heap dump automation\n3. Review application code for leaks\n4. Optimize garbage collection settings\n",
+  "metadata": {
+    "alert_types": [
+      "memory_leak",
+      "high_memory",
+      "oom_killer"
+    ],
+    "severity_levels": [
+      "high",
+      "critical"
+    ],
+    "systems": [
+      "java-app",
+      "node-app",
+      "database"
+    ],
+    "confidence_score": 0.87,
+    "tags": [
+      "memory",
+      "leak",
+      "investigation",
+      "java"
+    ]
+  },
+  "type": "runbook",
+  "created_at": "2025-08-15T22:45:50.420Z",
+  "updated_at": "2025-08-15T22:45:50.420Z"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "RB-PERF-001",
+  "title": "Application Performance Degradation Response",
+  "content": "# Application Performance Degradation Response\n\n## Overview\nSystematic approach to diagnosing and resolving application performance issues.\n\n## Alert Criteria\n- **Alert Type**: cpu_high, response_time_high, throughput_low\n- **Severity**: Medium (>70% CPU), High (>85% CPU)\n- **Affected Systems**: Web applications, API servers, load balancers\n\n## Performance Investigation\n\n### Step 1: System Metrics Analysis\n```bash\n# CPU utilization analysis\ntop -n 1 -b | head -20\niostat -x 1 5\n\n# Memory usage patterns\nvmstat 5 5\n\n# Network performance\nnetstat -i\nss -tuln | wc -l\n```\n\n### Step 2: Application Metrics\n```bash\n# Application response times\ncurl -w \"@curl-format.txt\" -o /dev/null -s \"http://localhost:8080/health\"\n\n# Database query performance\nmysql -e \"SHOW PROCESSLIST;\" | grep -v Sleep\n\n# Connection pool status\ncurl -s http://localhost:8080/metrics/connections\n```\n\n### Step 3: Load Distribution\n```bash\n# Check load balancer status\ncurl -s http://loadbalancer:8080/status\n\n# Verify service discovery\ndig +short service.discovery.internal\n\n# Connection distribution\nnetstat -an | grep :80 | wc -l\n```\n\n## Immediate Mitigation\n\n### Scale Up Resources\n```bash\n# Increase application instances\nkubectl scale deployment webapp --replicas=6\n\n# Adjust resource limits\nkubectl patch deployment webapp -p '{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"webapp\",\"resources\":{\"limits\":{\"cpu\":\"2\",\"memory\":\"4Gi\"}}}]}}}}'\n```\n\n### Optimize Database\n```bash\n# Clear query cache\nmysql -e \"RESET QUERY CACHE;\"\n\n# Analyze slow queries\nmysql -e \"SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE TIME > 5;\"\n```\n\n## Performance Thresholds\n- **CPU Usage**: >85% sustained for 5+ minutes\n- **Response Time**: >2 seconds for 95th percentile\n- **Throughput**: <50% of baseline for 10+ minutes\n- **Error Rate**: >5% for any endpoint\n\n## Recovery Validation\n- [ ] CPU usage below 70%\n- [ ] Response times under 1 second\n- [ ] Error rate below 1%\n- [ ] Throughput within 10% of baseline\n- [ ] All health checks passing\n\n## Optimization Actions\n1. Database query optimization\n2. Application profiling\n3. Caching implementation\n4. Resource allocation review\n5. Load testing validation\n",
+  "metadata": {
+    "alert_types": [
+      "cpu_high",
+      "response_time_high",
+      "throughput_low"
+    ],
+    "severity_levels": [
+      "medium",
+      "high"
+    ],
+    "systems": [
+      "web-app",
+      "api-server",
+      "load-balancer"
+    ],
+    "confidence_score": 0.82,
+    "tags": [
+      "performance",
+      "cpu",
+      "response-time",
+      "optimization"
+    ]
+  },
+  "type": "runbook",
+  "created_at": "2025-08-15T22:45:50.421Z",
+  "updated_at": "2025-08-15T22:45:50.421Z"
+}

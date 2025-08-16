@@ -190,3 +190,13 @@ test-data/
 
 # Local configuration (contains user-specific settings)
 config/config.yaml
+
+# Session and temporary runtime data
+.session/
+*.session
+session-*
+
+# Test results and generated reports (keep test data, ignore results)
+*-test-results.json
+integration-test-results.json
+test-results-*.json

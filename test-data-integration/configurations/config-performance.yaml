@@ -1,0 +1,75 @@
+# Performance-Optimized Integration Test Configuration
+# Tuned for high performance and throughput testing
+
+server:
+  port: 3000
+  host: localhost
+  log_level: warn
+  cache_ttl_seconds: 1800
+  max_concurrent_requests: 100
+  request_timeout_ms: 60000
+  worker_threads: 4
+
+sources:
+  - name: perf-test-local
+    type: file
+    base_url: ./test-data-integration
+    enabled: true
+    priority: 1
+    timeout_ms: 3000
+    max_retries: 3
+    watch_changes: false
+    pdf_extraction: false  # Disabled for performance
+    recursive: true
+    max_depth: 2
+    extract_metadata: false  # Disabled for performance
+    supported_extensions: ['.md', '.txt', '.json']
+    batch_size: 100
+
+  - name: perf-test-web
+    type: web
+    base_url: https://httpbin.org
+    enabled: true
+    priority: 2
+    timeout_ms: 5000
+    max_retries: 2
+    performance:
+      max_concurrent_requests: 20
+      connection_pool_size: 50
+      keep_alive: true
+    endpoints:
+      - name: fast-json
+        url: /json
+        method: GET
+        content_type: json
+        cache_ttl: 3600
+
+cache:
+  enabled: true
+  strategy: memory_only  # Fastest caching
+  memory:
+    max_keys: 5000
+    ttl_seconds: 1800
+    check_period_seconds: 300
+    
+# Performance-specific settings
+performance:
+  enable_monitoring: true
+  collect_metrics: true
+  metric_retention_minutes: 240
+  high_performance_mode: true
+  async_processing: true
+  batch_operations: true
+  
+# Optimization flags
+optimization:
+  enable_compression: true
+  connection_pooling: true
+  lazy_loading: true
+  prefetch_common_queries: true
+  
+testing:
+  integration_mode: true
+  performance_mode: true
+  benchmark_mode: true
+  load_testing: true

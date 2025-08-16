@@ -1,0 +1,45 @@
+# Minimal Integration Test Configuration
+# Single adapter setup for basic functionality testing
+
+server:
+  port: 3000
+  host: localhost
+  log_level: error
+  cache_ttl_seconds: 300
+  max_concurrent_requests: 20
+  request_timeout_ms: 15000
+
+sources:
+  - name: test-local-docs
+    type: file
+    base_url: ./test-data-integration
+    enabled: true
+    priority: 1
+    timeout_ms: 5000
+    max_retries: 1
+    watch_changes: false
+    pdf_extraction: true
+    recursive: true
+    max_depth: 3
+    extract_metadata: true
+    supported_extensions: ['.md', '.txt', '.json', '.yml', '.yaml']
+    file_patterns:
+      exclude: ['**/node_modules/**', '**/.git/**', '**/test/**']
+
+cache:
+  enabled: true
+  strategy: memory_only
+  memory:
+    max_keys: 200
+    ttl_seconds: 300
+    check_period_seconds: 60
+
+performance:
+  enable_monitoring: true
+  collect_metrics: true
+  metric_retention_minutes: 60
+
+testing:
+  integration_mode: true
+  mock_external_services: false
+  performance_tracking: true

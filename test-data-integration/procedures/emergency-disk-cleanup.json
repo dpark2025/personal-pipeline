@@ -1,0 +1,20 @@
+{
+  "id": "PROC-EMERGENCY-001",
+  "title": "Emergency Disk Space Cleanup",
+  "content": "# Emergency Disk Space Cleanup Procedure\n\n## Purpose\nImmediate disk space recovery for critical situations when disk usage exceeds 90%.\n\n## Prerequisites\n- Root or sudo access to the affected system\n- Verified backup of critical data\n- Monitoring system alerts acknowledged\n\n## Procedure Steps\n\n### Step 1: Assess Current Situation (2 minutes)\n```bash\n# Check disk usage across all filesystems\ndf -h\n\n# Identify largest directories (top 10)\ndu -sh /var/* | sort -rh | head -10\ndu -sh /tmp/* | sort -rh | head -10\ndu -sh /opt/* | sort -rh | head -10\n```\n\n**Expected Outcome**: Clear understanding of disk usage distribution\n**Success Criteria**: Disk usage report generated and largest consumers identified\n\n### Step 2: Emergency Cleanup - Temporary Files (3 minutes)\n```bash\n# Clean system temporary files\nsudo find /tmp -type f -atime +7 -delete\nsudo find /var/tmp -type f -atime +7 -delete\n\n# Clean user temporary files\nsudo find /tmp -name \"*.tmp\" -type f -delete\nsudo find /tmp -name \"core.*\" -type f -delete\n\n# Verify cleanup results\ndf -h\n```\n\n**Expected Outcome**: Recovery of 1-5GB from temporary files\n**Success Criteria**: Disk usage reduced by at least 2%\n\n### Step 3: Log File Cleanup (5 minutes)\n```bash\n# Identify large log files\nfind /var/log -name \"*.log\" -size +100M -ls\n\n# Archive and compress old logs\nsudo find /var/log -name \"*.log\" -type f -mtime +30 -exec gzip {} \\;\n\n# Remove very old compressed logs\nsudo find /var/log -name \"*.gz\" -type f -mtime +90 -delete\n\n# Clear journal logs older than 7 days\nsudo journalctl --vacuum-time=7d\n```\n\n**Expected Outcome**: Recovery of 5-20GB from log files\n**Success Criteria**: Log disk usage reduced significantly\n\n### Step 4: Package Cache Cleanup (2 minutes)\n```bash\n# Clean package manager caches\nsudo apt-get clean\nsudo apt-get autoremove\n\n# Clean snap packages (if applicable)\nsudo snap refresh\nsudo snap remove --purge $(snap list --all | awk '/disabled/{print $1}')\n\n# Verify cleanup\ndf -h\n```\n\n**Expected Outcome**: Recovery of 1-10GB from package caches\n**Success Criteria**: Package cache space recovered\n\n### Step 5: Verification and Monitoring (3 minutes)\n```bash\n# Final disk usage check\ndf -h\n\n# Verify critical services are running\nsystemctl status nginx\nsystemctl status mysql\nsystemctl status application-service\n\n# Check application logs for errors\ntail -50 /var/log/application.log\n```\n\n**Expected Outcome**: Disk usage below 85%, all services operational\n**Success Criteria**: System stable and monitoring alerts cleared\n\n## Success Criteria\n- [ ] Disk usage reduced below 85%\n- [ ] All critical services remain operational\n- [ ] No application errors introduced\n- [ ] Monitoring alerts cleared\n- [ ] Total execution time under 15 minutes\n\n## Rollback Plan\nIf cleanup causes issues:\n1. Stop cleanup immediately\n2. Restore from backup if data was accidentally deleted\n3. Restart affected services\n4. Escalate to senior engineering team\n\n## Post-Procedure Actions\n1. Update monitoring thresholds\n2. Schedule automated cleanup jobs\n3. Review disk growth trends\n4. Document lessons learned\n5. Plan capacity expansion if needed\n\n## Emergency Contacts\n- **Primary**: Infrastructure Team (infrastructure@company.com)\n- **Escalation**: Engineering Manager (manager@company.com)\n- **Emergency**: 24/7 Oncall (+1-555-ONCALL)\n",
+  "steps": [
+    "Identify largest directories",
+    "Clean temporary files",
+    "Remove old log files",
+    "Clear package caches",
+    "Verify space recovered"
+  ],
+  "prerequisites": [
+    "sudo access",
+    "backup verification",
+    "monitoring alerts"
+  ],
+  "type": "procedure",
+  "created_at": "2025-08-15T22:45:50.423Z",
+  "updated_at": "2025-08-15T22:45:50.423Z"
+}

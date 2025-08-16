@@ -1,0 +1,20 @@
+{
+  "id": "PROC-RESTART-001",
+  "title": "Service Restart Procedure",
+  "content": "# Service Restart Procedure\n\n## Purpose\nSystematic service restart with minimal downtime and proper validation.\n\n## Prerequisites\n- Service access and restart permissions\n- Knowledge of service dependencies\n- Access to monitoring and health check systems\n\n## Procedure Steps\n\n### Step 1: Pre-Restart Assessment (3 minutes)\n```bash\n# Check current service status\nsystemctl status service-name\n\n# Verify service health\ncurl -f http://localhost:8080/health\n\n# Check service dependencies\nsystemctl list-dependencies service-name\n\n# Review recent logs\njournalctl -u service-name --since \"15 minutes ago\"\n```\n\n**Expected Outcome**: Understanding of current service state\n**Success Criteria**: Service status documented and dependencies verified\n\n### Step 2: Graceful Shutdown (2 minutes)\n```bash\n# Send graceful shutdown signal\nsudo systemctl stop service-name\n\n# Wait for graceful shutdown (up to 30 seconds)\nsleep 30\n\n# Verify service stopped\nsystemctl is-active service-name\nps aux | grep service-name\n```\n\n**Expected Outcome**: Service cleanly stopped without force\n**Success Criteria**: Service process terminated gracefully\n\n### Step 3: Pre-Start Verification (2 minutes)\n```bash\n# Check configuration validity\nsudo nginx -t  # for nginx\nsudo systemctl status service-name  # for systemd services\n\n# Verify file permissions\nls -la /etc/service-name/\nls -la /var/log/service-name/\n\n# Check disk space and resources\ndf -h\nfree -h\n```\n\n**Expected Outcome**: Configuration valid and resources available\n**Success Criteria**: No configuration errors, sufficient resources\n\n### Step 4: Service Start (1 minute)\n```bash\n# Start the service\nsudo systemctl start service-name\n\n# Verify service started\nsystemctl is-active service-name\nsystemctl status service-name\n```\n\n**Expected Outcome**: Service started successfully\n**Success Criteria**: Service status shows active/running\n\n### Step 5: Post-Start Validation (5 minutes)\n```bash\n# Health check validation\ncurl -f http://localhost:8080/health\n\n# Functional testing\ncurl -f http://localhost:8080/api/test\n\n# Monitor logs for errors\njournalctl -u service-name -f\n\n# Check performance metrics\ncurl -s http://localhost:8080/metrics\n```\n\n**Expected Outcome**: Service fully operational with normal performance\n**Success Criteria**: All health checks pass, no errors in logs\n\n## Success Criteria\n- [ ] Service restarted without errors\n- [ ] All health checks passing\n- [ ] Performance metrics normal\n- [ ] No error logs generated\n- [ ] Dependent services unaffected\n- [ ] Total downtime under 2 minutes\n\n## Rollback Plan\nIf restart fails:\n1. Check service logs immediately\n2. Attempt restart with previous configuration\n3. If persistent failure, escalate to engineering team\n4. Consider switching to backup service instance\n\n## Monitoring Validation\n- Response time within normal range\n- Error rate remains low\n- Resource utilization normal\n- Dependent service health maintained\n\n## Post-Procedure Actions\n1. Monitor service for 15 minutes\n2. Update restart documentation if issues found\n3. Review logs for optimization opportunities\n4. Update team on restart results\n",
+  "steps": [
+    "Check service status",
+    "Graceful shutdown",
+    "Verify dependencies",
+    "Start service",
+    "Validate functionality"
+  ],
+  "prerequisites": [
+    "service access",
+    "dependency verification",
+    "health checks"
+  ],
+  "type": "procedure",
+  "created_at": "2025-08-15T22:45:50.423Z",
+  "updated_at": "2025-08-15T22:45:50.423Z"
+}

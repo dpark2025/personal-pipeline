@@ -1,0 +1,31 @@
+{
+  "id": "RB-SEC-001",
+  "title": "Security Incident Response Protocol",
+  "content": "# Security Incident Response Protocol\n\n## Overview\nImmediate response procedures for confirmed or suspected security incidents.\n\n## Alert Criteria\n- **Alert Type**: security_breach, unauthorized_access, malware_detected\n- **Severity**: Critical (confirmed breach), High (suspicious activity)\n- **Affected Systems**: Authentication servers, user databases, API gateways\n\n## Immediate Response (First 15 Minutes)\n\n### Step 1: Incident Containment\n```bash\n# Block suspicious IP addresses\nsudo iptables -A INPUT -s <SUSPICIOUS_IP> -j DROP\n\n# Disable compromised user accounts\ncurl -X POST /api/users/<USER_ID>/disable\n\n# Isolate affected systems\nsudo iptables -A OUTPUT -d <AFFECTED_SERVER> -j DROP\n```\n\n### Step 2: Evidence Preservation\n```bash\n# Capture network traffic\nsudo tcpdump -w /tmp/incident-$(date +%Y%m%d_%H%M%S).pcap\n\n# Preserve system logs\nsudo cp /var/log/auth.log /tmp/auth-backup-$(date +%Y%m%d_%H%M%S).log\nsudo cp /var/log/syslog /tmp/syslog-backup-$(date +%Y%m%d_%H%M%S).log\n```\n\n### Step 3: Immediate Assessment\n```bash\n# Check for unauthorized logins\nsudo last -x | head -50\n\n# Review recent file modifications\nsudo find /etc /var/www -type f -mtime -1 -ls\n\n# Check running processes\nps aux | grep -v \"\\[.*\\]\"\n```\n\n## Communication Protocol\n\n### Internal Notification (Immediate)\n1. **Security Team**: security@company.com\n2. **Incident Commander**: incidents@company.com\n3. **Executive Team**: exec-oncall@company.com\n\n### External Notification (If Required)\n1. Law enforcement (if criminal activity suspected)\n2. Regulatory bodies (if PII/PHI involved)\n3. Customers (if data breach confirmed)\n\n## Escalation Criteria\n- Confirmed data exfiltration\n- Ransomware detected\n- Privilege escalation confirmed\n- Customer data accessed\n- Critical infrastructure compromised\n\n## Recovery Checklist\n- [ ] Threat eliminated/contained\n- [ ] All compromised accounts secured\n- [ ] Affected systems patched/rebuilt\n- [ ] Monitoring enhanced\n- [ ] Incident timeline documented\n- [ ] Post-incident review scheduled\n\n## Post-Incident Requirements\n1. Forensic analysis completion\n2. Root cause determination\n3. Security improvements implemented\n4. Incident report filed\n5. Compliance notifications sent\n",
+  "metadata": {
+    "alert_types": [
+      "security_breach",
+      "unauthorized_access",
+      "malware_detected"
+    ],
+    "severity_levels": [
+      "critical",
+      "high"
+    ],
+    "systems": [
+      "auth-server",
+      "user-database",
+      "api-gateway"
+    ],
+    "confidence_score": 0.93,
+    "tags": [
+      "security",
+      "incident",
+      "breach",
+      "emergency"
+    ]
+  },
+  "type": "runbook",
+  "created_at": "2025-08-15T22:45:50.420Z",
+  "updated_at": "2025-08-15T22:45:50.420Z"
+}

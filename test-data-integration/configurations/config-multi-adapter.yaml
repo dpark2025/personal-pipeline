@@ -1,0 +1,97 @@
+# Multi-Adapter Integration Test Configuration
+# All 4 adapters configured for comprehensive testing
+
+server:
+  port: 3000
+  host: localhost
+  log_level: info
+  cache_ttl_seconds: 600
+  max_concurrent_requests: 50
+  request_timeout_ms: 30000
+
+sources:
+  - name: test-local-docs
+    type: file
+    base_url: ./test-data-integration
+    enabled: true
+    priority: 1
+    timeout_ms: 5000
+    max_retries: 1
+    watch_changes: false
+    pdf_extraction: true
+    recursive: true
+    max_depth: 3
+    extract_metadata: true
+    supported_extensions: ['.md', '.txt', '.json', '.yml', '.yaml']
+
+  - name: test-confluence
+    type: confluence
+    base_url: https://atlassian-test.example.com/wiki
+    enabled: false
+    priority: 2
+    timeout_ms: 15000
+    max_retries: 2
+    auth:
+      type: bearer_token
+      token_env: CONFLUENCE_TOKEN
+    spaces: ['TEST', 'DOCS']
+    content_types: ['page', 'blogpost']
+
+  - name: test-github
+    type: github
+    base_url: https://api.github.com
+    enabled: false
+    priority: 3
+    timeout_ms: 10000
+    max_retries: 2
+    auth:
+      type: personal_token
+      token_env: GITHUB_TOKEN
+    repositories:
+      - owner: example
+        repo: docs
+        path: documentation/
+      - owner: example
+        repo: runbooks
+        path: runbooks/
+
+  - name: test-web-apis
+    type: web
+    base_url: https://httpbin.org
+    enabled: true
+    priority: 4
+    timeout_ms: 10000
+    max_retries: 2
+    auth:
+      type: none
+    endpoints:
+      - name: json-endpoint
+        url: /json
+        method: GET
+        content_type: json
+        json_paths: ['$.slideshow.title', '$.slideshow.slides[*].title']
+      - name: xml-endpoint
+        url: /xml
+        method: GET
+        content_type: xml
+
+cache:
+  enabled: true
+  strategy: hybrid
+  memory:
+    max_keys: 1000
+    ttl_seconds: 600
+    check_period_seconds: 120
+  redis:
+    enabled: false  # Use memory only for testing
+    
+performance:
+  enable_monitoring: true
+  collect_metrics: true
+  metric_retention_minutes: 120
+  
+testing:
+  integration_mode: true
+  mock_external_services: false
+  performance_tracking: true
+  cross_adapter_testing: true

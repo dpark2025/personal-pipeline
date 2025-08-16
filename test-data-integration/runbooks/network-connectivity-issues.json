@@ -1,0 +1,32 @@
+{
+  "id": "RB-NET-001",
+  "title": "Network Connectivity Troubleshooting",
+  "content": "# Network Connectivity Troubleshooting\n\n## Overview\nComprehensive network troubleshooting procedures for connectivity issues.\n\n## Alert Criteria\n- **Alert Type**: network_down, packet_loss, dns_failure\n- **Severity**: Critical (total outage), High (>10% packet loss)\n- **Affected Systems**: Network infrastructure, DNS servers, gateways\n\n## Network Diagnostics\n\n### Step 1: Basic Connectivity\n```bash\n# Test local interface\nping -c 4 127.0.0.1\n\n# Test gateway connectivity\nping -c 4 $(route -n | grep 'UG' | awk '{print $2}')\n\n# Test external connectivity\nping -c 4 8.8.8.8\n```\n\n### Step 2: DNS Resolution\n```bash\n# Test DNS resolution\nnslookup google.com\ndig @8.8.8.8 google.com\n\n# Check local DNS configuration\ncat /etc/resolv.conf\n```\n\n### Step 3: Network Path Analysis\n```bash\n# Trace network path\ntraceroute google.com\n\n# Check for packet loss\nmtr -r -c 10 google.com\n\n# Analyze network interfaces\nip addr show\nip route show\n```\n\n## Common Fixes\n\n### DNS Issues\n```bash\n# Flush DNS cache\nsudo systemctl restart systemd-resolved\n\n# Temporary DNS override\necho \"nameserver 8.8.8.8\" > /etc/resolv.conf\n```\n\n### Interface Problems\n```bash\n# Restart network interface\nsudo ifdown eth0 && sudo ifup eth0\n\n# Reset network stack\nsudo systemctl restart networking\n```\n\n### Routing Issues\n```bash\n# Add default route\nsudo route add default gw 192.168.1.1\n\n# Check routing table\nnetstat -rn\n```\n\n## Escalation Points\n- Multiple network paths affected\n- ISP-level connectivity issues\n- Hardware failure suspected\n- Security incident suspected\n\n## Recovery Verification\n- [ ] All interfaces operational\n- [ ] DNS resolution working\n- [ ] Internal connectivity restored\n- [ ] External connectivity confirmed\n- [ ] Services responding normally\n\n## Prevention Measures\n1. Network monitoring enhancement\n2. Redundant path configuration\n3. DNS server redundancy\n4. Regular connectivity testing\n",
+  "metadata": {
+    "alert_types": [
+      "network_down",
+      "packet_loss",
+      "dns_failure"
+    ],
+    "severity_levels": [
+      "medium",
+      "high",
+      "critical"
+    ],
+    "systems": [
+      "network",
+      "dns-server",
+      "gateway"
+    ],
+    "confidence_score": 0.79,
+    "tags": [
+      "network",
+      "connectivity",
+      "dns",
+      "troubleshooting"
+    ]
+  },
+  "type": "runbook",
+  "created_at": "2025-08-15T22:45:50.421Z",
+  "updated_at": "2025-08-15T22:45:50.421Z"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "RB-DISK-001",
+  "title": "Disk Space Critical Response",
+  "content": "# Disk Space Critical Response\n\n## Overview\nThis runbook provides immediate response procedures for critical disk space alerts.\n\n## Alert Criteria\n- **Alert Type**: disk_space, disk_full, filesystem_full\n- **Severity**: Critical (>90% usage), High (>80% usage)\n- **Affected Systems**: Web servers, databases, application servers\n\n## Immediate Actions\n\n### Step 1: Assess Situation\n```bash\n# Check disk usage across all mounted filesystems\ndf -h\n\n# Identify largest directories\ndu -sh /var/* | sort -rh | head -10\n```\n\n### Step 2: Emergency Cleanup\n```bash\n# Clean temporary files\nsudo find /tmp -type f -atime +7 -delete\n\n# Clean log files older than 30 days\nsudo find /var/log -name \"*.log\" -type f -mtime +30 -delete\n\n# Clean package cache\nsudo apt-get clean\n```\n\n### Step 3: Monitor Progress\n```bash\n# Watch disk usage in real-time\nwatch -n 5 'df -h | grep -E \"(Filesystem|/dev/)\"'\n```\n\n## Escalation Criteria\n- Disk usage remains above 85% after emergency cleanup\n- Critical system processes begin failing\n- Unable to free sufficient space within 15 minutes\n\n## Recovery Verification\n- [ ] Disk usage below 80%\n- [ ] All critical services operational\n- [ ] Monitoring alerts cleared\n- [ ] Application response times normal\n\n## Post-Incident Actions\n1. Review disk growth trends\n2. Implement automated cleanup scripts\n3. Update monitoring thresholds\n4. Document lessons learned\n\n## Contact Information\n- **Primary**: Infrastructure Team (infrateam@company.com)\n- **Escalation**: Engineering Manager (manager@company.com)\n- **Emergency**: 24/7 Oncall (+1-555-ONCALL)\n",
+  "metadata": {
+    "alert_types": [
+      "disk_space",
+      "disk_full",
+      "filesystem_full"
+    ],
+    "severity_levels": [
+      "critical",
+      "high"
+    ],
+    "systems": [
+      "web-server",
+      "database",
+      "application-server"
+    ],
+    "confidence_score": 0.95,
+    "tags": [
+      "disk",
+      "storage",
+      "critical",
+      "emergency"
+    ]
+  },
+  "type": "runbook",
+  "created_at": "2025-08-15T22:45:50.419Z",
+  "updated_at": "2025-08-15T22:45:50.420Z"
+}

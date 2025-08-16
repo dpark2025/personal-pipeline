@@ -1,0 +1,12 @@
+{
+  "endpoints": [
+    {
+      "url": "https://httpbin.org/json",
+      "type": "json"
+    },
+    {
+      "url": "https://httpbin.org/xml",
+      "type": "xml"
+    }
+  ]
+}
