@@ -192,15 +192,43 @@ npm run test-mcp             # Interactive MCP tool testing
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
-- Setting up the development environment
-- Code style and testing requirements
-- Submitting pull requests
-- Adding new source adapters
+We welcome contributions from developers of all skill levels! Personal Pipeline is an open source project that thrives on community involvement.
+
+### Quick Start for Contributors
+- **First-time contributors**: Look for issues labeled "good first issue"
+- **Experienced developers**: Check out "help wanted" issues for bigger challenges
+- **Documentation**: Help improve our guides and examples
+
+### How to Contribute
+1. **Read our guides**: [CONTRIBUTING.md](CONTRIBUTING.md) | [GOVERNANCE.md](GOVERNANCE.md)
+2. **Join the discussion**: Use GitHub Issues and Discussions
+3. **Submit code**: Fork, create a feature branch, and submit a pull request
+4. **Report bugs**: Use our issue templates for clear bug reports
+5. **Suggest features**: Share ideas for new functionality
+
+### Community Standards
+- Be respectful and inclusive in all interactions
+- Provide constructive feedback in code reviews
+- Help other contributors learn and grow
+- Follow our coding standards and testing requirements
+
+### Areas Where We Need Help
+- **Source Adapters**: Add support for new documentation systems
+- **Performance**: Optimize caching and search algorithms  
+- **Testing**: Improve test coverage and add integration tests
+- **Documentation**: Enhance guides and add usage examples
+- **UI/UX**: Improve developer tools and interfaces
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### Open Source Commitment
+Personal Pipeline is committed to remaining open source. We believe in:
+- **Transparency**: All development happens in the open
+- **Community-driven**: Decisions made with community input
+- **Accessibility**: Easy to use, contribute to, and understand
+- **Sustainability**: Long-term support and maintenance
 
 ## Support
 
