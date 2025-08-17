@@ -4,7 +4,7 @@ VitePress-powered documentation website for Personal Pipeline MCP Server with 4 
 
 ## 🏗️ Architecture Overview
 
-This documentation follows the **Milestone 1.3** VitePress setup:
+This documentation site uses VitePress with the following structure:
 
 ```
 /website_docs/              # Raw Markdown source (main branch)
@@ -236,12 +236,11 @@ themeConfig: {
 
 ### GitHub Pages Setup
 
-Following **Milestone 1.3** plan:
+The deployment process:
 
 1. **Main branch**: Contains `/website_docs/` with raw Markdown
 2. **GitHub Actions**: Builds VitePress site automatically
-3. **docsite branch**: Contains rendered static site
-4. **GitHub Pages**: Serves from `docsite` branch
+3. **GitHub Pages**: Serves the built static site
 
 ### GitHub Actions Workflow
 
@@ -431,7 +430,6 @@ npm run docs:dev
 
 ---
 
-**Documentation Status**: ✅ Ready for Milestone 1.3 deployment
+**Documentation Status**: ✅ Fully operational
 **Themes Available**: 4 complete theme variants
 **Deployment Ready**: GitHub Pages integration configured
-**Last Updated**: 2025-08-16

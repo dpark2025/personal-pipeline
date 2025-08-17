@@ -126,7 +126,7 @@ sources:
 
 ### Confluence Adapter 🚧
 
-**Status**: Phase 2 - Planned  
+**Status**: Planned  
 **Type**: `confluence`
 
 Connects to Atlassian Confluence instances via REST API.
@@ -160,7 +160,7 @@ sources:
 
 ### GitHub Adapter 🚧
 
-**Status**: Phase 2 - Planned  
+**Status**: Planned  
 **Type**: `github`
 
 Indexes documentation from GitHub repositories.
@@ -193,7 +193,7 @@ sources:
 
 ### Database Adapter 🚧
 
-**Status**: Phase 2 - Planned  
+**Status**: Planned  
 **Type**: `database`
 
 Connects to SQL and NoSQL databases for structured documentation.
