@@ -32,10 +32,27 @@ for (const theme of themes) {
       stdio: 'pipe' 
     });
     
+    // Update base path for this theme
+    const themeConfigPath = `website_docs/.vitepress/theme-${theme}.js`;
+    const originalConfig = fs.readFileSync(themeConfigPath, 'utf8');
+    const updatedConfig = originalConfig.replace(
+      "base: '/personal-pipeline-mcp/',", 
+      `base: '/personal-pipeline-mcp/${theme}/',`
+    );
+    fs.writeFileSync(themeConfigPath, updatedConfig);
+    
+    // Update the config.js to point to the modified theme
+    const configPath = 'website_docs/.vitepress/config.js';
+    const configContent = fs.readFileSync(configPath, 'utf8');
+    fs.writeFileSync(configPath, configContent);
+    
     // Build the theme
     execSync('npm run docs:build', { 
       stdio: 'pipe'
     });
+    
+    // Restore original base path
+    fs.writeFileSync(themeConfigPath, originalConfig);
     
     // Copy built files to theme-specific directory
     const themeDir = `website_docs/.vitepress/theme-preview/${theme}`;
@@ -48,6 +65,18 @@ for (const theme of themes) {
     
   } catch (error) {
     console.error(`❌ Failed to build ${theme} theme:`, error.message);
+    
+    // Restore original config on error
+    try {
+      const themeConfigPath = `website_docs/.vitepress/theme-${theme}.js`;
+      const originalConfig = fs.readFileSync(themeConfigPath, 'utf8').replace(
+        `base: '/personal-pipeline-mcp/${theme}/',`,
+        "base: '/personal-pipeline-mcp/',"
+      );
+      fs.writeFileSync(themeConfigPath, originalConfig);
+    } catch (restoreError) {
+      console.error('Failed to restore original config:', restoreError.message);
+    }
   }
 }
 
