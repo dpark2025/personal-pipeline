@@ -1,0 +1,225 @@
+# ==============================================================================
+# Personal Pipeline MCP Server - Development Docker Compose
+# ==============================================================================
+# Optimized for local development with hot reloading and debugging tools
+
+version: '3.8'
+
+# ==============================================================================
+# Services
+# ==============================================================================
+services:
+  # Development Personal Pipeline MCP Server
+  personal-pipeline-dev:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: builder
+    image: personal-pipeline/mcp-server:dev
+    container_name: personal-pipeline-dev
+    restart: unless-stopped
+    
+    # Port mapping
+    ports:
+      - "${DEV_PORT:-3000}:3000"
+      - "${DEBUG_PORT:-9229}:9229"  # Node.js debugging
+    
+    # Environment variables for development
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=3000
+      - HOST=0.0.0.0
+      - REDIS_URL=redis://redis-dev:6379
+      - CONFIG_PATH=/app/config/config.yaml
+      - CACHE_DIR=/app/cache
+      - DATA_DIR=/app/data
+      - LOG_DIR=/app/logs
+      # Development specific
+      - NODE_OPTIONS=--inspect=0.0.0.0:9229
+      - FORCE_COLOR=1
+      - NPM_CONFIG_COLOR=always
+    
+    # Volume mounts for development
+    volumes:
+      # Source code hot reloading
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../package.json:/app/package.json:ro
+      - ../tsconfig.json:/app/tsconfig.json:ro
+      # Persistent development data
+      - personal-pipeline-dev-data:/app/data
+      - personal-pipeline-dev-cache:/app/cache
+      - personal-pipeline-dev-logs:/app/logs
+      # Test data
+      - ../test-data:/app/test-data:ro
+      # Node modules cache
+      - personal-pipeline-dev-node-modules:/app/node_modules
+    
+    # Override command for development
+    command: ["npm", "run", "dev"]
+    
+    # Dependencies
+    depends_on:
+      redis-dev:
+        condition: service_healthy
+    
+    # Development tools
+    stdin_open: true
+    tty: true
+    
+    # Networks
+    networks:
+      - personal-pipeline-dev-network
+
+  # Redis for development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: personal-pipeline-redis-dev
+    restart: unless-stopped
+    
+    # Port mapping
+    ports:
+      - "${DEV_REDIS_PORT:-6380}:6379"
+    
+    # Development Redis configuration
+    command: >
+      redis-server 
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --loglevel debug
+    
+    # Volume for development data
+    volumes:
+      - personal-pipeline-redis-dev-data:/data
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    
+    # Networks
+    networks:
+      - personal-pipeline-dev-network
+
+  # Redis Commander for development
+  redis-commander-dev:
+    image: rediscommander/redis-commander:latest
+    container_name: personal-pipeline-redis-ui-dev
+    restart: unless-stopped
+    
+    # Port mapping
+    ports:
+      - "${DEV_REDIS_UI_PORT:-8082}:8081"
+    
+    # Environment
+    environment:
+      - REDIS_HOSTS=development:redis-dev:6379
+      - HTTP_USER=dev
+      - HTTP_PASSWORD=dev123
+    
+    # Dependencies
+    depends_on:
+      redis-dev:
+        condition: service_healthy
+    
+    # Networks
+    networks:
+      - personal-pipeline-dev-network
+
+  # Development tools container
+  dev-tools:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: builder
+    image: personal-pipeline/dev-tools:latest
+    container_name: personal-pipeline-dev-tools
+    profiles:
+      - tools
+    
+    # Volume mounts
+    volumes:
+      - ../:/workspace
+      - personal-pipeline-dev-node-modules:/workspace/node_modules
+    
+    # Working directory
+    working_dir: /workspace
+    
+    # Keep container running
+    command: ["tail", "-f", "/dev/null"]
+    
+    # Interactive development
+    stdin_open: true
+    tty: true
+    
+    # Networks
+    networks:
+      - personal-pipeline-dev-network
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+  personal-pipeline-dev-network:
+    driver: bridge
+    name: personal-pipeline-dev-network
+
+# ==============================================================================
+# Volumes
+# ==============================================================================
+volumes:
+  # Development application data
+  personal-pipeline-dev-data:
+    driver: local
+    name: personal-pipeline-dev-data
+  
+  personal-pipeline-dev-cache:
+    driver: local
+    name: personal-pipeline-dev-cache
+  
+  personal-pipeline-dev-logs:
+    driver: local
+    name: personal-pipeline-dev-logs
+  
+  personal-pipeline-dev-node-modules:
+    driver: local
+    name: personal-pipeline-dev-node-modules
+  
+  # Development Redis data
+  personal-pipeline-redis-dev-data:
+    driver: local
+    name: personal-pipeline-redis-dev-data
+
+# ==============================================================================
+# Development Usage Examples
+# ==============================================================================
+# Start development environment:
+# docker-compose -f docker-compose.dev.yml up -d
+#
+# Start with development tools:
+# docker-compose -f docker-compose.dev.yml --profile tools up -d
+#
+# View logs:
+# docker-compose -f docker-compose.dev.yml logs -f personal-pipeline-dev
+#
+# Execute commands in development container:
+# docker-compose -f docker-compose.dev.yml exec personal-pipeline-dev npm test
+#
+# Access development tools container:
+# docker-compose -f docker-compose.dev.yml exec dev-tools bash
+#
+# Debug Node.js application:
+# Connect debugger to localhost:9229
+#
+# Access Redis UI:
+# http://localhost:8082 (dev/dev123)
+#
+# Hot reload:
+# Changes to src/ are automatically detected and restart the server

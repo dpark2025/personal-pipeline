@@ -4,7 +4,32 @@
   "description": "Personal Pipeline - Intelligent MCP server for documentation retrieval and incident response",
   "type": "module",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/core/server.d.ts",
+      "import": "./dist/core/server.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
@@ -90,12 +115,18 @@
     "registry:whoami": "npm whoami --registry http://localhost:4873",
     "registry:login": "npm login --registry http://localhost:4873",
     "registry:logout": "npm logout --registry http://localhost:4873",
-    "package:build": "npm run clean && npm run build && npm run package:validate",
-    "package:validate": "npm run lint && npm run typecheck && npm run test",
-    "package:version": "node scripts/version-manager.js",
-    "package:version:patch": "node scripts/version-manager.js patch",
-    "package:version:minor": "node scripts/version-manager.js minor",
-    "package:version:major": "node scripts/version-manager.js major",
+    "package:build": "bash scripts/build-package.sh",
+    "package:build:dev": "bash scripts/build-package.sh --dev",
+    "package:build:prod": "bash scripts/build-package.sh --production",
+    "package:validate": "bash scripts/test-package.sh",
+    "package:test": "bash scripts/test-package.sh --full",
+    "package:test:quick": "bash scripts/test-package.sh --quick", 
+    "package:size": "bash scripts/build-package.sh --size-analysis",
+    "package:version": "bash scripts/version.sh",
+    "package:version:patch": "bash scripts/version.sh patch",
+    "package:version:minor": "bash scripts/version.sh minor",
+    "package:version:major": "bash scripts/version.sh major",
+    "package:version:prerelease": "bash scripts/version.sh prerelease",
     "package:publish": "bash scripts/publish-package.sh",
     "package:publish:dry-run": "bash scripts/publish-package.sh --dry-run",
     "package:publish:beta": "bash scripts/publish-package.sh --tag beta",
@@ -109,6 +140,23 @@
     "release:publish": "bash scripts/release-manager.sh publish",
     "release:rollback": "bash scripts/release-manager.sh rollback",
     "release:changelog": "bash scripts/release-manager.sh changelog",
+    "release:auto": "bash scripts/release-coordinator.sh auto",
+    "release:patch": "bash scripts/release-coordinator.sh patch",
+    "release:minor": "bash scripts/release-coordinator.sh minor",
+    "release:major": "bash scripts/release-coordinator.sh major",
+    "release:prerelease": "bash scripts/release-coordinator.sh prerelease",
+    "release:rc": "bash scripts/release-coordinator.sh rc",
+    "release:hotfix": "bash scripts/release-coordinator.sh hotfix",
+    "release:dry-run": "bash scripts/release-coordinator.sh auto --dry-run",
+    "release:interactive": "bash scripts/release-coordinator.sh auto --interactive",
+    "release:semantic": "node scripts/semantic-release.js",
+    "release:semantic:analyze": "node scripts/semantic-release.js analyze",
+    "release:github": "node scripts/github-release.js",
+    "release:github:dry-run": "node scripts/github-release.js --dry-run",
+    "release:validate": "node scripts/release-validation.js",
+    "release:validate:quality": "node scripts/release-validation.js quality",
+    "release:validate:security": "node scripts/release-validation.js security",
+    "release:validate:report": "node scripts/release-validation.js --output release-validation-report.json",
     "docs:dev": "cd website_docs && npx vitepress dev",
     "docs:build": "cd website_docs && npx vitepress build",
     "docs:preview": "cd website_docs && npx vitepress preview",
@@ -120,7 +168,20 @@
     "docs:default": "npm run docs:theme minimalist",
     "build:all-themes": "node scripts/build-all-themes.js",
     "serve:themes": "node scripts/serve-themes.js",
-    "serve:themes:simple": "node scripts/serve-themes-simple.js"
+    "serve:themes:simple": "node scripts/serve-themes-simple.js",
+    "cicd": "bash scripts/cicd-coordinator.sh",
+    "cicd:status": "bash scripts/cicd-coordinator.sh status",
+    "cicd:validate": "bash scripts/cicd-coordinator.sh validate",
+    "cicd:build": "bash scripts/cicd-coordinator.sh build all",
+    "cicd:build:npm": "bash scripts/cicd-coordinator.sh build npm",
+    "cicd:build:docker": "bash scripts/cicd-coordinator.sh build docker",
+    "cicd:version": "bash scripts/cicd-coordinator.sh version",
+    "cicd:version:patch": "bash scripts/cicd-coordinator.sh version patch",
+    "cicd:version:minor": "bash scripts/cicd-coordinator.sh version minor",
+    "cicd:version:major": "bash scripts/cicd-coordinator.sh version major",
+    "cicd:setup": "bash scripts/cicd-coordinator.sh setup",
+    "cicd:cleanup": "bash scripts/cicd-coordinator.sh cleanup",
+    "cicd:monitoring": "bash scripts/cicd-coordinator.sh monitoring"
   },
   "keywords": [
     "mcp",
@@ -146,18 +207,23 @@
   },
   "files": [
     "dist/**/*",
+    "lib/**/*",
+    "bin/**/*",
     "config/config.sample.yaml",
     "config/github-sample.yaml",
     "config/web-sample.yaml",
     "docs/API.md",
     "docs/ARCHITECTURE.md",
+    "docs/DEPLOYMENT.md",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "SECURITY.md"
   ],
   "bin": {
-    "personal-pipeline": "./dist/index.js",
-    "pp-mcp": "./dist/index.js"
+    "personal-pipeline": "./bin/personal-pipeline.js",
+    "pp-mcp": "./bin/pp-mcp.js",
+    "pp": "./bin/pp.js"
   },
   "peerDependencies": {
     "node": ">=18.0.0"
@@ -222,8 +288,10 @@
     "@typescript-eslint/parser": "^6.13.1",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.0.0",
+    "form-data": "^4.0.0",
     "nock": "^13.5.0",
     "prettier": "^3.1.0",
+    "semver": "^7.5.4",
     "supertest": "^6.3.3",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3",

@@ -1,0 +1,569 @@
+# ==============================================================================
+# Personal Pipeline MCP Server - Continuous Integration Workflow
+# ==============================================================================
+# Pull request validation with comprehensive quality gates
+# Ensures code quality, security, and functionality before merging
+
+name: Continuous Integration
+
+on:
+  # Trigger on pull requests to main branch
+  pull_request:
+    branches:
+      - main
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  
+  # Trigger on pushes to feature branches
+  push:
+    branches-ignore:
+      - main
+      - develop
+  
+  # Allow manual triggering for testing
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test execution'
+        required: false
+        default: 'false'
+        type: boolean
+      skip_security:
+        description: 'Skip security scanning'
+        required: false
+        default: 'false'
+        type: boolean
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        default: 'false'
+        type: boolean
+
+# ==============================================================================
+# Environment Variables
+# ==============================================================================
+env:
+  NODE_VERSION: '18'
+  REGISTRY_URL: 'localhost:4873'
+  IMAGE_NAME: personal-pipeline/mcp-server
+
+# ==============================================================================
+# Jobs
+# ==============================================================================
+jobs:
+  # ==============================================================================
+  # Code Quality Gates
+  # ==============================================================================
+  code-quality:
+    name: Code Quality & Standards
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    outputs:
+      cache-key: ${{ steps.cache-deps.outputs.cache-hit }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+      
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci --verbose
+      
+      - name: Verify package integrity
+        run: |
+          echo "📦 Verifying package integrity..."
+          npm ls --depth=0
+          npm audit --audit-level=high
+      
+      - name: Code formatting check
+        run: |
+          echo "🎨 Checking code formatting..."
+          npm run format:check
+      
+      - name: Linting
+        run: |
+          echo "🔍 Running ESLint..."
+          npm run lint
+      
+      - name: TypeScript compilation
+        run: |
+          echo "🔨 TypeScript type checking..."
+          npm run typecheck
+      
+      - name: Build verification
+        run: |
+          echo "🏗️ Verifying build process..."
+          npm run build
+          
+          # Verify build outputs
+          if [[ ! -f "dist/index.js" ]]; then
+            echo "❌ Build failed - missing main entry point"
+            exit 1
+          fi
+          
+          echo "✅ Build verification passed"
+
+  # ==============================================================================
+  # Security Analysis
+  # ==============================================================================
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: github.event.inputs.skip_security != 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --verbose
+      
+      - name: npm Security Audit
+        run: |
+          echo "🛡️ Running npm security audit..."
+          npm audit --audit-level=moderate
+      
+      - name: Dependency vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'dependency-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+      
+      - name: Upload dependency scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'dependency-results.sarif'
+          category: 'dependencies'
+      
+      - name: Source code security scan
+        uses: github/codeql-action/init@v2
+        with:
+          languages: 'javascript'
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: 'source-code'
+
+  # ==============================================================================
+  # Test Execution
+  # ==============================================================================
+  test-suite:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: github.event.inputs.skip_tests != 'true'
+    
+    strategy:
+      matrix:
+        test-type: [unit, integration]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --verbose
+      
+      - name: Setup test environment
+        run: |
+          echo "🔧 Setting up test environment..."
+          # Create test data directories
+          mkdir -p test-data test-config
+          
+          # Generate test configuration
+          if [[ -f "scripts/generate-sample-data.js" ]]; then
+            npm run generate-sample-data
+          fi
+      
+      - name: Run unit tests
+        if: matrix.test-type == 'unit'
+        run: |
+          echo "🧪 Running unit tests..."
+          npm run test:coverage
+      
+      - name: Run integration tests  
+        if: matrix.test-type == 'integration'
+        run: |
+          echo "🔗 Running integration tests..."
+          # Start Redis for integration tests
+          docker run -d --name redis-test -p 6379:6379 redis:alpine
+          
+          # Wait for Redis to be ready
+          sleep 5
+          
+          # Run integration tests if they exist
+          if npm run | grep -q "test:integration"; then
+            npm run test:integration
+          else
+            echo "No integration tests found, running standard tests"
+            npm test
+          fi
+          
+          # Cleanup
+          docker stop redis-test || true
+          docker rm redis-test || true
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            coverage/
+            test-results.xml
+          retention-days: 7
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        if: matrix.test-type == 'unit' && always()
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  # ==============================================================================
+  # Package Build Validation
+  # ==============================================================================
+  package-build:
+    name: Package Build Validation
+    runs-on: ubuntu-latest
+    needs: [code-quality, test-suite]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --verbose
+      
+      - name: Build npm package
+        run: |
+          echo "📦 Building npm package..."
+          bash scripts/build-package.sh --dev --verbose
+      
+      - name: Validate package structure
+        run: |
+          echo "🔍 Validating package structure..."
+          bash scripts/test-package.sh --quick
+      
+      - name: Package size analysis
+        run: |
+          echo "📊 Analyzing package size..."
+          bash scripts/build-package.sh --size-analysis
+      
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: npm-package-pr-${{ github.event.number }}
+          path: |
+            dist/
+            lib/
+            bin/
+            BUILD_SUMMARY.md
+          retention-days: 7
+
+  # ==============================================================================
+  # Docker Build Validation
+  # ==============================================================================
+  docker-build:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/image.tar
+      
+      - name: Load and test Docker image
+        run: |
+          echo "🐳 Loading Docker image..."
+          docker load --input /tmp/image.tar
+          
+          echo "🧪 Testing Docker image..."
+          docker run --name test-container -d -p 3000:3000 \
+            ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}
+          
+          # Wait for container to start
+          sleep 10
+          
+          # Test health endpoint
+          if curl -f http://localhost:3000/health; then
+            echo "✅ Docker container health check passed"
+          else
+            echo "❌ Docker container health check failed"
+            docker logs test-container
+            exit 1
+          fi
+          
+          # Cleanup
+          docker stop test-container
+          docker rm test-container
+      
+      - name: Docker security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: /tmp/image.tar
+          format: 'sarif'
+          output: 'docker-results.sarif'
+      
+      - name: Upload Docker scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'docker-results.sarif'
+          category: 'docker'
+
+  # ==============================================================================
+  # Performance Benchmarks
+  # ==============================================================================
+  performance-check:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: [package-build, docker-build]
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --verbose
+      
+      - name: Setup performance test environment
+        run: |
+          echo "⚡ Setting up performance test environment..."
+          # Start Redis for caching
+          docker run -d --name redis-perf -p 6379:6379 redis:alpine
+          sleep 5
+      
+      - name: Run performance benchmarks
+        run: |
+          echo "🏎️ Running performance benchmarks..."
+          if npm run | grep -q "benchmark:quick"; then
+            npm run benchmark:quick
+          else
+            echo "No performance benchmarks configured"
+          fi
+      
+      - name: Cleanup performance environment
+        if: always()
+        run: |
+          docker stop redis-perf || true
+          docker rm redis-perf || true
+
+  # ==============================================================================
+  # Quality Gate Summary
+  # ==============================================================================
+  quality-gate:
+    name: Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, security-scan, test-suite, package-build, docker-build, performance-check]
+    if: always()
+    
+    steps:
+      - name: Check quality gate status
+        run: |
+          echo "🎯 Quality Gate Summary"
+          echo "======================"
+          
+          # Check each job status
+          CODE_QUALITY="${{ needs.code-quality.result }}"
+          SECURITY_SCAN="${{ needs.security-scan.result }}"
+          TEST_SUITE="${{ needs.test-suite.result }}"
+          PACKAGE_BUILD="${{ needs.package-build.result }}"
+          DOCKER_BUILD="${{ needs.docker-build.result }}"
+          PERFORMANCE="${{ needs.performance-check.result }}"
+          
+          echo "📝 Code Quality: $CODE_QUALITY"
+          echo "🛡️ Security Scan: $SECURITY_SCAN"
+          echo "🧪 Test Suite: $TEST_SUITE"
+          echo "📦 Package Build: $PACKAGE_BUILD"
+          echo "🐳 Docker Build: $DOCKER_BUILD"
+          echo "⚡ Performance: $PERFORMANCE"
+          echo ""
+          
+          # Determine overall status
+          FAILED_JOBS=()
+          
+          [[ "$CODE_QUALITY" == "failure" ]] && FAILED_JOBS+=("Code Quality")
+          [[ "$SECURITY_SCAN" == "failure" ]] && FAILED_JOBS+=("Security Scan")
+          [[ "$TEST_SUITE" == "failure" ]] && FAILED_JOBS+=("Test Suite")
+          [[ "$PACKAGE_BUILD" == "failure" ]] && FAILED_JOBS+=("Package Build")
+          [[ "$DOCKER_BUILD" == "failure" ]] && FAILED_JOBS+=("Docker Build")
+          [[ "$PERFORMANCE" == "failure" ]] && FAILED_JOBS+=("Performance")
+          
+          if [[ ${#FAILED_JOBS[@]} -eq 0 ]]; then
+            echo "✅ All quality gates passed!"
+            echo "🚀 Pull request is ready for review and merge"
+          else
+            echo "❌ Quality gate failures:"
+            for job in "${FAILED_JOBS[@]}"; do
+              echo "   - $job"
+            done
+            echo ""
+            echo "🔧 Please fix the issues before merging"
+            exit 1
+          fi
+      
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        if: github.event.pull_request
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('🎯 Quality Gate Summary')
+            );
+            
+            const status = '${{ needs.code-quality.result }}' === 'success' &&
+                          '${{ needs.security-scan.result }}' !== 'failure' &&
+                          '${{ needs.test-suite.result }}' === 'success' &&
+                          '${{ needs.package-build.result }}' === 'success' &&
+                          '${{ needs.docker-build.result }}' === 'success';
+            
+            const body = `## 🎯 Quality Gate Summary
+            
+            ${status ? '✅ **All checks passed!**' : '❌ **Some checks failed**'}
+            
+            | Check | Status |
+            |-------|--------|
+            | Code Quality | ${{ needs.code-quality.result == 'success' && '✅' || '❌' }} |
+            | Security Scan | ${{ needs.security-scan.result != 'failure' && '✅' || '❌' }} |
+            | Test Suite | ${{ needs.test-suite.result == 'success' && '✅' || '❌' }} |
+            | Package Build | ${{ needs.package-build.result == 'success' && '✅' || '❌' }} |
+            | Docker Build | ${{ needs.docker-build.result == 'success' && '✅' || '❌' }} |
+            | Performance | ${{ needs.performance-check.result != 'failure' && '✅' || '❌' }} |
+            
+            ${status ? 
+              '🚀 This pull request is ready for review and merge!' : 
+              '🔧 Please address the failing checks before merging.'
+            }
+            
+            ---
+            *Last updated: ${new Date().toISOString()}*`;
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
+
+# ==============================================================================
+# Workflow Configuration Notes
+# ==============================================================================
+# This CI workflow provides comprehensive validation for pull requests:
+#
+# 1. Code Quality Gates:
+#    - Format checking with Prettier
+#    - Linting with ESLint  
+#    - TypeScript compilation
+#    - Build verification
+#
+# 2. Security Analysis:
+#    - npm audit for dependency vulnerabilities
+#    - Trivy scanning for containers and dependencies
+#    - CodeQL analysis for source code security
+#
+# 3. Test Execution:
+#    - Unit tests with coverage reporting
+#    - Integration tests with Redis
+#    - Test result uploads and codecov integration
+#
+# 4. Build Validation:
+#    - npm package build and validation
+#    - Docker image build and testing
+#    - Package size analysis
+#
+# 5. Performance Checks:
+#    - Quick performance benchmarks
+#    - Container performance validation
+#
+# 6. Quality Gate Summary:
+#    - Aggregated status reporting
+#    - PR comments with results
+#    - Pass/fail determination for merge eligibility
+#
+# The workflow is designed to catch issues early and ensure
+# only high-quality code reaches the main branch.

@@ -1,0 +1,597 @@
+# ==============================================================================
+# Personal Pipeline MCP Server - Build Workflow
+# ==============================================================================
+# Coordinates Docker and npm package builds for main branch
+# Prepares artifacts for deployment and distribution
+
+name: Build & Package
+
+on:
+  # Trigger on pushes to main branch
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+      - 'LICENSE'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild without cache'
+        required: false
+        default: 'false'
+        type: boolean
+      build_target:
+        description: 'Build target'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - npm-only
+          - docker-only
+      push_artifacts:
+        description: 'Push artifacts to registries'
+        required: false
+        default: 'false'
+        type: boolean
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        default: 'false'
+        type: boolean
+
+# ==============================================================================
+# Environment Variables
+# ==============================================================================
+env:
+  NODE_VERSION: '18'
+  REGISTRY_URL: 'localhost:4873'
+  IMAGE_NAME: personal-pipeline/mcp-server
+  REGISTRY_GHCR: ghcr.io
+
+# ==============================================================================
+# Jobs
+# ==============================================================================
+jobs:
+  # ==============================================================================
+  # Build Preparation
+  # ==============================================================================
+  prepare:
+    name: Build Preparation
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build-id: ${{ steps.build-id.outputs.build-id }}
+      cache-key: ${{ steps.cache-key.outputs.cache-key }}
+      should-build-npm: ${{ steps.changes.outputs.npm }}
+      should-build-docker: ${{ steps.changes.outputs.docker }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Generate build ID
+        id: build-id
+        run: |
+          BUILD_ID="build-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
+          echo "build-id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "Generated build ID: $BUILD_ID"
+      
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Package version: $VERSION"
+      
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          CACHE_KEY="${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}"
+          echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
+      
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            npm:
+              - 'src/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig.json'
+              - 'scripts/build-package.sh'
+              - 'scripts/version.sh'
+            docker:
+              - 'src/**'
+              - 'Dockerfile'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'docker/**'
+      
+      - name: Build summary
+        run: |
+          echo "🚀 Build Preparation Summary"
+          echo "============================"
+          echo "📝 Version: ${{ steps.version.outputs.version }}"
+          echo "🆔 Build ID: ${{ steps.build-id.outputs.build-id }}"
+          echo "📦 Build npm: ${{ steps.changes.outputs.npm || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'npm-only' }}"
+          echo "🐳 Build Docker: ${{ steps.changes.outputs.docker || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'docker-only' }}"
+          echo "🔄 Force rebuild: ${{ github.event.inputs.force_rebuild }}"
+
+  # ==============================================================================
+  # npm Package Build
+  # ==============================================================================
+  npm-build:
+    name: npm Package Build
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: needs.prepare.outputs.should-build-npm == 'true' || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'npm-only'
+    
+    outputs:
+      package-size: ${{ steps.build.outputs.package-size }}
+      build-time: ${{ steps.build.outputs.build-time }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        if: github.event.inputs.force_rebuild != 'true'
+        with:
+          path: node_modules
+          key: ${{ needs.prepare.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+      
+      - name: Install dependencies
+        run: |
+          echo "📥 Installing dependencies..."
+          npm ci --verbose
+      
+      - name: Pre-build validation
+        run: |
+          echo "🔍 Pre-build validation..."
+          npm run lint
+          npm run typecheck
+          npm test
+      
+      - name: Build package
+        id: build
+        run: |
+          echo "📦 Building npm package..."
+          START_TIME=$(date +%s)
+          
+          # Build with production settings
+          bash scripts/build-package.sh --production --size-analysis --verbose
+          
+          END_TIME=$(date +%s)
+          BUILD_TIME=$((END_TIME - START_TIME))
+          
+          # Calculate package size
+          PACKAGE_SIZE=$(du -sh dist/ | cut -f1)
+          
+          echo "package-size=$PACKAGE_SIZE" >> $GITHUB_OUTPUT
+          echo "build-time=${BUILD_TIME}s" >> $GITHUB_OUTPUT
+          
+          echo "✅ Package build completed in ${BUILD_TIME}s"
+          echo "📊 Package size: $PACKAGE_SIZE"
+      
+      - name: Validate package
+        run: |
+          echo "🧪 Validating package..."
+          bash scripts/test-package.sh --full
+      
+      - name: Generate package metadata
+        run: |
+          echo "📋 Generating package metadata..."
+          cat > package-metadata.json << EOF
+          {
+            "version": "${{ needs.prepare.outputs.version }}",
+            "buildId": "${{ needs.prepare.outputs.build-id }}",
+            "buildTime": "${{ steps.build.outputs.build-time }}",
+            "packageSize": "${{ steps.build.outputs.package-size }}",
+            "nodeVersion": "${{ env.NODE_VERSION }}",
+            "commitSha": "${{ github.sha }}",
+            "buildDate": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "registry": "npm"
+          }
+          EOF
+      
+      - name: Upload npm package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: npm-package-${{ needs.prepare.outputs.build-id }}
+          path: |
+            dist/
+            lib/
+            bin/
+            package.json
+            package-metadata.json
+            BUILD_SUMMARY.md
+          retention-days: 30
+      
+      - name: Upload package for registry
+        uses: actions/upload-artifact@v3
+        with:
+          name: npm-package-registry-ready
+          path: |
+            dist/
+            lib/
+            bin/
+            package.json
+          retention-days: 7
+
+  # ==============================================================================
+  # Docker Build
+  # ==============================================================================
+  docker-build:
+    name: Docker Multi-Architecture Build
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: needs.prepare.outputs.should-build-docker == 'true' || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'docker-only'
+    
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-size: ${{ steps.build.outputs.size }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.platform }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ matrix.platform }}
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.IMAGE_NAME }}
+            ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest
+            type=raw,value=${{ needs.prepare.outputs.version }}
+            type=raw,value=${{ needs.prepare.outputs.build-id }}
+          labels: |
+            org.opencontainers.image.title=Personal Pipeline MCP Server
+            org.opencontainers.image.description=Intelligent MCP server for documentation retrieval and incident response
+            org.opencontainers.image.vendor=Personal Pipeline Team
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+            build.id=${{ needs.prepare.outputs.build-id }}
+            build.platform=${{ matrix.platform }}
+      
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+          outputs: type=docker,dest=/tmp/image-${{ strategy.job-index }}.tar
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ needs.prepare.outputs.version }}
+            REVISION=${{ github.sha }}
+            BUILD_ID=${{ needs.prepare.outputs.build-id }}
+      
+      - name: Test Docker image
+        run: |
+          echo "🧪 Testing Docker image..."
+          docker load --input /tmp/image-${{ strategy.job-index }}.tar
+          
+          # Get the first tag for testing
+          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          echo "Testing image: $IMAGE_TAG"
+          
+          # Start container for testing
+          docker run --name test-container -d -p 3000:3000 "$IMAGE_TAG"
+          
+          # Wait for container to start
+          sleep 15
+          
+          # Test health endpoint
+          if curl -f --max-time 30 http://localhost:3000/health; then
+            echo "✅ Docker container health check passed"
+          else
+            echo "❌ Docker container health check failed"
+            docker logs test-container
+            exit 1
+          fi
+          
+          # Test API endpoints
+          if curl -f --max-time 10 http://localhost:3000/api/health; then
+            echo "✅ API health check passed"
+          else
+            echo "⚠️ API health check failed (may be expected in some configurations)"
+          fi
+          
+          # Cleanup
+          docker stop test-container
+          docker rm test-container
+      
+      - name: Security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: /tmp/image-${{ strategy.job-index }}.tar
+          format: 'json'
+          output: 'scan-results-${{ strategy.job-index }}.json'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image-${{ matrix.platform }}-${{ needs.prepare.outputs.build-id }}
+          path: |
+            /tmp/image-${{ strategy.job-index }}.tar
+            scan-results-${{ strategy.job-index }}.json
+          retention-days: 7
+
+  # ==============================================================================
+  # Multi-Architecture Docker Manifest
+  # ==============================================================================
+  docker-manifest:
+    name: Docker Multi-Arch Manifest
+    runs-on: ubuntu-latest
+    needs: [prepare, docker-build]
+    if: needs.docker-build.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create multi-architecture manifest
+        run: |
+          echo "🔗 Creating multi-architecture manifest..."
+          
+          # Build and push multi-arch image
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }} \
+            --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.build-id }} \
+            --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:latest \
+            --label "org.opencontainers.image.version=${{ needs.prepare.outputs.version }}" \
+            --label "build.id=${{ needs.prepare.outputs.build-id }}" \
+            --cache-from type=gha \
+            --push .
+          
+          echo "✅ Multi-architecture image pushed successfully"
+
+  # ==============================================================================
+  # Quality Gates
+  # ==============================================================================
+  quality-gates:
+    name: Build Quality Gates
+    runs-on: ubuntu-latest
+    needs: [prepare, npm-build, docker-build]
+    if: always()
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: npm-package-${{ needs.prepare.outputs.build-id }}
+          path: ./artifacts/npm/
+      
+      - name: Analyze build quality
+        run: |
+          echo "📊 Build Quality Analysis"
+          echo "========================"
+          
+          # Check build results
+          NPM_RESULT="${{ needs.npm-build.result }}"
+          DOCKER_RESULT="${{ needs.docker-build.result }}"
+          
+          echo "📦 npm Build: $NPM_RESULT"
+          echo "🐳 Docker Build: $DOCKER_RESULT"
+          
+          # Analyze package metadata
+          if [[ -f "./artifacts/npm/package-metadata.json" ]]; then
+            echo ""
+            echo "📋 Package Metadata:"
+            cat ./artifacts/npm/package-metadata.json | jq .
+          fi
+          
+          # Check for build failures
+          FAILED_BUILDS=()
+          [[ "$NPM_RESULT" == "failure" ]] && FAILED_BUILDS+=("npm")
+          [[ "$DOCKER_RESULT" == "failure" ]] && FAILED_BUILDS+=("Docker")
+          
+          if [[ ${#FAILED_BUILDS[@]} -gt 0 ]]; then
+            echo ""
+            echo "❌ Build failures detected:"
+            for build in "${FAILED_BUILDS[@]}"; do
+              echo "   - $build build failed"
+            done
+            exit 1
+          else
+            echo ""
+            echo "✅ All builds completed successfully!"
+          fi
+      
+      - name: Generate build report
+        run: |
+          cat > BUILD_REPORT.md << EOF
+          # Build Report
+          
+          **Build ID:** ${{ needs.prepare.outputs.build-id }}
+          **Version:** ${{ needs.prepare.outputs.version }}
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit:** ${{ github.sha }}
+          
+          ## Build Results
+          
+          | Component | Status | Details |
+          |-----------|--------|---------|
+          | npm Package | ${{ needs.npm-build.result == 'success' && '✅ Success' || '❌ Failed' }} | Size: ${{ needs.npm-build.outputs.package-size }}, Time: ${{ needs.npm-build.outputs.build-time }} |
+          | Docker Image | ${{ needs.docker-build.result == 'success' && '✅ Success' || '❌ Failed' }} | Multi-arch (amd64, arm64) |
+          
+          ## Artifacts
+          
+          ### npm Package
+          - **Registry Ready:** ✅ Available for publishing
+          - **Size:** ${{ needs.npm-build.outputs.package-size }}
+          - **Build Time:** ${{ needs.npm-build.outputs.build-time }}
+          
+          ### Docker Images
+          - **GHCR:** \`${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}\`
+          - **GHCR Latest:** \`${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:latest\`
+          - **Platforms:** linux/amd64, linux/arm64
+          
+          ## Next Steps
+          
+          1. **Manual Testing:** Test artifacts in staging environment
+          2. **Security Review:** Review security scan results
+          3. **Release Preparation:** Create release when ready
+          4. **Publishing:** Publish to production registries
+          
+          ---
+          *Generated by GitHub Actions on $(date -u +"%Y-%m-%d %H:%M:%S UTC")*
+          EOF
+      
+      - name: Upload build report
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-report-${{ needs.prepare.outputs.build-id }}
+          path: BUILD_REPORT.md
+          retention-days: 90
+
+  # ==============================================================================
+  # Notification
+  # ==============================================================================
+  notify:
+    name: Build Notification
+    runs-on: ubuntu-latest
+    needs: [prepare, npm-build, docker-build, docker-manifest, quality-gates]
+    if: always()
+    
+    steps:
+      - name: Determine build status
+        id: status
+        run: |
+          NPM_STATUS="${{ needs.npm-build.result }}"
+          DOCKER_STATUS="${{ needs.docker-build.result }}"
+          MANIFEST_STATUS="${{ needs.docker-manifest.result }}"
+          QUALITY_STATUS="${{ needs.quality-gates.result }}"
+          
+          if [[ "$NPM_STATUS" == "success" && "$DOCKER_STATUS" == "success" && "$MANIFEST_STATUS" == "success" && "$QUALITY_STATUS" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=All builds completed successfully!" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=Some builds failed. Check the workflow for details." >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build notification
+        run: |
+          echo "🚀 Build Notification"
+          echo "===================="
+          echo "📝 Version: ${{ needs.prepare.outputs.version }}"
+          echo "🆔 Build ID: ${{ needs.prepare.outputs.build-id }}"
+          echo "📊 Status: ${{ steps.status.outputs.status }}"
+          echo "💬 Message: ${{ steps.status.outputs.message }}"
+          echo ""
+          
+          if [[ "${{ steps.status.outputs.status }}" == "success" ]]; then
+            echo "✅ Build artifacts are ready for deployment!"
+            echo ""
+            echo "📦 npm Package:"
+            echo "   - Available in artifacts as 'npm-package-registry-ready'"
+            echo "   - Ready for publishing to npm registry"
+            echo ""
+            echo "🐳 Docker Images:"
+            echo "   - Multi-architecture build completed"
+            echo "   - Available at: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}"
+            echo "   - Latest tag: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:latest"
+          else
+            echo "❌ Build failed. Please check the workflow logs for details."
+            exit 1
+          fi
+
+# ==============================================================================
+# Workflow Summary
+# ==============================================================================
+# This build workflow coordinates npm package and Docker builds:
+#
+# 1. Preparation:
+#    - Generates build ID and extracts version
+#    - Detects what needs to be built based on changes
+#    - Supports manual override with workflow_dispatch
+#
+# 2. npm Package Build:
+#    - Full production build with validation
+#    - Package testing and size analysis
+#    - Artifact preparation for registry publishing
+#
+# 3. Docker Build:
+#    - Multi-architecture builds (amd64, arm64)
+#    - Security scanning with Trivy
+#    - Container testing and validation
+#    - Multi-arch manifest creation
+#
+# 4. Quality Gates:
+#    - Build result analysis
+#    - Artifact validation
+#    - Build report generation
+#
+# 5. Notification:
+#    - Status summary and next steps
+#    - Artifact availability information
+#
+# Artifacts are prepared but not automatically published,
+# allowing for manual review and controlled releases.

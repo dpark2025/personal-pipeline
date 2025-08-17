@@ -1,0 +1,294 @@
+# .npmignore - NPM Package Size Optimization
+# 
+# Excludes unnecessary files from the published npm package
+# to reduce package size and improve installation speed.
+
+# ==============================================================================
+# DEVELOPMENT FILES - Exclude all development-only files
+# ==============================================================================
+
+# Source code (TypeScript files) - only include compiled JavaScript
+src/
+*.ts
+!*.d.ts
+tsconfig*.json
+.tsbuildinfo
+
+# Development tools and configuration
+.eslintrc*
+.prettierrc*
+.gitignore
+.gitattributes
+.editorconfig
+.nvmrc
+.node-version
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==============================================================================
+# TEST FILES - Exclude all testing infrastructure
+# ==============================================================================
+
+# Test directories and files
+tests/
+test/
+__tests__/
+*.test.*
+*.spec.*
+.nyc_output/
+coverage/
+jest.config.*
+.coverage/
+
+# Testing tools
+.mocharc*
+karma.conf.*
+protractor.conf.*
+
+# ==============================================================================
+# BUILD AND DEVELOPMENT TOOLS - Exclude build tools and artifacts
+# ==============================================================================
+
+# Development scripts (keep only essential distribution scripts)
+scripts/generate-sample-data.js
+scripts/validate-config.js
+scripts/test-mcp.js
+scripts/mcp-explorer.ts
+scripts/test-runner.js
+scripts/benchmark.js
+scripts/load-test.js
+scripts/validate-performance.js
+scripts/health-dashboard.js
+scripts/demo-walkthrough.js
+scripts/validate-demo.js
+scripts/debug-*.js
+scripts/test-*.js
+scripts/verify-*.js
+scripts/setup-demo.sh
+scripts/stop-demo.sh
+scripts/index-docs.ts
+scripts/setup-production-env.sh
+scripts/validate-deployment.sh
+scripts/integration-*.ts
+scripts/generate-integration-test-data.ts
+scripts/setup-npm-registry.sh
+scripts/registry-manager.sh
+scripts/test-docker-registry.sh
+scripts/test-npm-registry.sh
+scripts/test-registry-integration.sh
+scripts/benchmark-registry-performance.sh
+scripts/validate-documentation.sh
+scripts/serve-themes.js
+scripts/build-all-themes.js
+scripts/serve-themes-simple.js
+scripts/sync-agents.sh
+
+# Build artifacts and temporary files
+*.tsbuildinfo
+.cache/
+.tmp/
+.temp/
+build/
+.build/
+.session/
+
+# ==============================================================================
+# DOCUMENTATION AND PLANNING - Exclude development docs
+# ==============================================================================
+
+# Planning and development documentation
+planning/
+docs/sample-runbook.md
+docs/disk-space-runbook.json
+docs/ENHANCED-MCP-EXPLORER.md
+docs/ENVIRONMENT-SETUP.md
+docs/INTEGRATION-TESTING.md
+docs/DEVELOPMENT.md
+docs/TESTING.md
+
+# Project management files
+TODO.md
+TASKS.md
+NOTES.md
+PROJECT_STATUS.md
+BUILD_SUMMARY.md
+PACKAGE_TEST_REPORT.md
+
+# Development guides and workflows
+CLAUDE.local.md
+.github/
+
+# ==============================================================================
+# DOCKER AND DEPLOYMENT - Exclude deployment-specific files
+# ==============================================================================
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Deployment and infrastructure
+terraform/
+ansible/
+k8s/
+kubernetes/
+helm/
+
+# ==============================================================================
+# DATA AND CONFIGURATION - Exclude test and development data
+# ==============================================================================
+
+# Test data and sample files
+test-data/
+test-data-integration/
+.package-test/
+integration-test-results.json
+
+# Development configuration
+config/config.yaml
+.env*
+!.env.example
+
+# ==============================================================================
+# PACKAGE MANAGEMENT - Exclude package management files
+# ==============================================================================
+
+# Lock files (reduce size, let users generate their own)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# NPM and package management
+.npmrc
+.yarnrc*
+.pnpmfile.cjs
+
+# Registry and publishing
+verdaccio/
+npm-shrinkwrap.json
+
+# ==============================================================================
+# LOGS AND TEMPORARY FILES - Exclude all runtime artifacts
+# ==============================================================================
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime files
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary directories
+.tmp/
+.temp/
+tmp/
+temp/
+
+# ==============================================================================
+# VERSION CONTROL - Exclude VCS files
+# ==============================================================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# Other VCS
+.svn/
+.hg/
+.bzr/
+
+# ==============================================================================
+# BACKUP AND ARCHIVE FILES - Exclude backup files
+# ==============================================================================
+
+# Backup files
+*.bak
+*.backup
+*.orig
+*.rej
+
+# Archive files
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+
+# ==============================================================================
+# WEBSITE AND DOCUMENTATION SITE - Exclude documentation website
+# ==============================================================================
+
+# VitePress documentation site
+website_docs/
+.vitepress/
+site/
+
+# ==============================================================================
+# KEEP THESE FILES - Essential for package functionality
+# ==============================================================================
+
+# These files are explicitly included via package.json "files" field:
+# - dist/**/* (compiled JavaScript and type definitions)
+# - lib/**/* (library exports for programmatic usage)  
+# - bin/**/* (CLI executables)
+# - config/*.sample.yaml (configuration templates)
+# - docs/API.md (API documentation)
+# - docs/ARCHITECTURE.md (architecture documentation)
+# - docs/DEPLOYMENT.md (deployment guide)
+# - README.md (main documentation)
+# - LICENSE (license file)
+# - CHANGELOG.md (version history)
+# - SECURITY.md (security policy)
+
+# ==============================================================================
+# PLATFORM SPECIFIC - Exclude platform-specific files
+# ==============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ==============================================================================
+# FINAL PACKAGE SIZE OPTIMIZATION
+# ==============================================================================
+
+# The goal is to keep the published package under 25MB with all essential files
+# Package contents should include:
+# - Compiled JavaScript (dist/)
+# - Library exports (lib/) 
+# - CLI tools (bin/)
+# - Essential documentation (README, API docs, etc.)
+# - Configuration templates
+# - Type definitions
+#
+# Everything else is excluded to optimize download and installation speed

@@ -146,9 +146,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-// Export server instance for testing
+// Export server instance for testing and programmatic usage
 export { personalPipelineServer };
+
+// Re-export main classes and interfaces for library usage
+export { PersonalPipelineServer } from './core/server.js';
+
+// Export types for TypeScript users
 export * from './types/index.js';
-export * from './adapters/base.js';
-export * from './utils/config.js';
-export * from './utils/logger.js';
+
+// Export adapter framework
+export * from './adapters/index.js';
+
+// Export utilities  
+export * from './utils/index.js';
+
+// Export tools for advanced usage
+export { PPMCPTools } from './tools/index.js';

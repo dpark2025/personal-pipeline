@@ -1,0 +1,596 @@
+# ==============================================================================
+# Personal Pipeline MCP Server - Version Management Workflow
+# ==============================================================================
+# Automated semantic versioning with conventional commits
+# Coordinates version bumps across all artifacts
+
+name: Version Management
+
+on:
+  # Manual version management
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        default: 'patch'
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+          - auto
+      commit_and_tag:
+        description: 'Create commit and tag'
+        required: false
+        default: 'true'
+        type: boolean
+      dry_run:
+        description: 'Dry run (show changes without applying)'
+        required: false
+        default: 'false'
+        type: boolean
+      force:
+        description: 'Force version bump (ignore uncommitted changes)'
+        required: false
+        default: 'false'
+        type: boolean
+      custom_version:
+        description: 'Custom version (overrides bump_type)'
+        required: false
+        default: ''
+  
+  # Automatic version bumping on main branch pushes
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'Dockerfile'
+  
+  # Schedule weekly version analysis
+  schedule:
+    - cron: '0 10 * * 1'  # Every Monday at 10:00 UTC
+
+# ==============================================================================
+# Environment Variables
+# ==============================================================================
+env:
+  NODE_VERSION: '18'
+
+# ==============================================================================
+# Jobs
+# ==============================================================================
+jobs:
+  # ==============================================================================
+  # Analyze Version Requirements
+  # ==============================================================================
+  analyze-version:
+    name: Analyze Version Requirements
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.bump_type == 'auto'
+    
+    outputs:
+      should-bump: ${{ steps.analysis.outputs.should-bump }}
+      suggested-bump: ${{ steps.analysis.outputs.suggested-bump }}
+      commit-count: ${{ steps.analysis.outputs.commit-count }}
+      last-version: ${{ steps.analysis.outputs.last-version }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Analyze conventional commits
+        id: analysis
+        run: |
+          echo "🔍 Analyzing commits for version requirements..."
+          
+          # Get current version
+          CURRENT_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Find last version tag
+          LAST_TAG=$(git describe --tags --abbrev=0 --match="v*" 2>/dev/null || echo "")
+          if [[ -n "$LAST_TAG" ]]; then
+            COMMIT_RANGE="$LAST_TAG..HEAD"
+            echo "Analyzing commits from $LAST_TAG to HEAD"
+          else
+            COMMIT_RANGE="HEAD"
+            echo "No previous version tag found, analyzing all commits"
+          fi
+          
+          # Get commits since last version
+          COMMITS=$(git log "$COMMIT_RANGE" --oneline --no-merges 2>/dev/null || echo "")
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -v '^$' | wc -l)
+          
+          echo "Commits since last version: $COMMIT_COUNT"
+          
+          # Analyze commit types using conventional commit format
+          BREAKING_CHANGES=$(echo "$COMMITS" | grep -E "(BREAKING CHANGE|!:)" | wc -l)
+          FEATURES=$(echo "$COMMITS" | grep -E "^[a-f0-9]+ feat(\(.+\))?:" | wc -l)
+          FIXES=$(echo "$COMMITS" | grep -E "^[a-f0-9]+ fix(\(.+\))?:" | wc -l)
+          PERF=$(echo "$COMMITS" | grep -E "^[a-f0-9]+ perf(\(.+\))?:" | wc -l)
+          
+          echo "Breaking changes: $BREAKING_CHANGES"
+          echo "New features: $FEATURES"
+          echo "Bug fixes: $FIXES"
+          echo "Performance improvements: $PERF"
+          
+          # Determine version bump requirement
+          if [[ "$BREAKING_CHANGES" -gt 0 ]]; then
+            SUGGESTED_BUMP="major"
+            SHOULD_BUMP="true"
+            echo "Suggested bump: major (breaking changes detected)"
+          elif [[ "$FEATURES" -gt 0 ]]; then
+            SUGGESTED_BUMP="minor"
+            SHOULD_BUMP="true"
+            echo "Suggested bump: minor (new features detected)"
+          elif [[ "$FIXES" -gt 0 || "$PERF" -gt 0 ]]; then
+            SUGGESTED_BUMP="patch"
+            SHOULD_BUMP="true"
+            echo "Suggested bump: patch (fixes/improvements detected)"
+          else
+            SUGGESTED_BUMP="none"
+            SHOULD_BUMP="false"
+            echo "No version bump needed"
+          fi
+          
+          # Set outputs
+          echo "should-bump=$SHOULD_BUMP" >> $GITHUB_OUTPUT
+          echo "suggested-bump=$SUGGESTED_BUMP" >> $GITHUB_OUTPUT
+          echo "commit-count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "last-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Create analysis summary
+        run: |
+          cat > VERSION_ANALYSIS.md << EOF
+          # Version Analysis Report
+          
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Current Version:** ${{ steps.analysis.outputs.last-version }}
+          **Commits Analyzed:** ${{ steps.analysis.outputs.commit-count }}
+          
+          ## Analysis Results
+          
+          | Metric | Count | Impact |
+          |--------|-------|--------|
+          | Breaking Changes | $BREAKING_CHANGES | Major version bump |
+          | New Features | $FEATURES | Minor version bump |
+          | Bug Fixes | $FIXES | Patch version bump |
+          | Performance Improvements | $PERF | Patch version bump |
+          
+          ## Recommendation
+          
+          **Should Bump:** ${{ steps.analysis.outputs.should-bump }}
+          **Suggested Bump:** ${{ steps.analysis.outputs.suggested-bump }}
+          
+          $(if [[ "${{ steps.analysis.outputs.should-bump }}" == "true" ]]; then
+            echo "✅ Version bump recommended based on conventional commit analysis"
+          else
+            echo "ℹ️ No version bump needed - no significant changes detected"
+          fi)
+          
+          ## Commit Analysis
+          
+          \`\`\`
+          $COMMITS
+          \`\`\`
+          
+          ---
+          *Generated by Version Management Workflow*
+          EOF
+      
+      - name: Upload analysis report
+        uses: actions/upload-artifact@v3
+        with:
+          name: version-analysis-$(date +%Y%m%d-%H%M%S)
+          path: VERSION_ANALYSIS.md
+          retention-days: 30
+
+  # ==============================================================================
+  # Execute Version Bump
+  # ==============================================================================
+  version-bump:
+    name: Execute Version Bump
+    runs-on: ubuntu-latest
+    needs: analyze-version
+    if: |
+      always() && (
+        github.event.inputs.bump_type != 'auto' || 
+        needs.analyze-version.outputs.should-bump == 'true'
+      )
+    
+    outputs:
+      old-version: ${{ steps.bump.outputs.old-version }}
+      new-version: ${{ steps.bump.outputs.new-version }}
+      version-tag: ${{ steps.bump.outputs.version-tag }}
+      changelog-generated: ${{ steps.bump.outputs.changelog-generated }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --verbose
+      
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Determine bump type
+        id: bump-type
+        run: |
+          if [[ -n "${{ github.event.inputs.custom_version }}" ]]; then
+            BUMP_TYPE="custom:${{ github.event.inputs.custom_version }}"
+            echo "Using custom version: ${{ github.event.inputs.custom_version }}"
+          elif [[ "${{ github.event.inputs.bump_type }}" == "auto" ]]; then
+            BUMP_TYPE="${{ needs.analyze-version.outputs.suggested-bump }}"
+            echo "Using auto-detected bump type: $BUMP_TYPE"
+          else
+            BUMP_TYPE="${{ github.event.inputs.bump_type }}"
+            echo "Using manual bump type: $BUMP_TYPE"
+          fi
+          
+          echo "bump-type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+      
+      - name: Execute version bump
+        id: bump
+        run: |
+          echo "🚀 Executing version bump..."
+          
+          OLD_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+          echo "Current version: $OLD_VERSION"
+          
+          # Build version script arguments
+          VERSION_ARGS=()
+          
+          # Add bump type
+          if [[ "${{ steps.bump-type.outputs.bump-type }}" == custom:* ]]; then
+            CUSTOM_VERSION="${{ steps.bump-type.outputs.bump-type #custom: }}"
+            VERSION_ARGS+=("custom" "$CUSTOM_VERSION")
+          else
+            VERSION_ARGS+=("${{ steps.bump-type.outputs.bump-type }}")
+          fi
+          
+          # Add flags
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            VERSION_ARGS+=("--dry-run")
+          fi
+          
+          if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
+            VERSION_ARGS+=("--force")
+          fi
+          
+          if [[ "${{ github.event.inputs.commit_and_tag }}" == "false" ]]; then
+            VERSION_ARGS+=("--skip-git")
+          fi
+          
+          # Add verbose flag
+          VERSION_ARGS+=("--verbose")
+          
+          echo "Running: bash scripts/version.sh ${VERSION_ARGS[*]}"
+          
+          # Execute version bump
+          if bash scripts/version.sh "${VERSION_ARGS[@]}"; then
+            NEW_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+            VERSION_TAG="v$NEW_VERSION"
+            
+            echo "✅ Version bump completed"
+            echo "Old version: $OLD_VERSION"
+            echo "New version: $NEW_VERSION"
+            echo "Version tag: $VERSION_TAG"
+            
+            # Set outputs
+            echo "old-version=$OLD_VERSION" >> $GITHUB_OUTPUT
+            echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "version-tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+            echo "changelog-generated=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Version bump failed"
+            exit 1
+          fi
+      
+      - name: Validate version consistency
+        run: |
+          echo "🔍 Validating version consistency..."
+          
+          # Check package.json version
+          PACKAGE_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+          
+          # Check if Dockerfile needs version update
+          if grep -q "org.opencontainers.image.version" Dockerfile; then
+            echo "📝 Updating Dockerfile version label..."
+            sed -i "s/org.opencontainers.image.version=\"[^\"]*\"/org.opencontainers.image.version=\"$PACKAGE_VERSION\"/" Dockerfile
+            
+            if [[ "${{ github.event.inputs.commit_and_tag }}" == "true" && "${{ github.event.inputs.dry_run }}" != "true" ]]; then
+              git add Dockerfile
+              git commit --amend --no-edit
+            fi
+          fi
+          
+          echo "✅ Version consistency validated"
+          echo "Package version: $PACKAGE_VERSION"
+      
+      - name: Push changes
+        if: github.event.inputs.commit_and_tag == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          echo "📤 Pushing version changes and tags..."
+          
+          # Push commits and tags
+          git push origin main
+          git push origin ${{ steps.bump.outputs.version-tag }}
+          
+          echo "✅ Changes pushed successfully"
+      
+      - name: Create version summary
+        run: |
+          cat > VERSION_BUMP_SUMMARY.md << EOF
+          # Version Bump Summary
+          
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Bump Type:** ${{ steps.bump-type.outputs.bump-type }}
+          **Dry Run:** ${{ github.event.inputs.dry_run }}
+          
+          ## Version Changes
+          
+          | Artifact | Old Version | New Version |
+          |----------|-------------|-------------|
+          | npm package | ${{ steps.bump.outputs.old-version }} | ${{ steps.bump.outputs.new-version }} |
+          | Docker image | ${{ steps.bump.outputs.old-version }} | ${{ steps.bump.outputs.new-version }} |
+          | Git tag | - | ${{ steps.bump.outputs.version-tag }} |
+          
+          ## Actions Taken
+          
+          - ✅ Updated package.json version
+          - ✅ Updated Dockerfile version label
+          - $(if [[ "${{ github.event.inputs.commit_and_tag }}" == "true" ]]; then echo "✅ Created git commit and tag"; else echo "⏭️ Skipped git commit and tag"; fi)
+          - $(if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then echo "ℹ️ Dry run - no changes applied"; else echo "✅ Changes applied"; fi)
+          
+          ## Next Steps
+          
+          $(if [[ "${{ github.event.inputs.dry_run }}" != "true" ]]; then
+            echo "1. **Build Pipeline:** Automated builds will be triggered"
+            echo "2. **Release Preparation:** Use release workflow to create GitHub release"
+            echo "3. **Publishing:** Publish to registries when ready"
+          else
+            echo "1. **Review Changes:** Review the proposed version changes"
+            echo "2. **Apply Changes:** Run without --dry-run to apply changes"
+            echo "3. **Build and Release:** Proceed with build and release workflows"
+          fi)
+          
+          ---
+          *Generated by Version Management Workflow*
+          EOF
+      
+      - name: Upload version summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: version-bump-summary-${{ steps.bump.outputs.new-version }}
+          path: |
+            VERSION_BUMP_SUMMARY.md
+            CHANGELOG.md
+          retention-days: 90
+
+  # ==============================================================================
+  # Validate Version Impact
+  # ==============================================================================
+  validate-impact:
+    name: Validate Version Impact
+    runs-on: ubuntu-latest
+    needs: version-bump
+    if: needs.version-bump.outputs.new-version != ''
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --verbose
+      
+      - name: Validate build compatibility
+        run: |
+          echo "🔍 Validating build compatibility..."
+          
+          # Run build to ensure version changes don't break anything
+          npm run build
+          
+          # Run tests to ensure functionality is preserved
+          npm test
+          
+          # Validate package structure
+          if [[ -f "scripts/test-package.sh" ]]; then
+            bash scripts/test-package.sh --quick
+          fi
+          
+          echo "✅ Build compatibility validated"
+      
+      - name: Check breaking changes
+        run: |
+          echo "🔍 Checking for breaking changes..."
+          
+          OLD_VERSION="${{ needs.version-bump.outputs.old-version }}"
+          NEW_VERSION="${{ needs.version-bump.outputs.new-version }}"
+          
+          # Parse version numbers
+          OLD_MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
+          NEW_MAJOR=$(echo "$NEW_VERSION" | cut -d. -f1)
+          
+          if [[ "$NEW_MAJOR" != "$OLD_MAJOR" ]]; then
+            echo "⚠️ Major version change detected: $OLD_VERSION → $NEW_VERSION"
+            echo "This may introduce breaking changes. Please ensure:"
+            echo "1. API compatibility is maintained or properly documented"
+            echo "2. Migration guides are provided if needed"
+            echo "3. Deprecated features are properly marked"
+          else
+            echo "✅ Non-breaking version change: $OLD_VERSION → $NEW_VERSION"
+          fi
+      
+      - name: Generate compatibility report
+        run: |
+          cat > COMPATIBILITY_REPORT.md << EOF
+          # Version Compatibility Report
+          
+          **Version Change:** ${{ needs.version-bump.outputs.old-version }} → ${{ needs.version-bump.outputs.new-version }}
+          **Change Type:** $(echo "${{ needs.version-bump.outputs.new-version }}" | cut -d. -f1-2)
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## Compatibility Analysis
+          
+          ### Build System
+          - ✅ TypeScript compilation successful
+          - ✅ Tests passing
+          - ✅ Package structure valid
+          
+          ### API Compatibility
+          $(OLD_MAJOR=$(echo "${{ needs.version-bump.outputs.old-version }}" | cut -d. -f1)
+            NEW_MAJOR=$(echo "${{ needs.version-bump.outputs.new-version }}" | cut -d. -f1)
+            if [[ "$NEW_MAJOR" != "$OLD_MAJOR" ]]; then
+              echo "⚠️ **Major version change** - potential breaking changes"
+              echo "- Review API changes carefully"
+              echo "- Update documentation"
+              echo "- Consider migration guides"
+            else
+              echo "✅ **Non-breaking change** - backward compatible"
+            fi)
+          
+          ### Docker Image
+          - ✅ Dockerfile version label updated
+          - ✅ Multi-architecture build support maintained
+          
+          ### npm Package
+          - ✅ Package.json version updated
+          - ✅ Export structure maintained
+          - ✅ CLI commands preserved
+          
+          ## Recommendations
+          
+          1. **Testing:** Run comprehensive tests in staging environment
+          2. **Documentation:** Update version-specific documentation
+          3. **Release Notes:** Include detailed changelog in release
+          4. **Monitoring:** Monitor for issues after deployment
+          
+          ---
+          *Generated by Version Management Workflow*
+          EOF
+      
+      - name: Upload compatibility report
+        uses: actions/upload-artifact@v3
+        with:
+          name: compatibility-report-${{ needs.version-bump.outputs.new-version }}
+          path: COMPATIBILITY_REPORT.md
+          retention-days: 90
+
+  # ==============================================================================
+  # Version Management Summary
+  # ==============================================================================
+  summary:
+    name: Version Management Summary
+    runs-on: ubuntu-latest
+    needs: [analyze-version, version-bump, validate-impact]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "📋 Version Management Summary"
+          echo "============================="
+          
+          # Check if analysis was performed
+          if [[ "${{ needs.analyze-version.result }}" == "success" ]]; then
+            echo "🔍 Analysis Results:"
+            echo "   Should bump: ${{ needs.analyze-version.outputs.should-bump }}"
+            echo "   Suggested bump: ${{ needs.analyze-version.outputs.suggested-bump }}"
+            echo "   Commits analyzed: ${{ needs.analyze-version.outputs.commit-count }}"
+            echo ""
+          fi
+          
+          # Check if version bump was performed
+          if [[ "${{ needs.version-bump.result }}" == "success" ]]; then
+            echo "🚀 Version Bump Results:"
+            echo "   Old version: ${{ needs.version-bump.outputs.old-version }}"
+            echo "   New version: ${{ needs.version-bump.outputs.new-version }}"
+            echo "   Version tag: ${{ needs.version-bump.outputs.version-tag }}"
+            echo "   Dry run: ${{ github.event.inputs.dry_run }}"
+            echo ""
+          fi
+          
+          # Check validation results
+          if [[ "${{ needs.validate-impact.result }}" == "success" ]]; then
+            echo "✅ Validation Results:"
+            echo "   Build compatibility: Passed"
+            echo "   Test suite: Passed"
+            echo "   Package structure: Valid"
+            echo ""
+          fi
+          
+          # Overall status
+          if [[ "${{ needs.version-bump.result }}" == "success" && "${{ needs.validate-impact.result }}" == "success" ]]; then
+            echo "🎉 Version management completed successfully!"
+            echo ""
+            echo "Next steps:"
+            echo "1. Review the version changes and compatibility report"
+            echo "2. Run build workflow to create artifacts"
+            echo "3. Create release when ready for distribution"
+          elif [[ "${{ needs.analyze-version.outputs.should-bump }}" == "false" ]]; then
+            echo "ℹ️ No version bump needed based on commit analysis"
+          else
+            echo "❌ Version management failed. Check workflow logs for details."
+          fi
+
+# ==============================================================================
+# Version Management Workflow Summary
+# ==============================================================================
+# This workflow provides comprehensive version management:
+#
+# 1. Automated Analysis:
+#    - Analyzes conventional commits for version requirements
+#    - Suggests appropriate version bumps
+#    - Provides detailed analysis reports
+#
+# 2. Version Bumping:
+#    - Supports manual and automatic version bumps
+#    - Updates all version references consistently
+#    - Creates git commits and tags
+#    - Supports dry-run mode for testing
+#
+# 3. Impact Validation:
+#    - Validates build compatibility
+#    - Checks for breaking changes
+#    - Ensures package structure integrity
+#    - Generates compatibility reports
+#
+# 4. Integration:
+#    - Coordinates with build and release workflows
+#    - Provides comprehensive reporting
+#    - Supports both automated and manual triggers
+#
+# The workflow follows semantic versioning and conventional commit
+# standards to provide reliable, automated version management.

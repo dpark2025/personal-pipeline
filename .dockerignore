@@ -1,0 +1,147 @@
+# ==============================================================================
+# Docker Build Exclusions - Personal Pipeline MCP Server
+# ==============================================================================
+# Optimize Docker build context by excluding unnecessary files
+
+# ==============================================================================
+# Version Control & CI/CD
+# ==============================================================================
+.git
+.gitignore
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# ==============================================================================
+# Documentation & Planning
+# ==============================================================================
+*.md
+!README.md
+docs/
+planning/
+website_docs/
+
+# ==============================================================================
+# Development & IDE Files
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==============================================================================
+# Node.js & NPM
+# ==============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn-integrity
+*.tgz
+package-lock.json
+
+# ==============================================================================
+# TypeScript & Build Artifacts
+# ==============================================================================
+dist/
+build/
+*.tsbuildinfo
+*.d.ts.map
+*.js.map
+coverage/
+
+# ==============================================================================
+# Testing & Development Data
+# ==============================================================================
+tests/
+test-data/
+test-results/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+integration-test-results.json
+validation-report.json
+playwright-report/
+reports/
+
+# ==============================================================================
+# Development & Demo Files
+# ==============================================================================
+scripts/
+demo-setup.log
+server-demo.log
+monitoring-demo.log
+*.pid
+server.log
+config/demo-config.yaml
+.session/
+*.session
+session-*
+
+# ==============================================================================
+# Configuration & Secrets
+# ==============================================================================
+config/sources.yaml
+config/local.yaml
+config/production.yaml
+config/*-test.yaml
+config/confluence-test.yaml
+config/config.yaml
+.env*
+
+# ==============================================================================
+# Cache & Temporary Files
+# ==============================================================================
+.cache/
+cache/
+tmp/
+temp/
+*.tmp
+logs/
+*.log
+dump.rdb
+
+# ==============================================================================
+# Docker Files (avoid recursion)
+# ==============================================================================
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# ==============================================================================
+# Development Tools & Linting
+# ==============================================================================
+.eslintcache
+.prettier*
+.editorconfig
+
+# ==============================================================================
+# Runtime Data
+# ==============================================================================
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ==============================================================================
+# Keep Required Files
+# ==============================================================================
+# The following files are explicitly included by NOT ignoring them:
+# - package.json (required for npm scripts and metadata)
+# - tsconfig.json (required for TypeScript build)
+# - src/ (source code)
+# - config/*.sample.yaml (configuration templates)
+# - LICENSE
+# - README.md
