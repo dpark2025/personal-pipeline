@@ -39,7 +39,9 @@ jobs:
         
       - name: Install dependencies
         run: |
-          npm config set registry https://registry.npmjs.org/
+          # Override .npmrc registry settings for CI
+          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "@personal-pipeline:registry=https://registry.npmjs.org/" >> .npmrc
           npm ci
           
       - name: Build all VitePress themes
