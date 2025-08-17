@@ -42,7 +42,7 @@ jobs:
           # Override .npmrc registry settings for CI
           echo "registry=https://registry.npmjs.org/" > .npmrc
           echo "@personal-pipeline:registry=https://registry.npmjs.org/" >> .npmrc
-          npm ci
+          npm install
           
       - name: Build all VitePress themes
         run: |
