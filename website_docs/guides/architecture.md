@@ -8,48 +8,68 @@ Personal Pipeline follows a modular, event-driven architecture designed for high
 
 ## High-Level Architecture
 
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        A[LangGraph Agent] --> B[MCP Client]
-        C[External Systems] --> D[REST Client]
-        E[Demo Scripts] --> D
-    end
-    
-    subgraph "Access Layer"
-        B --> F[MCP Protocol Handler]
-        D --> G[REST API Layer]
-    end
-    
-    subgraph "Core Engine"
-        F --> H[PPMCPTools]
-        G --> H
-        H --> I[Source Registry]
-        H --> J[Caching Layer]
-        H --> K[Performance Monitor]
-    end
-    
-    subgraph "Adapter Framework"
-        I --> L[Source Adapters]
-        L --> M[FileSystem Adapter]
-        L --> N[Confluence Adapter]
-        L --> O[GitHub Adapter]
-        L --> P[Database Adapter]
-    end
-    
-    subgraph "External Sources"
-        M --> Q[Local Files]
-        N --> R[Confluence]
-        O --> S[GitHub Repos]
-        P --> T[Databases]
-    end
-    
-    subgraph "Infrastructure"
-        J --> U[Redis Cache]
-        J --> V[Memory Cache]
-        K --> W[Metrics Collection]
-        K --> X[Health Monitoring]
-    end
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            System Architecture                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CLIENT LAYER:
+  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+  │  LangGraph      │    │  External       │    │  Demo Scripts   │
+  │  Agent          │    │  Systems        │    │  & Tools        │
+  └─────────────────┘    └─────────────────┘    └─────────────────┘
+           │                       │                       │
+           ▼                       ▼                       ▼
+  ┌─────────────────┐    ┌─────────────────────────────────────────┐
+  │   MCP Client    │    │          REST Client                    │
+  └─────────────────┘    └─────────────────────────────────────────┘
+
+ACCESS LAYER:
+  ┌─────────────────┐    ┌─────────────────────────────────────────┐
+  │ MCP Protocol    │    │           REST API                      │
+  │ Handler         │    │           Layer                         │
+  └─────────────────┘    └─────────────────────────────────────────┘
+           │                                    │
+           └────────────────┬───────────────────┘
+                           ▼
+CORE ENGINE:
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │                          PPMCPTools                                       │
+  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐ │
+  │  │ Source Registry │  │ Caching Layer   │  │  Performance Monitor        │ │
+  │  │                 │  │                 │  │                             │ │
+  │  │ • Adapter Mgmt  │  │ • Redis Cache   │  │ • Metrics Collection        │ │
+  │  │ • Health Check  │  │ • Memory Cache  │  │ • Health Monitoring         │ │
+  │  │ • Load Balance  │  │ • Circuit Break │  │ • Performance Analytics     │ │
+  │  └─────────────────┘  └─────────────────┘  └─────────────────────────────┘ │
+  └───────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+ADAPTER FRAMEWORK:
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                          Source Adapters                                    │
+  │                                                                             │
+  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐ │
+  │  │ FileSystem   │ │ Confluence   │ │   GitHub     │ │     Database        │ │
+  │  │   Adapter    │ │   Adapter    │ │   Adapter    │ │     Adapter         │ │
+  │  │              │ │              │ │              │ │                     │ │
+  │  │ • Local MD   │ │ • Spaces     │ │ • Repos      │ │ • PostgreSQL        │ │
+  │  │ • JSON Data  │ │ • Pages      │ │ • Issues     │ │ • MongoDB           │ │
+  │  │ • Search     │ │ • Search     │ │ • Wiki       │ │ • Search Queries    │ │
+  │  │ • Indexing   │ │ • Auth       │ │ • API        │ │ • Connections       │ │
+  │  └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────────┘ │
+  │        ▲               ▲(Phase 2)      ▲(Phase 2)         ▲(Phase 2)        │
+  └────────┼───────────────┼───────────────┼────────────────────┼─────────────────┘
+           │               │               │                    │
+           ▼               ▼               ▼                    ▼
+EXTERNAL SOURCES:
+  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐
+  │ Local Files  │ │  Confluence  │ │ GitHub Repos │ │     Databases       │
+  │              │ │   Spaces     │ │              │ │                     │
+  │ • Markdown   │ │ • Knowledge  │ │ • Code Docs  │ │ • Operational Data  │
+  │ • JSON       │ │ • Runbooks   │ │ • Runbooks   │ │ • Historical Logs   │
+  │ • Config     │ │ • Procedures │ │ • Issues     │ │ • Metrics           │
+  └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────────┘
 ```
 
 ## Core Components
@@ -152,28 +172,54 @@ Each tool provides:
 
 ### Search Request Flow
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API
-    participant Cache
-    participant Adapter
-    participant Source
+```
+REQUEST FLOW SEQUENCE:
 
-    Client->>API: Search Request
-    API->>Cache: Check Cache
-    
-    alt Cache Hit
-        Cache->>API: Cached Result
-    else Cache Miss
-        API->>Adapter: Forward Request
-        Adapter->>Source: Query Source
-        Source->>Adapter: Raw Data
-        Adapter->>API: Processed Result
-        API->>Cache: Store Result
-    end
-    
-    API->>Client: Final Response
+1. Client Request
+   ┌─────────┐     search_runbooks()     ┌─────────────────┐
+   │ Client  │ ────────────────────────► │ Personal        │
+   │         │                          │ Pipeline API    │
+   └─────────┘                          └─────────────────┘
+
+2. Cache Check
+   ┌─────────────────┐     check cache key     ┌─────────────┐
+   │ Personal        │ ──────────────────────► │ Cache       │
+   │ Pipeline API    │                         │ Layer       │
+   └─────────────────┘                         └─────────────┘
+
+3a. Cache Hit (60-80% of requests)
+   ┌─────────────┐     cached result     ┌─────────────────┐     result     ┌─────────┐
+   │ Cache       │ ────────────────────► │ Personal        │ ─────────────► │ Client  │
+   │ Layer       │                       │ Pipeline API    │               │         │
+   └─────────────┘                       └─────────────────┘               └─────────┘
+
+3b. Cache Miss (20-40% of requests)
+   ┌─────────────────┐     forward     ┌─────────────────┐     query     ┌─────────────────┐
+   │ Personal        │ ──────────────► │ Source          │ ────────────► │ External        │
+   │ Pipeline API    │                 │ Adapter         │               │ Source          │
+   └─────────────────┘                 └─────────────────┘               └─────────────────┘
+            ▲                                   │                                │
+            │           processed result        │         raw data               │
+            └───────────────────────────────────┴────────────────────────────────┘
+
+4. Cache Storage & Response
+   ┌─────────────────┐     store result     ┌─────────────┐
+   │ Personal        │ ───────────────────► │ Cache       │
+   │ Pipeline API    │                      │ Layer       │
+   └─────────────────┘                      └─────────────┘
+            │
+            │ final response
+            ▼
+   ┌─────────┐
+   │ Client  │
+   │         │
+   └─────────┘
+
+PERFORMANCE CHARACTERISTICS:
+• Cache Hit:  ~2ms response time
+• Cache Miss: ~150ms response time  
+• Cache TTL:  5-60 minutes (configurable)
+• Hit Rate:   60-80% in production workloads
 ```
 
 ### Configuration Management

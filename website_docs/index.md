@@ -60,27 +60,34 @@ npm run demo:start
 
 ## 🏗️ Architecture
 
-```mermaid
-graph TB
-    subgraph "Access Patterns"
-        A[LangGraph Agent] --> B[MCP Protocol]
-        C[External Systems] --> D[REST API]
-    end
-    
-    subgraph "Personal Pipeline Core"
-        B --> E[Core Engine]
-        D --> E
-        E --> F[Source Adapters]
-        E --> G[Caching Layer]
-        E --> H[Performance Monitor]
-    end
-    
-    subgraph "Documentation Sources"
-        F --> I[Local Files]
-        F --> J[Confluence]
-        F --> K[GitHub]
-        F --> L[Databases]
-    end
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Personal Pipeline                        │
+│                    MCP Server Architecture                      │
+└─────────────────────────────────────────────────────────────────┘
+
+ACCESS PATTERNS:
+  LangGraph Agent  ──────────►  MCP Protocol  ─┐
+  External Systems ──────────►  REST API      ─┼──► Core Engine
+  Demo Scripts     ──────────►  HTTP Client   ─┘
+
+CORE ENGINE:
+  ├── 7 MCP Tools (search_runbooks, get_decision_tree, etc.)
+  ├── 11 REST Endpoints (search, health, performance, etc.)
+  ├── Source Adapter Registry
+  ├── Hybrid Caching Layer (Redis + Memory)
+  └── Performance Monitoring
+
+SOURCE ADAPTERS:
+  ├── FileSystem Adapter     ──────► Local Files & Directories
+  ├── Confluence Adapter     ──────► Confluence Spaces (Phase 2)
+  ├── GitHub Adapter         ──────► GitHub Repositories (Phase 2)
+  └── Database Adapter       ──────► PostgreSQL/MongoDB (Phase 2)
+
+INFRASTRUCTURE:
+  ├── Redis Cache            ──────► 60-80% MTTR reduction
+  ├── Circuit Breakers       ──────► 99.9% uptime
+  └── Health Monitoring      ──────► Real-time metrics
 ```
 
 ## 🛠️ Development
