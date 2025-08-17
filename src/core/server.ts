@@ -22,10 +22,13 @@ import { logger, loggerStream } from '../utils/logger.js';
 import { PPMCPTools } from '../tools/index.js';
 import { SourceAdapterRegistry } from '../adapters/base.js';
 import { EnhancedFileSystemAdapter } from '../adapters/file-enhanced.js';
-import { GitHubAdapter } from '../adapters/github.js';
-import { WebAdapter } from '../adapters/web.js';
+import { GitHubAdapter } from '../adapters/github/index.js';
+import { WebAdapter } from '../adapters/web/index.js';
+import { ConfluenceAdapter } from '../adapters/confluence/index.js';
+import { DatabaseAdapter } from '../adapters/database/index.js';
+import { createSemanticEnhancedAdapter, SemanticEnhancedAdapter } from '../search/semantic-integration.js';
 import { CacheService, initializeCacheService } from '../utils/cache.js';
-import { AppConfig, CacheConfig, FileSystemConfig } from '../types/index.js';
+import { AppConfig, CacheConfig, FileSystemConfig, DatabaseConfig } from '../types/index.js';
 import { performance } from 'perf_hooks';
 import { initializePerformanceMonitor, getPerformanceMonitor } from '../utils/performance.js';
 import {
@@ -53,8 +56,24 @@ export class PersonalPipelineServer {
   private cacheService: CacheService | null = null;
   private config: AppConfig | null = null;
   private isStarted: boolean = false;
+  private semanticConfig: {
+    enabled: boolean;
+    fallbackToFuzzy: boolean;
+    enhanceExistingAdapters: boolean;
+  } = {
+    enabled: true,
+    fallbackToFuzzy: true,
+    enhanceExistingAdapters: true,
+  };
 
-  constructor(private configManager = new ConfigManager()) {
+  constructor(
+    private configManager = new ConfigManager(),
+    semanticConfig?: Partial<{ enabled: boolean; fallbackToFuzzy: boolean; enhanceExistingAdapters: boolean }>
+  ) {
+    if (semanticConfig) {
+      this.semanticConfig = { ...this.semanticConfig, ...semanticConfig };
+    }
+
     this.mcpServer = new Server(
       {
         name: 'personal-pipeline-mcp',
@@ -88,9 +107,21 @@ export class PersonalPipelineServer {
     try {
       // Load configuration
       this.config = await this.configManager.loadConfig();
+      
+      // Update semantic configuration from loaded config
+      if (this.config.semantic_search) {
+        this.semanticConfig = {
+          enabled: this.config.semantic_search.enabled,
+          fallbackToFuzzy: this.config.semantic_search.fallback_to_fuzzy,
+          enhanceExistingAdapters: this.config.semantic_search.enhance_existing_adapters,
+        };
+      }
+      
       logger.info('Configuration loaded', {
         sourceCount: this.config.sources.length,
         serverPort: this.config.server.port,
+        semanticSearchEnabled: this.semanticConfig.enabled,
+        semanticEnhancement: this.semanticConfig.enhanceExistingAdapters,
       });
 
       // Initialize performance monitoring
@@ -195,6 +226,7 @@ export class PersonalPipelineServer {
     version: string;
     sources: any[];
     cache?: any;
+    semantic_search?: any;
     uptime: number;
   }> {
     try {
@@ -218,6 +250,11 @@ export class PersonalPipelineServer {
         version: '0.1.0',
         sources: sourceHealthChecks,
         cache: cacheHealth,
+        semantic_search: {
+          enabled: this.semanticConfig.enabled,
+          enhancement_active: this.semanticConfig.enhanceExistingAdapters,
+          fallback_enabled: this.semanticConfig.fallbackToFuzzy,
+        },
         uptime: process.uptime(),
       };
     } catch (error) {
@@ -227,6 +264,11 @@ export class PersonalPipelineServer {
         timestamp: new Date().toISOString(),
         version: '0.1.0',
         sources: [],
+        semantic_search: {
+          enabled: this.semanticConfig.enabled,
+          enhancement_active: this.semanticConfig.enhanceExistingAdapters,
+          fallback_enabled: this.semanticConfig.fallbackToFuzzy,
+        },
         uptime: process.uptime(),
       };
     }
@@ -970,31 +1012,150 @@ export class PersonalPipelineServer {
   }
 
   /**
-   * Register source adapter factories
+   * Register source adapter factories with semantic enhancement support
    */
   private registerSourceAdapters(): void {
-    // Register file system adapter factory
+    // Register file system adapter factory with semantic enhancement
     this.sourceRegistry.registerFactory('file', config => {
-      return new EnhancedFileSystemAdapter(config as FileSystemConfig);
+      const baseAdapter = new EnhancedFileSystemAdapter(config as FileSystemConfig);
+      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+        logger.info('Creating semantic-enhanced FileSystemAdapter', {
+          name: config.name,
+          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+        });
+        const semanticConfig = this.config?.semantic_search;
+        return createSemanticEnhancedAdapter(baseAdapter, {
+          enableSemanticSearch: true,
+          enableFallback: this.semanticConfig.fallbackToFuzzy,
+          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+          maxResults: 50,
+        });
+      }
+      return baseAdapter;
     });
 
-    // Register GitHub adapter factory
+    // Register GitHub adapter factory with semantic enhancement
     this.sourceRegistry.registerFactory('github', config => {
-      return new GitHubAdapter(config as any);
+      const baseAdapter = new GitHubAdapter(config as any);
+      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+        logger.info('Creating semantic-enhanced GitHubAdapter', {
+          name: config.name,
+          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+        });
+        const semanticConfig = this.config?.semantic_search;
+        return createSemanticEnhancedAdapter(baseAdapter, {
+          enableSemanticSearch: true,
+          enableFallback: this.semanticConfig.fallbackToFuzzy,
+          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+          maxResults: 50,
+        });
+      }
+      return baseAdapter;
     });
 
-    // Register Web adapter factory
+    // Register Web adapter factory with semantic enhancement
     this.sourceRegistry.registerFactory('web', config => {
-      return new WebAdapter(config as any);
+      const baseAdapter = new WebAdapter(config as any);
+      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+        logger.info('Creating semantic-enhanced WebAdapter', {
+          name: config.name,
+          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+        });
+        const semanticConfig = this.config?.semantic_search;
+        return createSemanticEnhancedAdapter(baseAdapter, {
+          enableSemanticSearch: true,
+          enableFallback: this.semanticConfig.fallbackToFuzzy,
+          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+          maxResults: 50,
+        });
+      }
+      return baseAdapter;
+    });
+
+    // Register Confluence adapter factory with semantic enhancement
+    this.sourceRegistry.registerFactory('confluence', config => {
+      const baseAdapter = new ConfluenceAdapter(config as any, {
+        enableSemanticSearch: this.semanticConfig.enabled,
+        maxPagesPerSpace: 1000,
+        syncIntervalMinutes: 60,
+        enableChangeWatching: true,
+        performance: {
+          cacheTtlSeconds: 3600,
+          maxConcurrentRequests: 10,
+          requestTimeoutMs: 30000,
+        },
+      });
+      
+      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+        logger.info('Creating semantic-enhanced ConfluenceAdapter', {
+          name: config.name,
+          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+        });
+        const semanticConfig = this.config?.semantic_search;
+        return createSemanticEnhancedAdapter(baseAdapter, {
+          enableSemanticSearch: true,
+          enableFallback: this.semanticConfig.fallbackToFuzzy,
+          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+          maxResults: 50,
+        });
+      }
+      return baseAdapter;
+    });
+
+    // Register Database adapter factory with semantic enhancement
+    this.sourceRegistry.registerFactory('database', config => {
+      const baseAdapter = new DatabaseAdapter(config as any, {
+        enableSemanticSearch: this.semanticConfig.enabled,
+        maxRecordsPerTable: 10000,
+        syncIntervalMinutes: 60,
+        enableChangeDetection: false,
+        performance: {
+          cacheTtlSeconds: 3600,
+          maxConcurrentQueries: 25,
+          queryTimeoutMs: 15000,
+          enableQueryOptimization: true,
+        },
+        schemaDetection: {
+          autoDiscover: true,
+          includeSystemTables: false,
+          minRowCount: 1,
+        },
+      });
+      
+      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+        logger.info('Creating semantic-enhanced DatabaseAdapter', {
+          name: config.name,
+          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+        });
+        const semanticConfig = this.config?.semantic_search;
+        return createSemanticEnhancedAdapter(baseAdapter, {
+          enableSemanticSearch: true,
+          enableFallback: this.semanticConfig.fallbackToFuzzy,
+          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+          maxResults: 50,
+        });
+      }
+      return baseAdapter;
     });
 
     // TODO: Register other adapter factories when implemented
     // this.sourceRegistry.registerFactory('discord', (config) => {
-    //   return new DiscordAdapter(config);
+    //   const baseAdapter = new DiscordAdapter(config);
+    //   if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+    //     return createSemanticEnhancedAdapter(baseAdapter, {...});
+    //   }
+    //   return baseAdapter;
     // });
 
-    logger.debug('Source adapter factories registered', {
-      adapters: ['file', 'github', 'web'],
+    logger.debug('Source adapter factories registered with semantic enhancement support', {
+      adapters: ['file', 'github', 'web', 'confluence', 'database'],
+      semanticEnabled: this.semanticConfig.enabled,
+      semanticEnhancement: this.semanticConfig.enhanceExistingAdapters,
     });
   }
 
@@ -1196,6 +1357,16 @@ export class PersonalPipelineServer {
         message: 'MCP tools not initialized',
       };
     }
+
+    // Check semantic search status
+    components.semantic_search = {
+      status: this.semanticConfig.enabled ? 'enabled' : 'disabled',
+      enhancement_active: this.semanticConfig.enhanceExistingAdapters,
+      fallback_enabled: this.semanticConfig.fallbackToFuzzy,
+      enhanced_adapters: this.getEnhancedAdapterStatuses(),
+    };
+    totalComponents++;
+    if (this.semanticConfig.enabled) healthyComponents++;
 
     // Determine overall status
     const healthPercentage = totalComponents > 0 ? (healthyComponents / totalComponents) * 100 : 0;
@@ -1611,6 +1782,38 @@ export class PersonalPipelineServer {
     }
 
     return recommendations;
+  }
+
+  /**
+   * Get status of semantic-enhanced adapters
+   */
+  private getEnhancedAdapterStatuses(): any[] {
+    const adapters = this.sourceRegistry.getAllAdapters();
+    return adapters.map(adapter => {
+      const isSemanticEnhanced = adapter instanceof SemanticEnhancedAdapter;
+      let semanticStatus = null;
+
+      if (isSemanticEnhanced) {
+        try {
+          semanticStatus = {
+            ready: adapter.isSemanticReady(),
+            config: adapter.getConfig().semantic_config,
+          };
+        } catch (error) {
+          semanticStatus = {
+            ready: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          };
+        }
+      }
+
+      return {
+        name: adapter.getConfig().name,
+        type: adapter.getConfig().type,
+        semantic_enhanced: isSemanticEnhanced,
+        semantic_status: semanticStatus,
+      };
+    });
   }
 }
 

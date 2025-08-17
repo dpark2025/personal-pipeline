@@ -1,193 +1,302 @@
-# WebAdapter Sample Configuration
-# 
-# This configuration demonstrates responsible web crawling with conservative
-# rate limiting and comprehensive content extraction capabilities.
+# Web Adapter Sample Configuration
+# Enterprise-grade web documentation access configuration
 
 # ============================================================================
-# Basic Web Source Configuration
+# Web Adapter Configuration - Multi-Source Web Documentation Access
 # ============================================================================
 
 sources:
-  - name: "company-docs"
+  # REST API Documentation Source
+  - name: "api-docs"
     type: "web"
+    priority: 1
     
-    # Required: Starting URLs for crawling
-    base_urls:
-      - "https://docs.company.com"
-      - "https://wiki.company.com/operations"
-      - "https://runbooks.company.com"
+    # Web-specific configuration
+    sources:
+      - name: "company-api"
+        type: "api"
+        base_url: "https://api.docs.company.com"
+        
+        endpoints:
+          - name: "search"
+            path: "/v1/search"
+            method: "GET"
+            content_type: "json"
+            json_paths:
+              - "$.results[*].title"
+              - "$.results[*].content"
+              - "$.results[*].url"
+            query_params:
+              format: "json"
+              limit: "20"
+            cache_ttl: "10m"
+            
+          - name: "documents"
+            path: "/v1/documents/{id}"
+            method: "GET"
+            content_type: "json"
+            cache_ttl: "1h"
+            
+        health_check:
+          enabled: true
+          endpoint: "/v1/health"
+          interval_minutes: 5
+          timeout_ms: 5000
     
-    # Crawl Settings (Conservative Defaults)
-    max_depth: 2                              # Maximum crawl depth (default: 1)
-    max_urls_per_domain: 50                   # Limit URLs per domain (default: 100)
+    # Authentication configuration (API Key)
+    auth:
+      type: "api_key"
+      api_key:
+        location: "header"
+        name: "X-API-Key"
+        env_var: "COMPANY_API_KEY"
     
-    # Rate Limiting (Responsible Crawling)
-    rate_limit:
-      requests_per_second: 2                  # Conservative: 2 requests/second (default: 2)
-      concurrent_requests: 2                  # Max concurrent requests (default: 3)
+    # Performance settings
+    performance:
+      default_timeout_ms: 15000
+      max_concurrent_requests: 5
+      default_retry_attempts: 2
+      default_cache_ttl: "5m"
+      user_agent: "PersonalPipeline-Docs/1.0"
     
-    # URL Pattern Filtering
-    url_patterns:
-      include:
-        - ".*/(runbooks|procedures|guides|docs)/.*"     # Include operational docs
-        - ".*/(troubleshooting|support)/.*"             # Include support content
-        - ".*\\.md$"                                     # Include Markdown files
-      exclude:
-        - ".*/archive/.*"                               # Exclude archived content
-        - ".*/private/.*"                               # Exclude private areas
-        - ".*\\.(pdf|zip|tar|gz)$"                     # Skip binary files
-        - ".*/admin/.*"                                 # Skip admin areas
+    # Content processing
+    content_processing:
+      max_content_size_mb: 5
+      follow_redirects: true
+      validate_ssl: true
+      extract_links: false
+      respect_robots: true
     
-    # Content Extraction Selectors
-    content_selectors:
-      main: "article.content, .documentation-content, main, [role='main']"
-      title: "h1, title, .page-title"
-      exclude:
-        - "nav"                                         # Remove navigation
-        - ".sidebar"                                    # Remove sidebars
-        - "footer"                                      # Remove footers
-        - ".advertisement"                              # Remove ads
-        - ".breadcrumb"                                 # Remove breadcrumbs
+    # Rate limiting
+    rate_limiting:
+      global_requests_per_minute: 100
+      per_source_requests_per_minute: 30
+      burst_allowance: 10
+
+  # Web Scraping Documentation Source
+  - name: "docs-site"
+    type: "web"
+    priority: 2
     
-    # Caching and Performance
-    cache_ttl: "4h"                           # Cache content for 4 hours
-    respect_robots_txt: true                  # Always respect robots.txt (default: true)
-    user_agent: "PersonalPipeline-MCP/1.0 (Documentation Indexer; +https://company.com/contact)"
+    # Web scraping configuration
+    sources:
+      - name: "company-docs"
+        type: "scraping"
+        base_url: "https://docs.company.com"
+        
+        endpoints:
+          - name: "search"
+            path: "/search"
+            method: "GET"
+            content_type: "html"
+            selectors:
+              title: "h1.page-title"
+              content: ".documentation-content"
+              metadata: ".page-metadata"
+              exclude:
+                - ".navigation"
+                - ".sidebar"
+                - ".footer"
+            query_params:
+              q: "${query}"
+            filters:
+              min_content_length: 100
+              exclude_patterns:
+                - ".*cookie.*policy.*"
+                - ".*privacy.*notice.*"
+            cache_ttl: "30m"
+            
+          - name: "articles"
+            path: "/articles/{id}"
+            method: "GET"
+            content_type: "html"
+            selectors:
+              title: "h1.article-title"
+              content: ".article-body"
+              date: ".publish-date"
+              author: ".author-name"
+            cache_ttl: "2h"
+            
+        health_check:
+          enabled: true
+          interval_minutes: 15
+          timeout_ms: 10000
     
-    # Standard adapter settings
-    refresh_interval: "6h"                    # Refresh every 6 hours
-    priority: 3                               # Medium priority
-    enabled: true
-    timeout_ms: 30000                         # 30 second timeout
-    max_retries: 2                            # Conservative retry count
+    # No authentication required for public docs
+    auth:
+      type: "none"
+    
+    # Conservative performance for scraping
+    performance:
+      default_timeout_ms: 30000
+      max_concurrent_requests: 2
+      default_retry_attempts: 3
+      default_cache_ttl: "15m"
+      user_agent: "PersonalPipeline-Scraper/1.0 (Respectful Bot)"
+    
+    # Respectful scraping settings
+    content_processing:
+      max_content_size_mb: 2
+      follow_redirects: true
+      validate_ssl: true
+      extract_links: true
+      respect_robots: true
+    
+    # Conservative rate limiting
+    rate_limiting:
+      global_requests_per_minute: 30
+      per_source_requests_per_minute: 10
+      burst_allowance: 3
+
+  # RSS Feed Source
+  - name: "news-feed"
+    type: "web"
+    priority: 3
+    
+    # RSS feed configuration
+    sources:
+      - name: "company-blog"
+        type: "rss"
+        base_url: "https://blog.company.com"
+        
+        endpoints:
+          - name: "feed"
+            path: "/feed.xml"
+            method: "GET"
+            content_type: "rss"
+            cache_ttl: "1h"
+            
+          - name: "category-feed"
+            path: "/category/{category}/feed.xml"
+            method: "GET"
+            content_type: "rss"
+            cache_ttl: "2h"
+            
+        health_check:
+          enabled: true
+          interval_minutes: 30
+          timeout_ms: 15000
+    
+    # No authentication for public feeds
+    auth:
+      type: "none"
+    
+    # Standard performance for feeds
+    performance:
+      default_timeout_ms: 20000
+      max_concurrent_requests: 3
+      default_retry_attempts: 2
+      default_cache_ttl: "30m"
+      user_agent: "PersonalPipeline-RSS/1.0"
+    
+    # RSS-specific settings
+    content_processing:
+      max_content_size_mb: 1
+      follow_redirects: true
+      validate_ssl: true
+      extract_links: true
+      respect_robots: false  # RSS feeds typically don't need robots.txt check
+    
+    # Gentle rate limiting for feeds
+    rate_limiting:
+      global_requests_per_minute: 20
+      per_source_requests_per_minute: 5
+      burst_allowance: 2
+
+# ============================================================================
+# OAuth 2.0 Example Configuration
+# ============================================================================
+
+# Uncomment and configure for OAuth 2.0 protected APIs
+# sources:
+#   - name: "oauth-api"
+#     type: "web"
+#     priority: 1
+#     
+#     sources:
+#       - name: "secure-api"
+#         type: "api"
+#         base_url: "https://api.secure.company.com"
+#         
+#         endpoints:
+#           - name: "search"
+#             path: "/v2/search"
+#             method: "POST"
+#             content_type: "json"
+#             body_template: '{"query": "${query}", "type": "documentation"}'
+#             json_paths:
+#               - "$.data[*].title"
+#               - "$.data[*].content"
+#               - "$.data[*].metadata"
+#         
+#         health_check:
+#           enabled: true
+#           endpoint: "/v2/health"
+#           interval_minutes: 10
+#           timeout_ms: 5000
+#     
+#     # OAuth 2.0 authentication
+#     auth:
+#       type: "oauth2"
+#       oauth2:
+#         client_id_env: "OAUTH_CLIENT_ID"
+#         client_secret_env: "OAUTH_CLIENT_SECRET"
+#         token_endpoint: "https://auth.company.com/oauth/token"
+#         scope: "docs:read"
+#         grant_type: "client_credentials"
+
+# ============================================================================
+# Environment Variables Required
+# ============================================================================
+
+# For API Key authentication:
+# export COMPANY_API_KEY="your-api-key-here"
+
+# For OAuth 2.0 authentication:
+# export OAUTH_CLIENT_ID="your-client-id"
+# export OAUTH_CLIENT_SECRET="your-client-secret"
+
+# For Basic authentication:
+# export API_USERNAME="your-username"
+# export API_PASSWORD="your-password"
+
+# For Bearer token authentication:
+# export BEARER_TOKEN="your-bearer-token"
 
 # ============================================================================
 # Advanced Configuration Examples
 # ============================================================================
 
-  # Example: Authenticated Site
-  - name: "internal-wiki"
-    type: "web"
-    base_urls:
-      - "https://internal.company.com/wiki"
-    
-    # Authentication Configuration
-    auth:
-      type: "bearer"                          # Bearer token authentication
-      credentials:
-        token: "your-api-token-here"          # Replace with actual token
-    
-    # Or basic authentication:
-    # auth:
-    #   type: "basic" 
-    #   credentials:
-    #     username: "api-user"
-    #     password: "api-password"
-    
-    # Or cookie-based authentication:
-    # auth:
-    #   type: "cookie"
-    #   credentials:
-    #     cookie: "session=abc123; auth=xyz789"
-    
-    max_depth: 1
-    rate_limit:
-      requests_per_second: 1                  # Even more conservative for internal sites
-      concurrent_requests: 1
-    cache_ttl: "2h"
-    refresh_interval: "4h"
-    priority: 2
-    enabled: true
-
-  # Example: Public Documentation Site
-  - name: "framework-docs"
-    type: "web"
-    base_urls:
-      - "https://framework.example.com/docs"
-    
-    max_depth: 3                              # Deeper crawling for comprehensive docs
-    
-    url_patterns:
-      include:
-        - ".*/docs/.*"                        # Only documentation sections
-        - ".*/api/.*"                         # Include API documentation
-        - ".*/guides/.*"                      # Include user guides
-      exclude:
-        - ".*/blog/.*"                        # Exclude blog posts
-        - ".*/news/.*"                        # Exclude news
-        - ".*/community/.*"                   # Exclude community content
-    
-    content_selectors:
-      main: ".docs-content, .api-content"    # Framework-specific selectors
-      title: ".docs-title, h1"
-      exclude:
-        - ".docs-nav"
-        - ".docs-sidebar"
-        - ".docs-footer"
-    
-    rate_limit:
-      requests_per_second: 3                  # Slightly faster for public sites
-      concurrent_requests: 2
-    
-    cache_ttl: "12h"                          # Longer cache for stable docs
-    refresh_interval: "24h"                   # Daily refresh
-    priority: 4
-    enabled: true
-
-  # Example: Minimal Configuration
-  - name: "simple-site"
-    type: "web"
-    base_urls:
-      - "https://simple.example.com"
-    
-    # All other settings use defaults:
-    # - max_depth: 1
-    # - rate_limit: { requests_per_second: 2, concurrent_requests: 3 }
-    # - cache_ttl: "1h"
-    # - respect_robots_txt: true
-    # - max_urls_per_domain: 100
-    
-    refresh_interval: "12h"
-    priority: 5
-    enabled: true
-
-# ============================================================================
-# Configuration Guidelines
-# ============================================================================
-
-# IMPORTANT: Responsible Crawling Guidelines
-#
-# 1. ALWAYS respect robots.txt (respect_robots_txt: true)
-# 2. Use conservative rate limiting (≤3 requests/second)
-# 3. Set appropriate User-Agent with contact information
-# 4. Limit crawl depth and URLs per domain
-# 5. Use specific URL patterns to avoid unnecessary requests
-# 6. Cache content appropriately to reduce repeated requests
-# 7. Monitor your crawling impact and adjust if needed
-#
-# SECURITY:
-# - Never log authentication credentials
-# - Use environment variables for sensitive data
-# - Validate all URLs and patterns
-# - Consider legal and terms of service implications
-#
-# PERFORMANCE:
-# - Start with conservative settings and adjust based on results
-# - Use longer cache TTL for stable content
-# - Prioritize important sources with higher priority values
-# - Monitor memory usage with large content sets
-
-# ============================================================================
-# Environment Variables (Recommended)
-# ============================================================================
-
-# Store sensitive configuration in environment variables:
-# export WIKI_API_TOKEN="your-secret-token"
-# export INTERNAL_USERNAME="api-user"  
-# export INTERNAL_PASSWORD="api-password"
-#
-# Then reference them in credentials:
+# Custom headers and authentication:
 # auth:
-#   type: "bearer"
-#   credentials:
-#     token: "${WIKI_API_TOKEN}"
+#   type: "custom"
+#   custom:
+#     headers:
+#       "X-Custom-Auth": "static-value"
+#     header_envs:
+#       "Authorization": "CUSTOM_AUTH_TOKEN"
+#       "X-Client-ID": "CLIENT_ID_ENV_VAR"
+
+# Pagination support:
+# endpoints:
+#   - name: "paginated-search"
+#     path: "/search"
+#     method: "GET"
+#     pagination:
+#       type: "page_number"
+#       page_param: "page"
+#       size_param: "per_page"
+#       max_pages: 10
+
+# Content filtering:
+# filters:
+#   include_patterns:
+#     - ".*runbook.*"
+#     - ".*procedure.*"
+#   exclude_patterns:
+#     - ".*deprecated.*"
+#   min_content_length: 200
+#   max_content_length: 50000
+#   required_elements:
+#     - ".content-body"
+#     - "h1"

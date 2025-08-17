@@ -1,0 +1,72 @@
+# Web Adapter Simple Configuration Sample
+# Compatible with base SourceAdapter and WebConfig
+
+name: "web-docs-sample"
+type: "web"
+refresh_interval: "1h"
+priority: 2
+enabled: true
+timeout_ms: 30000
+max_retries: 3
+
+# Optional authentication (uncomment if needed)
+# auth:
+#   type: "api_key"
+#   api_key:
+#     location: "header"
+#     name: "Authorization" 
+#     env_var: "API_KEY"
+#     prefix: "Bearer "
+
+sources:
+  - name: "httpbin-demo"
+    type: "api"
+    base_url: "https://httpbin.org"
+    endpoints:
+      - name: "json-endpoint"
+        path: "/json"
+        method: "GET"
+        content_type: "json"
+        timeout_ms: 10000
+        retry_attempts: 2
+    health_check:
+      enabled: true
+      endpoint: "/status/200"
+      interval_minutes: 5
+      timeout_ms: 5000
+  
+  - name: "example-website"
+    type: "scraping"
+    base_url: "https://example.com"
+    endpoints:
+      - name: "homepage"
+        path: "/"
+        method: "GET"
+        content_type: "html"
+        selectors:
+          title: "title"
+          content: "body"
+        timeout_ms: 15000
+    health_check:
+      enabled: true
+      interval_minutes: 10
+      timeout_ms: 8000
+
+performance:
+  default_timeout_ms: 30000
+  max_concurrent_requests: 10
+  default_retry_attempts: 3
+  default_cache_ttl: "5m"
+  user_agent: "PersonalPipeline-WebAdapter/1.0"
+
+content_processing:
+  max_content_size_mb: 10
+  follow_redirects: true
+  validate_ssl: true
+  extract_links: false
+  respect_robots: true
+
+rate_limiting:
+  global_requests_per_minute: 300
+  per_source_requests_per_minute: 60
+  burst_allowance: 20

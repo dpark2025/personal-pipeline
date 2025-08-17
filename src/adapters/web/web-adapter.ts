@@ -1,32 +1,162 @@
 /**
- * Web Adapter - Simplified HTTP Client for Web-Based Documentation Sources
+ * Web Adapter - Enterprise HTTP Client for Web-Based Documentation Sources
  * 
  * Authored by: Integration Specialist
  * Date: 2025-01-17
  * 
- * Compatible implementation that properly extends SourceAdapter base class
- * with enterprise-grade features and simplified configuration.
+ * Production-grade web adapter with multi-protocol support, semantic search integration,
+ * intelligent content processing, and enterprise-grade reliability patterns.
+ * 
+ * Features:
+ * - Multi-protocol web source support (REST APIs, scraping, RSS feeds)
+ * - Flexible authentication (API key, OAuth 2.0, Basic, Bearer, Custom)
+ * - Intelligent content extraction and processing
+ * - Sub-200ms response times for critical operations
+ * - Rate limiting compliance and ethical scraping
+ * - Circuit breaker resilience with graceful degradation
  */
 
-import { SourceAdapter } from './base.js';
+import { SourceAdapter } from '../base.js';
 import { 
-  WebConfig, 
+  SourceConfig, 
   SearchResult, 
   SearchFilters, 
   HealthCheck, 
   Runbook,
-  AlertSeverity
-} from '../types/index.js';
-import { logger } from '../utils/logger.js';
+  AlertSeverity,
+  WebConfig
+} from '../../types/index.js';
+import { HttpClient } from './http-client.js';
+import { AuthManager } from './auth-manager.js';
+import { ContentExtractor } from './content-extractor.js';
+import { UrlManager } from './url-manager.js';
+import { CacheManager } from './cache-manager.js';
+import { logger } from '../../utils/logger.js';
 import { Logger } from 'winston';
-import axios, { AxiosInstance } from 'axios';
-import * as cheerio from 'cheerio';
-import * as TurndownService from 'turndown';
 
-// Use existing WebConfig type instead of defining our own
+export interface WebSource {
+  name: string;
+  type: 'api' | 'scraping' | 'rss' | 'wiki' | 'knowledge_base';
+  base_url: string;
+  endpoints: WebEndpoint[];
+  auth_override?: Partial<WebAuthConfig>;
+  performance_override?: Partial<WebPerformanceConfig>;
+  content_override?: Partial<WebContentConfig>;
+  health_check: {
+    enabled: boolean;
+    endpoint?: string;
+    interval_minutes: number;
+    timeout_ms: number;
+  };
+}
+
+export interface WebEndpoint {
+  name: string;
+  path: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  content_type: 'html' | 'json' | 'xml' | 'text' | 'rss' | 'auto';
+  selectors?: ContentSelectors;
+  json_paths?: string[];
+  xml_xpaths?: string[];
+  headers?: Record<string, string>;
+  query_params?: Record<string, string>;
+  body_template?: string;
+  rate_limit?: number;
+  timeout_ms?: number;
+  retry_attempts?: number;
+  cache_ttl?: string;
+  filters?: ContentFilters;
+  pagination?: PaginationConfig;
+}
+
+export interface WebAuthConfig {
+  type: 'api_key' | 'bearer_token' | 'basic_auth' | 'oauth2' | 'custom' | 'none';
+  api_key?: {
+    location: 'header' | 'query' | 'body';
+    name: string;
+    env_var: string;
+    prefix?: string;
+  };
+  bearer_token?: {
+    env_var: string;
+    refresh_endpoint?: string;
+    refresh_interval_minutes?: number;
+  };
+  basic_auth?: {
+    username_env: string;
+    password_env: string;
+  };
+  oauth2?: {
+    client_id_env: string;
+    client_secret_env: string;
+    token_endpoint: string;
+    scope?: string;
+    grant_type: 'client_credentials' | 'authorization_code';
+  };
+  custom?: {
+    headers: Record<string, string>;
+    header_envs: Record<string, string>;
+    query_params?: Record<string, string>;
+    query_envs?: Record<string, string>;
+  };
+}
+
+export interface WebPerformanceConfig {
+  default_timeout_ms: number;
+  max_concurrent_requests: number;
+  default_retry_attempts: number;
+  default_cache_ttl: string;
+  user_agent: string;
+}
+
+export interface WebContentConfig {
+  max_content_size_mb: number;
+  follow_redirects: boolean;
+  validate_ssl: boolean;
+  extract_links: boolean;
+  respect_robots: boolean;
+}
+
+export interface ContentSelectors {
+  title?: string;
+  content?: string;
+  metadata?: string;
+  links?: string;
+  date?: string;
+  author?: string;
+  exclude?: string[];
+}
+
+export interface ContentFilters {
+  include_patterns?: string[];
+  exclude_patterns?: string[];
+  min_content_length?: number;
+  max_content_length?: number;
+  required_elements?: string[];
+}
+
+export interface PaginationConfig {
+  type: 'offset' | 'cursor' | 'page_number';
+  page_param: string;
+  size_param?: string;
+  max_pages?: number;
+  next_link_selector?: string;
+}
+
+export interface ExtractedWebContent {
+  id: string;
+  title: string;
+  content: string;
+  raw_content: string;
+  metadata: Record<string, any>;
+  links: string[];
+  searchable_content: string;
+  extracted_at: string;
+  source_url: string;
+}
 
 /**
- * Web Adapter - HTTP client for web-based documentation sources
+ * Enterprise Web Adapter - Universal HTTP client for web-based documentation sources
  */
 export class WebAdapter extends SourceAdapter {
   name = 'web';
@@ -34,8 +164,11 @@ export class WebAdapter extends SourceAdapter {
 
   protected override config: WebConfig;
   private logger: Logger;
-  private httpClient: AxiosInstance;
-  private turndownService: TurndownService;
+  private httpClient?: HttpClient;
+  private authManager?: AuthManager;
+  private contentExtractor?: ContentExtractor;
+  private urlManager?: UrlManager;
+  private cacheManager?: CacheManager;
   
   // Performance Tracking
   private metrics = {
@@ -43,6 +176,7 @@ export class WebAdapter extends SourceAdapter {
     successfulRequests: 0,
     failedRequests: 0,
     avgResponseTime: 0,
+    cacheHitRate: 0,
     lastHealthCheck: new Date().toISOString()
   };
 
@@ -50,22 +184,6 @@ export class WebAdapter extends SourceAdapter {
     super(config);
     this.config = config;
     this.logger = logger.child({ adapter: 'web', name: config.name });
-    
-    // Initialize HTTP client
-    this.httpClient = axios.create({
-      timeout: config.performance.default_timeout_ms,
-      maxRedirects: config.content_processing.follow_redirects ? 5 : 0,
-      validateStatus: () => true, // Don't throw on HTTP errors
-      headers: {
-        'User-Agent': config.performance.user_agent
-      }
-    });
-
-    // Initialize HTML to Markdown converter
-    this.turndownService = new (TurndownService as any)({
-      headingStyle: 'atx',
-      codeBlockStyle: 'fenced'
-    });
   }
 
   async initialize(): Promise<void> {
@@ -74,6 +192,42 @@ export class WebAdapter extends SourceAdapter {
       authType: this.config.auth?.type || 'none'
     });
 
+    // Initialize components with fallback configurations
+    this.authManager = new AuthManager(
+      this.config.auth || { type: 'none' }, 
+      this.logger
+    );
+    
+    this.httpClient = new HttpClient({
+      timeout: this.config.performance?.default_timeout_ms || 30000,
+      retryAttempts: this.config.performance?.default_retry_attempts || 3,
+      maxConcurrentRequests: this.config.performance?.max_concurrent_requests || 10,
+      userAgent: this.config.performance?.user_agent || 'PersonalPipeline-WebAdapter/1.0',
+      validateSSL: this.config.content_processing?.validate_ssl ?? true,
+      followRedirects: this.config.content_processing?.follow_redirects ?? true
+    }, this.authManager, this.logger);
+    
+    this.contentExtractor = new ContentExtractor({
+      maxContentSizeMb: this.config.content_processing?.max_content_size_mb || 10,
+      extractLinks: this.config.content_processing?.extract_links ?? false,
+      respectRobots: this.config.content_processing?.respect_robots ?? true
+    }, this.logger);
+    
+    this.urlManager = new UrlManager(this.config.sources || [], this.logger);
+    
+    this.cacheManager = new CacheManager({
+      defaultTtl: this.config.performance?.default_cache_ttl || '5m',
+      maxCacheSize: 1000,
+      enableMetrics: true
+    }, this.logger);
+    
+    // Initialize all components
+    await this.authManager.initialize();
+    await this.httpClient.initialize();
+    await this.contentExtractor.initialize();
+    await this.urlManager.initialize();
+    await this.cacheManager.initialize();
+    
     // Validate source connectivity
     await this.validateSourceConnectivity();
     
@@ -94,10 +248,25 @@ export class WebAdapter extends SourceAdapter {
       sources: this.config.sources?.length || 0
     });
 
+    // Check cache first
+    const cacheKey = this.generateCacheKey('search', { query, filters });
+    if (this.cacheManager) {
+      const cachedResults = await this.cacheManager.get(cacheKey);
+      if (cachedResults) {
+        this.logger.debug('Returning cached search results', {
+          query,
+          resultCount: cachedResults.length,
+          cacheKey
+        });
+        return cachedResults;
+      }
+    }
+
     try {
+      // Execute search across all sources
       const allResults: SearchResult[] = [];
       
-      if (this.config.sources) {
+      if (this.config.sources && this.httpClient && this.contentExtractor && this.urlManager) {
         const searchPromises = this.config.sources.flatMap(source => 
           source.endpoints.map(endpoint => 
             this.searchEndpoint(query, source, endpoint, filters)
@@ -131,6 +300,11 @@ export class WebAdapter extends SourceAdapter {
       // Filter and rank results
       const finalResults = this.filterAndRankResults(scoredResults, filters);
       
+      // Cache results
+      if (this.cacheManager && finalResults.length > 0) {
+        await this.cacheManager.set(cacheKey, finalResults);
+      }
+      
       // Update metrics
       this.updateMetrics(true, Date.now() - startTime);
       
@@ -138,7 +312,8 @@ export class WebAdapter extends SourceAdapter {
       this.logger.info('Web search completed', {
         query,
         resultCount: finalResults.length,
-        duration
+        duration,
+        cacheKey
       });
       
       return finalResults;
@@ -158,6 +333,16 @@ export class WebAdapter extends SourceAdapter {
     }
 
     this.logger.debug('Getting document', { id });
+    
+    // Check cache first
+    const cacheKey = this.generateCacheKey('document', { id });
+    if (this.cacheManager) {
+      const cached = await this.cacheManager.get(cacheKey);
+      if (cached) {
+        this.logger.debug('Returning cached document', { id });
+        return cached;
+      }
+    }
     
     // Parse document ID to extract source and endpoint info
     const docInfo = this.parseDocumentId(id);
@@ -180,7 +365,14 @@ export class WebAdapter extends SourceAdapter {
     try {
       const content = await this.fetchDocument(source, endpoint, documentId);
       if (content) {
-        return this.convertContentToSearchResult(content, source, endpoint);
+        const result = this.convertContentToSearchResult(content);
+        
+        // Cache result
+        if (this.cacheManager) {
+          await this.cacheManager.set(cacheKey, result);
+        }
+        
+        return result;
       }
       
       return null;
@@ -220,7 +412,7 @@ export class WebAdapter extends SourceAdapter {
     for (const result of searchResults) {
       try {
         if (this.isLikelyRunbookContent(result, alertType, severity)) {
-          const runbook = this.createSyntheticRunbook(result, alertType, severity);
+          const runbook = await this.extractRunbookStructure(result, alertType, severity);
           if (runbook) {
             runbooks.push(runbook);
           }
@@ -247,6 +439,16 @@ export class WebAdapter extends SourceAdapter {
     const errors: string[] = [];
     
     try {
+      // Test authentication
+      if (this.authManager) {
+        const authHealthy = await this.authManager.healthCheck();
+        checks['authentication'] = authHealthy;
+        
+        if (!authHealthy) {
+          errors.push('Authentication failed');
+        }
+      }
+      
       // Test each source's health check endpoint
       if (this.config.sources) {
         for (const source of this.config.sources.slice(0, 5)) { // Limit health checks
@@ -309,10 +511,12 @@ export class WebAdapter extends SourceAdapter {
     avgResponseTime: number;
     successRate: number;
   }> {
+    const cacheStats = this.cacheManager ? await this.cacheManager.getStats() : { totalEntries: 0 };
+    
     return {
       name: this.config.name,
       type: 'web',
-      documentCount: this.config.sources?.length || 0,
+      documentCount: cacheStats.totalEntries,
       lastIndexed: this.metrics.lastHealthCheck,
       avgResponseTime: this.metrics.avgResponseTime,
       successRate: this.metrics.totalRequests > 0 
@@ -325,6 +529,11 @@ export class WebAdapter extends SourceAdapter {
     this.logger.info('Refreshing web adapter index', { force });
     
     try {
+      // Clear cache if forcing refresh
+      if (force && this.cacheManager) {
+        await this.cacheManager.clear();
+      }
+      
       // Re-validate source connectivity
       await this.validateSourceConnectivity();
       
@@ -345,6 +554,14 @@ export class WebAdapter extends SourceAdapter {
 
   override async cleanup(): Promise<void> {
     this.logger.info('Cleaning up WebAdapter');
+    
+    // Cleanup components
+    if (this.cacheManager) await this.cacheManager.cleanup();
+    if (this.httpClient) await this.httpClient.cleanup();
+    if (this.authManager) await this.authManager.cleanup();
+    if (this.contentExtractor) await this.contentExtractor.cleanup();
+    if (this.urlManager) await this.urlManager.cleanup();
+    
     await super.cleanup();
     this.logger.info('WebAdapter cleanup completed');
   }
@@ -392,34 +609,36 @@ export class WebAdapter extends SourceAdapter {
 
   private async searchEndpoint(
     query: string, 
-    source: WebConfig['sources'][0], 
-    endpoint: WebConfig['sources'][0]['endpoints'][0], 
+    source: WebSource, 
+    endpoint: WebEndpoint, 
     _filters?: SearchFilters
   ): Promise<SearchResult[]> {
+    if (!this.httpClient || !this.contentExtractor || !this.urlManager) {
+      return [];
+    }
+
     try {
       // Build request URL
-      const url = this.buildEndpointUrl(source, endpoint, { query });
+      const url = this.urlManager.buildEndpointUrl(source, endpoint);
       
       // Execute HTTP request
       const response = await this.httpClient.request({
         method: endpoint.method,
         url,
-        headers: {
-          ...endpoint.headers,
-          ...this.getAuthHeaders(source)
-        },
-        timeout: endpoint.timeout_ms || this.config.performance?.default_timeout_ms || 30000
+        query,
+        endpoint,
+        source
       });
       
-      if (response.status >= 400) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
       // Process response content
-      const extractedContent = await this.extractContent(response.data, endpoint, source, url);
+      const extractedContent = await this.contentExtractor.extract(
+        response, 
+        endpoint, 
+        source
+      );
       
       // Convert to search results
-      return extractedContent.map(content => this.convertContentToSearchResult(content, source, endpoint));
+      return this.convertExtractedContentToResults(extractedContent, source, endpoint, query);
     } catch (error: any) {
       this.logger.error('Endpoint search failed', {
         source: source.name,
@@ -430,357 +649,6 @@ export class WebAdapter extends SourceAdapter {
       // Don't throw - let other endpoints continue
       return [];
     }
-  }
-
-  private buildEndpointUrl(source: WebConfig['sources'][0], endpoint: WebConfig['sources'][0]['endpoints'][0], params?: Record<string, string>): string {
-    try {
-      // Handle absolute URLs in endpoint path
-      if (endpoint.path.startsWith('http://') || endpoint.path.startsWith('https://')) {
-        return this.processUrlTemplate(endpoint.path, params);
-      }
-      
-      // Construct URL from base + path
-      const baseUrl = source.base_url.endsWith('/') ? source.base_url.slice(0, -1) : source.base_url;
-      const path = endpoint.path.startsWith('/') ? endpoint.path : '/' + endpoint.path;
-      const url = baseUrl + path;
-      
-      // Apply parameter substitution
-      return this.processUrlTemplate(url, params);
-    } catch (error: any) {
-      this.logger.error('Failed to build endpoint URL', {
-        source: source.name,
-        endpoint: endpoint.name,
-        error: error.message
-      });
-      throw error;
-    }
-  }
-
-  private processUrlTemplate(urlTemplate: string, params?: Record<string, string>): string {
-    if (!params) {
-      return urlTemplate;
-    }
-    
-    let processedUrl = urlTemplate;
-    
-    // Replace ${param} style placeholders
-    for (const [key, value] of Object.entries(params)) {
-      const placeholder1 = `\${${key}}`;
-      const placeholder2 = `{${key}}`;
-      
-      processedUrl = processedUrl.replace(new RegExp(placeholder1.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), encodeURIComponent(value));
-      processedUrl = processedUrl.replace(new RegExp(placeholder2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), encodeURIComponent(value));
-    }
-    
-    return processedUrl;
-  }
-
-  private getAuthHeaders(source: WebConfig['sources'][0]): Record<string, string> {
-    const headers: Record<string, string> = {};
-    
-    // Use source-specific auth override if available
-    const authConfig = source.auth_override || this.config.auth;
-    
-    if (authConfig?.type === 'api_key' && authConfig.api_key) {
-      const token = process.env[authConfig.api_key.env_var];
-      if (token) {
-        const prefix = authConfig.api_key.prefix || '';
-        if (authConfig.api_key.location === 'header') {
-          headers[authConfig.api_key.name] = `${prefix}${token}`;
-        }
-      }
-    } else if (authConfig?.type === 'bearer_token' && authConfig.bearer_token) {
-      const token = process.env[authConfig.bearer_token.env_var];
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    } else if (authConfig?.type === 'basic_auth' && authConfig.basic_auth) {
-      const username = process.env[authConfig.basic_auth.username_env];
-      const password = process.env[authConfig.basic_auth.password_env];
-      if (username && password) {
-        headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-      }
-    } else if (authConfig?.type === 'oauth2' && authConfig.oauth2) {
-      // OAuth2 would need token exchange - simplified for now
-      // In a full implementation, would use client credentials flow
-      // headers['Authorization'] = `Bearer ${oauth_token}`;
-    }
-    
-    return headers;
-  }
-
-  private async extractContent(
-    data: any, 
-    endpoint: WebConfig['sources'][0]['endpoints'][0], 
-    source: WebConfig['sources'][0], 
-    url: string
-  ): Promise<Array<{
-    id: string;
-    title: string;
-    content: string;
-    metadata: Record<string, any>;
-    source_url: string;
-  }>> {
-
-    try {
-      switch (endpoint.content_type) {
-        case 'html':
-          return this.extractHtmlContent(data, endpoint, source, url);
-        
-        case 'json':
-          return this.extractJsonContent(data, endpoint, source, url);
-        
-        case 'xml':
-        case 'rss':
-          return this.extractXmlContent(data, endpoint, source, url);
-        
-        case 'text':
-          return this.extractTextContent(data, endpoint, source, url);
-        
-        case 'auto':
-        default:
-          // Auto-detect content type
-          if (typeof data === 'string' && data.trim().startsWith('<')) {
-            return this.extractHtmlContent(data, endpoint, source, url);
-          } else if (typeof data === 'object') {
-            return this.extractJsonContent(data, endpoint, source, url);
-          } else {
-            return this.extractTextContent(String(data), endpoint, source, url);
-          }
-      }
-    } catch (error: any) {
-      this.logger.error('Content extraction failed', {
-        source: source.name,
-        endpoint: endpoint.name,
-        contentType: endpoint.content_type,
-        error: error.message
-      });
-      return [];
-    }
-  }
-
-  private extractHtmlContent(
-    html: string, 
-    endpoint: WebConfig['sources'][0]['endpoints'][0], 
-    source: WebConfig['sources'][0], 
-    url: string
-  ): Array<{
-    id: string;
-    title: string;
-    content: string;
-    metadata: Record<string, any>;
-    source_url: string;
-  }> {
-    const $ = cheerio.load(html);
-    const selectors = endpoint.selectors;
-    
-    const title = selectors?.title ? $(selectors.title).first().text().trim() : $('title').first().text().trim() || 'Untitled';
-    
-    let content = '';
-    if (selectors?.content) {
-      const contentEl = $(selectors.content);
-      content = this.turndownService.turndown(contentEl.html() || '');
-    } else {
-      // Default content extraction
-      $('script, style, nav, header, footer').remove();
-      const mainContent = $('main, article, .content, .post, .entry').first();
-      if (mainContent.length > 0) {
-        content = this.turndownService.turndown(mainContent.html() || '');
-      } else {
-        content = this.turndownService.turndown($('body').html() || '');
-      }
-    }
-    
-    const metadata: Record<string, any> = {
-      content_type: 'html',
-      extracted_at: new Date().toISOString()
-    };
-    
-    if (selectors?.metadata) {
-      const metaEl = $(selectors.metadata);
-      if (metaEl.length > 0) {
-        metadata.extracted_metadata = metaEl.text().trim();
-      }
-    }
-    
-    if (selectors?.author) {
-      const authorEl = $(selectors.author);
-      if (authorEl.length > 0) {
-        metadata.author = authorEl.text().trim();
-      }
-    }
-    
-    if (selectors?.date) {
-      const dateEl = $(selectors.date);
-      if (dateEl.length > 0) {
-        metadata.date = dateEl.text().trim();
-      }
-    }
-    
-    return [{
-      id: `${source.name}:${endpoint.name}:${Buffer.from(url).toString('base64').substring(0, 8)}`,
-      title,
-      content: content.trim(),
-      metadata,
-      source_url: url
-    }];
-  }
-
-  private extractJsonContent(
-    data: any, 
-    endpoint: WebConfig['sources'][0]['endpoints'][0], 
-    source: WebConfig['sources'][0], 
-    url: string
-  ): Array<{
-    id: string;
-    title: string;
-    content: string;
-    metadata: Record<string, any>;
-    source_url: string;
-  }> {
-    const results: Array<{
-      id: string;
-      title: string;
-      content: string;
-      metadata: Record<string, any>;
-      source_url: string;
-    }> = [];
-
-    // Handle array of items
-    if (Array.isArray(data)) {
-      data.forEach((item, index) => {
-        if (typeof item === 'object' && item !== null) {
-          results.push({
-            id: `${source.name}:${endpoint.name}:${index}`,
-            title: item.title || item.name || item.subject || `Item ${index + 1}`,
-            content: item.content || item.description || item.body || JSON.stringify(item, null, 2),
-            metadata: {
-              content_type: 'json',
-              extracted_at: new Date().toISOString(),
-              ...item
-            },
-            source_url: url
-          });
-        }
-      });
-    } else if (typeof data === 'object' && data !== null) {
-      // Handle single object
-      results.push({
-        id: `${source.name}:${endpoint.name}:0`,
-        title: data.title || data.name || data.subject || 'JSON Document',
-        content: data.content || data.description || data.body || JSON.stringify(data, null, 2),
-        metadata: {
-          content_type: 'json',
-          extracted_at: new Date().toISOString(),
-          ...data
-        },
-        source_url: url
-      });
-    }
-
-    return results;
-  }
-
-  private extractXmlContent(
-    xml: string, 
-    endpoint: WebConfig['sources'][0]['endpoints'][0], 
-    source: WebConfig['sources'][0], 
-    url: string
-  ): Array<{
-    id: string;
-    title: string;
-    content: string;
-    metadata: Record<string, any>;
-    source_url: string;
-  }> {
-    const results: Array<{
-      id: string;
-      title: string;
-      content: string;
-      metadata: Record<string, any>;
-      source_url: string;
-    }> = [];
-
-    try {
-      const $ = cheerio.load(xml, { xmlMode: true });
-      
-      // RSS/Atom feed detection
-      if ($('rss').length > 0 || $('feed').length > 0) {
-        $('item, entry').each((index, element) => {
-          const $item = $(element);
-          const title = $item.find('title').first().text().trim() || `RSS Item ${index + 1}`;
-          const description = $item.find('description, content, summary').first().text().trim();
-          const link = $item.find('link').first().text().trim() || $item.find('link').attr('href') || '';
-          const pubDate = $item.find('pubDate, published, updated').first().text().trim();
-          
-          results.push({
-            id: `${source.name}:${endpoint.name}:rss_${index}`,
-            title,
-            content: description,
-            metadata: {
-              content_type: 'rss',
-              link,
-              pub_date: pubDate,
-              extracted_at: new Date().toISOString()
-            },
-            source_url: link || url
-          });
-        });
-      } else {
-        // Generic XML processing
-        results.push({
-          id: `${source.name}:${endpoint.name}:xml`,
-          title: $('title').first().text().trim() || 'XML Document',
-          content: xml,
-          metadata: {
-            content_type: 'xml',
-            extracted_at: new Date().toISOString()
-          },
-          source_url: url
-        });
-      }
-    } catch (error: any) {
-      this.logger.warn('XML parsing failed, treating as text', {
-        error: error.message
-      });
-      
-      results.push({
-        id: `${source.name}:${endpoint.name}:text`,
-        title: 'XML/RSS Content',
-        content: xml,
-        metadata: {
-          content_type: 'text',
-          extracted_at: new Date().toISOString()
-        },
-        source_url: url
-      });
-    }
-
-    return results;
-  }
-
-  private extractTextContent(
-    text: string, 
-    endpoint: WebConfig['sources'][0]['endpoints'][0], 
-    source: WebConfig['sources'][0], 
-    url: string
-  ): Array<{
-    id: string;
-    title: string;
-    content: string;
-    metadata: Record<string, any>;
-    source_url: string;
-  }> {
-    return [{
-      id: `${source.name}:${endpoint.name}:text`,
-      title: text.split('\n')[0]?.substring(0, 100) || 'Text Document',
-      content: text,
-      metadata: {
-        content_type: 'text',
-        extracted_at: new Date().toISOString()
-      },
-      source_url: url
-    }];
   }
 
   private calculateConfidence(result: SearchResult, query: string): number {
@@ -879,25 +747,16 @@ export class WebAdapter extends SourceAdapter {
     return filtered;
   }
 
-  private async testSourceHealth(source: WebConfig['sources'][0]): Promise<boolean> {
-    if (!source.health_check.enabled) {
+  private async testSourceHealth(source: WebSource): Promise<boolean> {
+    if (!source.health_check.enabled || !this.httpClient || !this.urlManager) {
       return true; // Consider healthy if health check disabled
     }
     
     try {
       const healthEndpoint = source.health_check.endpoint || source.endpoints[0]?.path || '/';
-      const url = this.buildEndpointUrl(source, { 
-        name: 'health', 
-        path: healthEndpoint, 
-        method: 'GET', 
-        content_type: 'auto' 
-      } as WebConfig['sources'][0]['endpoints'][0]);
+      const url = this.urlManager.buildHealthCheckUrl(source, healthEndpoint);
       
-      const response = await this.httpClient.get(url, {
-        timeout: source.health_check.timeout_ms,
-        headers: this.getAuthHeaders(source)
-      });
-      
+      const response = await this.httpClient.healthCheck(url, source.health_check.timeout_ms);
       return response.status < 400;
     } catch (error: any) {
       this.logger.debug('Source health check failed', {
@@ -908,28 +767,24 @@ export class WebAdapter extends SourceAdapter {
     }
   }
 
-  private async fetchDocument(source: WebConfig['sources'][0], endpoint: WebConfig['sources'][0]['endpoints'][0], documentId: string): Promise<{
-    id: string;
-    title: string;
-    content: string;
-    metadata: Record<string, any>;
-    source_url: string;
-  } | null> {
+  private async fetchDocument(source: WebSource, endpoint: WebEndpoint, documentId: string): Promise<ExtractedWebContent | null> {
+    if (!this.httpClient || !this.contentExtractor || !this.urlManager) {
+      return null;
+    }
+
     try {
-      const url = this.buildDocumentUrl(source, endpoint, documentId);
+      const url = this.urlManager.buildDocumentUrl(source, endpoint, documentId);
       
-      const response = await this.httpClient.get(url, {
-        headers: this.getAuthHeaders(source),
-        timeout: endpoint.timeout_ms || this.config.performance?.default_timeout_ms || 30000
+      const response = await this.httpClient.request({
+        method: 'GET',
+        url,
+        endpoint,
+        source
       });
       
-      if (response.status >= 400) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      const extractedContent = await this.contentExtractor.extract(response, endpoint, source);
       
-      const extractedContent = await this.extractContent(response.data, endpoint, source, url);
-      
-      return extractedContent && extractedContent.length > 0 ? extractedContent[0] || null : null;
+      return extractedContent.length > 0 ? extractedContent[0] : null;
     } catch (error: any) {
       this.logger.error('Failed to fetch document', {
         source: source.name,
@@ -941,36 +796,31 @@ export class WebAdapter extends SourceAdapter {
     }
   }
 
-  private buildDocumentUrl(source: WebConfig['sources'][0], endpoint: WebConfig['sources'][0]['endpoints'][0], documentId: string): string {
-    const baseUrl = this.buildEndpointUrl(source, endpoint);
-    
-    // If endpoint path contains document ID placeholder
-    if (endpoint.path.includes('{id}') || endpoint.path.includes('${id}')) {
-      return baseUrl.replace(/\{id\}|\$\{id\}/g, documentId);
-    }
-    
-    // Append document ID as path parameter
-    const url = new URL(baseUrl);
-    if (!url.pathname.endsWith('/')) {
-      url.pathname += '/';
-    }
-    url.pathname += encodeURIComponent(documentId);
-    
-    return url.href;
+  private convertContentToSearchResult(content: ExtractedWebContent): SearchResult {
+    return {
+      id: content.id,
+      title: content.title,
+      content: content.content,
+      source: this.config.name,
+      source_type: 'web',
+      confidence_score: 1.0,
+      match_reasons: ['Direct document access'],
+      retrieval_time_ms: 0,
+      last_updated: content.extracted_at,
+      metadata: {
+        source_url: content.source_url,
+        ...content.metadata
+      }
+    };
   }
 
-  private convertContentToSearchResult(
-    content: {
-      id: string;
-      title: string;
-      content: string;
-      metadata: Record<string, any>;
-      source_url: string;
-    }, 
-    source: WebConfig['sources'][0], 
-    endpoint: WebConfig['sources'][0]['endpoints'][0]
-  ): SearchResult {
-    return {
+  private convertExtractedContentToResults(
+    contents: ExtractedWebContent[], 
+    source: WebSource, 
+    endpoint: WebEndpoint, 
+    _query: string
+  ): SearchResult[] {
+    return contents.map(content => ({
       id: content.id,
       title: content.title,
       content: content.content,
@@ -979,7 +829,7 @@ export class WebAdapter extends SourceAdapter {
       confidence_score: 0.8,
       match_reasons: [],
       retrieval_time_ms: 0,
-      last_updated: content.metadata.extracted_at || new Date().toISOString(),
+      last_updated: content.extracted_at,
       metadata: {
         source_name: source.name,
         endpoint_name: endpoint.name,
@@ -987,7 +837,7 @@ export class WebAdapter extends SourceAdapter {
         source_url: content.source_url,
         ...content.metadata
       }
-    };
+    }));
   }
 
   private isLikelyRunbookContent(result: SearchResult, alertType: string, severity: string): boolean {
@@ -1006,6 +856,38 @@ export class WebAdapter extends SourceAdapter {
     const hasSeverityRelevance = content.includes(severity.toLowerCase()) || title.includes(severity.toLowerCase());
     
     return hasRunbookKeywords && (hasAlertRelevance || hasSeverityRelevance);
+  }
+
+  private async extractRunbookStructure(result: SearchResult, alertType: string, severity: string): Promise<Runbook | null> {
+    try {
+      // Try to parse as JSON first
+      if (result.metadata?.content_type === 'json') {
+        try {
+          const jsonContent = JSON.parse(result.content);
+          if (this.isValidRunbookJSON(jsonContent)) {
+            return jsonContent;
+          }
+        } catch {
+          // Not valid JSON, continue to synthetic generation
+        }
+      }
+      
+      return this.createSyntheticRunbook(result, alertType, severity);
+    } catch (error: any) {
+      this.logger.warn('Failed to extract runbook structure', {
+        resultId: result.id,
+        error: error.message
+      });
+      return null;
+    }
+  }
+
+  private isValidRunbookJSON(obj: any): boolean {
+    return obj && 
+           typeof obj === 'object' && 
+           obj.id && 
+           obj.title && 
+           (obj.procedures || obj.steps || obj.actions);
   }
 
   private createSyntheticRunbook(result: SearchResult, alertType: string, severity: string): Runbook {
@@ -1091,7 +973,7 @@ export class WebAdapter extends SourceAdapter {
 
   private parseDocumentId(id: string): { sourceName: string; endpointName: string; documentId: string } | null {
     const parts = id.split(':');
-    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
+    if (parts.length !== 3) {
       return null;
     }
     
@@ -1100,6 +982,12 @@ export class WebAdapter extends SourceAdapter {
       endpointName: parts[1],
       documentId: parts[2]
     };
+  }
+
+  private generateCacheKey(operation: string, params: Record<string, any>): string {
+    const paramString = JSON.stringify(params);
+    const hash = Buffer.from(paramString).toString('base64').substring(0, 8);
+    return `web:${operation}:${hash}`;
   }
 
   private updateMetrics(success: boolean, responseTime: number): void {
@@ -1123,6 +1011,7 @@ export class WebAdapter extends SourceAdapter {
       successfulRequests: 0,
       failedRequests: 0,
       avgResponseTime: 0,
+      cacheHitRate: 0,
       lastHealthCheck: new Date().toISOString()
     };
   }
