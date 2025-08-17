@@ -20,9 +20,9 @@ export { SearchAnalytics } from './search-analytics.js';
 
 // Query processing components
 export {
-  QueryProcessor,
+  // QueryProcessor,
   IntentClassifier,
-  ContextEnhancer,
+  // ContextEnhancer,
   QueryOptimizer,
   OperationalIntelligence,
   PerformanceMonitor,

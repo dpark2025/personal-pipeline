@@ -10,9 +10,9 @@
  */
 
 // Core query processing components
-export { QueryProcessor } from './query-processor.js';
+// export { QueryProcessor } from './query-processor.js';
 export { IntentClassifier } from './intent-classifier.js';
-export { ContextEnhancer } from './context-enhancer.js';
+// export { ContextEnhancer } from './context-enhancer.js';
 export { QueryOptimizer } from './query-optimizer.js';
 export { OperationalIntelligence } from './operational-intelligence.js';
 export { PerformanceMonitor } from './performance-monitor.js';

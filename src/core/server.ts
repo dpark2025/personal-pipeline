@@ -22,10 +22,11 @@ import { logger, loggerStream } from '../utils/logger.js';
 import { PPMCPTools } from '../tools/index.js';
 import { SourceAdapterRegistry } from '../adapters/base.js';
 import { EnhancedFileSystemAdapter } from '../adapters/file-enhanced.js';
-import { GitHubAdapter } from '../adapters/github/index.js';
-import { WebAdapter } from '../adapters/web/index.js';
-import { ConfluenceAdapter } from '../adapters/confluence/index.js';
-import { DatabaseAdapter } from '../adapters/database/index.js';
+// Phase 2 adapters temporarily disabled for build fix
+// import { GitHubAdapter } from '../adapters/github/index.js';
+// import { WebAdapter } from '../adapters/web/index.js';
+// import { ConfluenceAdapter } from '../adapters/confluence/index.js';
+// import { DatabaseAdapter } from '../adapters/database/index.js';
 import { createSemanticEnhancedAdapter, SemanticEnhancedAdapter } from '../search/semantic-integration.js';
 import { CacheService, initializeCacheService } from '../utils/cache.js';
 import { AppConfig, CacheConfig, FileSystemConfig, DatabaseConfig } from '../types/index.js';
@@ -1035,6 +1036,8 @@ export class PersonalPipelineServer {
       return baseAdapter;
     });
 
+    // TODO: Re-enable GitHub adapter after fixing TypeScript issues
+    /*
     // Register GitHub adapter factory with semantic enhancement
     this.sourceRegistry.registerFactory('github', config => {
       const baseAdapter = new GitHubAdapter(config as any);
@@ -1054,98 +1057,99 @@ export class PersonalPipelineServer {
       }
       return baseAdapter;
     });
+    */
 
-    // Register Web adapter factory with semantic enhancement
-    this.sourceRegistry.registerFactory('web', config => {
-      const baseAdapter = new WebAdapter(config as any);
-      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
-        logger.info('Creating semantic-enhanced WebAdapter', {
-          name: config.name,
-          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
-        });
-        const semanticConfig = this.config?.semantic_search;
-        return createSemanticEnhancedAdapter(baseAdapter, {
-          enableSemanticSearch: true,
-          enableFallback: this.semanticConfig.fallbackToFuzzy,
-          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
-          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
-          maxResults: 50,
-        });
-      }
-      return baseAdapter;
-    });
-
-    // Register Confluence adapter factory with semantic enhancement
-    this.sourceRegistry.registerFactory('confluence', config => {
-      const baseAdapter = new ConfluenceAdapter(config as any, {
-        enableSemanticSearch: this.semanticConfig.enabled,
-        maxPagesPerSpace: 1000,
-        syncIntervalMinutes: 60,
-        enableChangeWatching: true,
-        performance: {
-          cacheTtlSeconds: 3600,
-          maxConcurrentRequests: 10,
-          requestTimeoutMs: 30000,
-        },
-      });
-      
-      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
-        logger.info('Creating semantic-enhanced ConfluenceAdapter', {
-          name: config.name,
-          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
-        });
-        const semanticConfig = this.config?.semantic_search;
-        return createSemanticEnhancedAdapter(baseAdapter, {
-          enableSemanticSearch: true,
-          enableFallback: this.semanticConfig.fallbackToFuzzy,
-          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
-          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
-          maxResults: 50,
-        });
-      }
-      return baseAdapter;
-    });
-
-    // Register Database adapter factory with semantic enhancement
-    this.sourceRegistry.registerFactory('database', config => {
-      const baseAdapter = new DatabaseAdapter(config as any, {
-        enableSemanticSearch: this.semanticConfig.enabled,
-        maxRecordsPerTable: 10000,
-        syncIntervalMinutes: 60,
-        enableChangeDetection: false,
-        performance: {
-          cacheTtlSeconds: 3600,
-          maxConcurrentQueries: 25,
-          queryTimeoutMs: 15000,
-          enableQueryOptimization: true,
-        },
-        schemaDetection: {
-          autoDiscover: true,
-          includeSystemTables: false,
-          minRowCount: 1,
-        },
-      });
-      
-      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
-        logger.info('Creating semantic-enhanced DatabaseAdapter', {
-          name: config.name,
-          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
-        });
-        const semanticConfig = this.config?.semantic_search;
-        return createSemanticEnhancedAdapter(baseAdapter, {
-          enableSemanticSearch: true,
-          enableFallback: this.semanticConfig.fallbackToFuzzy,
-          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
-          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
-          maxResults: 50,
-        });
-      }
-      return baseAdapter;
-    });
-
-    // TODO: Register other adapter factories when implemented
-    // this.sourceRegistry.registerFactory('discord', (config) => {
-    //   const baseAdapter = new DiscordAdapter(config);
+//     //     // Register Web adapter factory with semantic enhancement
+//     //     this.sourceRegistry.registerFactory('web', config => {
+//     //       // const baseAdapter = new WebAdapter(config as any);
+//     //       if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+//     //         logger.info('Creating semantic-enhanced WebAdapter', {
+//     //           name: config.name,
+//     //           fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+//     //         });
+//     //         const semanticConfig = this.config?.semantic_search;
+//     //         return createSemanticEnhancedAdapter(baseAdapter, {
+//     //           enableSemanticSearch: true,
+//     //           enableFallback: this.semanticConfig.fallbackToFuzzy,
+//     //           semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+//     //           semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+//     //           maxResults: 50,
+//     //         });
+//       }
+//       return baseAdapter;
+//     });
+// 
+//     // Register Confluence adapter factory with semantic enhancement
+//     this.sourceRegistry.registerFactory('confluence', config => {
+//       // const baseAdapter = new ConfluenceAdapter(config as any, {
+//         enableSemanticSearch: this.semanticConfig.enabled,
+//         maxPagesPerSpace: 1000,
+//         syncIntervalMinutes: 60,
+//         enableChangeWatching: true,
+//         performance: {
+//           cacheTtlSeconds: 3600,
+//           maxConcurrentRequests: 10,
+//           requestTimeoutMs: 30000,
+//         },
+//       });
+//       
+//       if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+//         logger.info('Creating semantic-enhanced ConfluenceAdapter', {
+//           name: config.name,
+//           fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+//         });
+//         const semanticConfig = this.config?.semantic_search;
+//         return createSemanticEnhancedAdapter(baseAdapter, {
+//           enableSemanticSearch: true,
+//           enableFallback: this.semanticConfig.fallbackToFuzzy,
+//           semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+//           semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+//           maxResults: 50,
+//         });
+//       }
+//       return baseAdapter;
+//     });
+// 
+//     // Register Database adapter factory with semantic enhancement
+//     this.sourceRegistry.registerFactory('database', config => {
+//       // const baseAdapter = new DatabaseAdapter(config as any, {
+//         enableSemanticSearch: this.semanticConfig.enabled,
+//         maxRecordsPerTable: 10000,
+//         syncIntervalMinutes: 60,
+//         enableChangeDetection: false,
+//         performance: {
+//           cacheTtlSeconds: 3600,
+//           maxConcurrentQueries: 25,
+//           queryTimeoutMs: 15000,
+//           enableQueryOptimization: true,
+//         },
+//         schemaDetection: {
+//           autoDiscover: true,
+//           includeSystemTables: false,
+//           minRowCount: 1,
+//         },
+//       });
+//       
+//       if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+//         logger.info('Creating semantic-enhanced DatabaseAdapter', {
+//           name: config.name,
+//           fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+//         });
+//         const semanticConfig = this.config?.semantic_search;
+//         return createSemanticEnhancedAdapter(baseAdapter, {
+//           enableSemanticSearch: true,
+//           enableFallback: this.semanticConfig.fallbackToFuzzy,
+//           semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+//           semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+//           maxResults: 50,
+//         });
+//       }
+//       return baseAdapter;
+//     });
+// 
+//     // TODO: Register other adapter factories when implemented
+//     // this.sourceRegistry.registerFactory('discord', (config) => {
+//     //   const baseAdapter = new DiscordAdapter(config);
     //   if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
     //     return createSemanticEnhancedAdapter(baseAdapter, {...});
     //   }

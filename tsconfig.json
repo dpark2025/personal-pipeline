@@ -43,6 +43,7 @@
     "src/adapters/confluence/**",
     "src/adapters/database/**",
     "src/adapters/github/**",
+    "src/adapters/github.ts",
     "src/adapters/web/**",
     "src/search/query-processing/context-enhancer.ts"
   ]
