@@ -42,15 +42,15 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm ci
           
-      - name: Build with VitePress
+      - name: Build all VitePress themes
         run: |
-          npm run docs:build
-          touch website_docs/.vitepress/dist/.nojekyll
+          npm run build:all-themes
+          touch website_docs/.vitepress/theme-preview/.nojekyll
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website_docs/.vitepress/dist
+          path: website_docs/.vitepress/theme-preview
 
   # Deployment job
   deploy:

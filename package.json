@@ -116,7 +116,9 @@
     "docs:theme:professional": "npm run docs:theme professional",
     "docs:theme:dark": "npm run docs:theme dark",
     "docs:theme:minimalist": "npm run docs:theme minimalist",
-    "docs:theme:enterprise": "npm run docs:theme enterprise"
+    "docs:theme:enterprise": "npm run docs:theme enterprise",
+    "build:all-themes": "node scripts/build-all-themes.js",
+    "serve:themes": "node scripts/serve-themes.js"
   },
   "keywords": [
     "mcp",
