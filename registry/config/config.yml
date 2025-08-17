@@ -1,0 +1,110 @@
+# Personal Pipeline Registry Configuration
+# Authored by: DevOps Infrastructure Engineer
+# Date: 2025-01-16
+
+version: 0.1
+log:
+  accesslog:
+    disabled: false
+  level: info
+  formatter: text
+  fields:
+    service: registry
+    environment: local
+
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+    maxthreads: 100
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 168h
+      interval: 24h
+      dryrun: false
+    readonly:
+      enabled: false
+  delete:
+    enabled: true
+  redirect:
+    disable: false
+  cache:
+    blobdescriptor: inmemory
+    blobdescriptorsize: 10000
+
+http:
+  addr: :5000
+  prefix: /
+  host: http://localhost:5000
+  secret: personalPipelineRegistrySecret2025
+  relativeurls: false
+  draintimeout: 60s
+  tls:
+    minimumtls: tls1.2
+  headers:
+    X-Content-Type-Options: [nosniff]
+    Access-Control-Allow-Origin: ['*']
+    Access-Control-Allow-Methods: ['HEAD', 'GET', 'OPTIONS', 'DELETE']
+    Access-Control-Allow-Headers: ['Authorization', 'Accept', 'Cache-Control']
+    Access-Control-Max-Age: [1728000]
+    Access-Control-Allow-Credentials: [true]
+    Access-Control-Expose-Headers: ['Docker-Content-Digest']
+  http2:
+    disabled: false
+
+auth:
+  htpasswd:
+    realm: Personal Pipeline Registry
+    path: /auth/htpasswd
+
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+
+proxy:
+  remoteurl: https://registry-1.docker.io
+  username: ""
+  password: ""
+  ttl: 168h
+
+notifications:
+  events:
+    includereferences: true
+  endpoints:
+    - name: local-webhook
+      disabled: true
+      url: http://localhost:3000/registry/webhooks
+      headers:
+        Authorization: [Bearer <webhook-token>]
+      reportprogress: true
+      timeout: 5s
+      threshold: 3
+      backoff: 1s
+      ignoredmediatypes:
+        - application/octet-stream
+      ignore:
+        mediatypes:
+          - application/octet-stream
+        actions:
+          - pull
+
+validation:
+  disabled: false
+  manifests:
+    urls:
+      allow:
+        - ^https?://localhost:5000/
+        - ^https?://127\.0\.0\.1:5000/
+        - ^https?://.*\.local:5000/
+      deny:
+        - ^https?://www\.example\.com/
+
+# Compatibility and behavior settings
+compatibility:
+  schema1:
+    signingkeyfile: /etc/docker/registry/key.json
+    enabled: true
+  trust:
+    enabled: false

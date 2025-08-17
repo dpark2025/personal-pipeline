@@ -1,5 +1,5 @@
 {
-  "name": "personal-pipeline-mcp",
+  "name": "@personal-pipeline/mcp-server",
   "version": "0.1.0",
   "description": "Personal Pipeline - Intelligent MCP server for documentation retrieval and incident response",
   "type": "module",
@@ -76,7 +76,47 @@
     "test:integration:no-github": "tsx scripts/integration-tests.ts --no-github",
     "test:integration:no-confluence": "tsx scripts/integration-tests.ts --no-confluence",
     "generate:integration-test-data": "tsx scripts/generate-integration-test-data.ts",
-    "test:integration:setup": "tsx scripts/generate-integration-test-data.ts && npm run test:integration"
+    "test:integration:setup": "tsx scripts/generate-integration-test-data.ts && npm run test:integration",
+    "registry:start": "docker-compose -f docker-compose.npm-registry.yml up -d",
+    "registry:stop": "docker-compose -f docker-compose.npm-registry.yml down",
+    "registry:restart": "npm run registry:stop && npm run registry:start",
+    "registry:logs": "docker-compose -f docker-compose.npm-registry.yml logs -f npm-registry",
+    "registry:status": "docker-compose -f docker-compose.npm-registry.yml ps",
+    "registry:health": "curl -s http://localhost:4873/-/ping | jq",
+    "registry:setup": "bash scripts/setup-npm-registry.sh",
+    "registry:setup:interactive": "bash scripts/setup-npm-registry.sh --interactive",
+    "registry:setup:production": "bash scripts/setup-npm-registry.sh --production",
+    "registry:adduser": "npm adduser --registry http://localhost:4873",
+    "registry:whoami": "npm whoami --registry http://localhost:4873",
+    "registry:login": "npm login --registry http://localhost:4873",
+    "registry:logout": "npm logout --registry http://localhost:4873",
+    "package:build": "npm run clean && npm run build && npm run package:validate",
+    "package:validate": "npm run lint && npm run typecheck && npm run test",
+    "package:version": "node scripts/version-manager.js",
+    "package:version:patch": "node scripts/version-manager.js patch",
+    "package:version:minor": "node scripts/version-manager.js minor",
+    "package:version:major": "node scripts/version-manager.js major",
+    "package:publish": "bash scripts/publish-package.sh",
+    "package:publish:dry-run": "bash scripts/publish-package.sh --dry-run",
+    "package:publish:beta": "bash scripts/publish-package.sh --tag beta",
+    "package:publish:alpha": "bash scripts/publish-package.sh --tag alpha",
+    "package:unpublish": "npm unpublish --registry http://localhost:4873",
+    "package:info": "npm info @personal-pipeline/mcp-server --registry http://localhost:4873",
+    "package:install": "npm install @personal-pipeline/mcp-server --registry http://localhost:4873",
+    "package:update": "npm update @personal-pipeline/mcp-server --registry http://localhost:4873",
+    "release:prepare": "bash scripts/release-manager.sh prepare",
+    "release:create": "bash scripts/release-manager.sh create",
+    "release:publish": "bash scripts/release-manager.sh publish",
+    "release:rollback": "bash scripts/release-manager.sh rollback",
+    "release:changelog": "bash scripts/release-manager.sh changelog",
+    "docs:dev": "cd website_docs && npx vitepress dev",
+    "docs:build": "cd website_docs && npx vitepress build",
+    "docs:preview": "cd website_docs && npx vitepress preview",
+    "docs:theme": "node website_docs/.vitepress/theme-switcher.js",
+    "docs:theme:professional": "npm run docs:theme professional",
+    "docs:theme:dark": "npm run docs:theme dark",
+    "docs:theme:minimalist": "npm run docs:theme minimalist",
+    "docs:theme:enterprise": "npm run docs:theme enterprise"
   },
   "keywords": [
     "mcp",
@@ -85,10 +125,39 @@
     "incident-response",
     "langraph",
     "operational-runbooks",
-    "ai-agent"
+    "ai-agent",
+    "private-registry",
+    "verdaccio",
+    "npm-registry"
   ],
-  "author": "Personal Pipeline Team",
+  "author": {
+    "name": "Personal Pipeline Team",
+    "email": "team@personal-pipeline.dev",
+    "url": "https://personal-pipeline.dev"
+  },
   "license": "MIT",
+  "publishConfig": {
+    "registry": "http://localhost:4873",
+    "access": "restricted"
+  },
+  "files": [
+    "dist/**/*",
+    "config/config.sample.yaml",
+    "config/github-sample.yaml",
+    "config/web-sample.yaml",
+    "docs/API.md",
+    "docs/ARCHITECTURE.md",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "bin": {
+    "personal-pipeline": "./dist/index.js",
+    "pp-mcp": "./dist/index.js"
+  },
+  "peerDependencies": {
+    "node": ">=18.0.0"
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
@@ -153,7 +222,8 @@
     "prettier": "^3.1.0",
     "supertest": "^6.3.3",
     "tsx": "^4.6.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitepress": "^1.0.0"
   },
   "repository": {
     "type": "git",

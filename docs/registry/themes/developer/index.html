@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Registry Docs - Developer Edition</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🐳</span>
+                <span class="logo-text">Registry<span class="accent">Dev</span></span>
+            </div>
+            <button class="theme-toggle" title="Toggle theme">🌙</button>
+        </div>
+        
+        <div class="nav-section">
+            <h3>Getting Started</h3>
+            <ul>
+                <li><a href="#quick-start" class="nav-link active">Quick Start</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <h3>Docker Operations</h3>
+            <ul>
+                <li><a href="#push-images" class="nav-link">Push Images</a></li>
+                <li><a href="#pull-images" class="nav-link">Pull Images</a></li>
+                <li><a href="#manage-images" class="nav-link">Manage Images</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <h3>API Reference</h3>
+            <ul>
+                <li><a href="#auth" class="nav-link">Authentication</a></li>
+                <li><a href="#endpoints" class="nav-link">Endpoints</a></li>
+                <li><a href="#errors" class="nav-link">Error Codes</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <h3>Tools & CLI</h3>
+            <ul>
+                <li><a href="#cli" class="nav-link">CLI Commands</a></li>
+                <li><a href="#scripts" class="nav-link">Helper Scripts</a></li>
+                <li><a href="#automation" class="nav-link">CI/CD Integration</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="breadcrumb">
+                <span>Registry Docs</span>
+                <span class="separator">></span>
+                <span>Installation</span>
+            </div>
+            <div class="top-actions">
+                <button class="btn btn-outline btn-sm">
+                    <span class="icon">📖</span>
+                    API Docs
+                </button>
+                <button class="btn btn-primary btn-sm">
+                    <span class="icon">⚡</span>
+                    Quick Start
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <section id="quick-start" class="section">
+                <h1 class="page-title">Docker Registry Setup</h1>
+                <p class="page-subtitle">Get your local Docker registry running in 30 seconds</p>
+                
+                <div class="alert alert-info">
+                    <div class="alert-icon">💡</div>
+                    <div class="alert-content">
+                        <strong>Pro Tip:</strong> Use the one-liner below for instant setup, or follow the detailed installation guide for production deployments.
+                    </div>
+                </div>
+
+                <div class="code-section">
+                    <div class="code-tabs">
+                        <button class="tab active" data-tab="docker">Docker</button>
+                        <button class="tab" data-tab="compose">Docker Compose</button>
+                        <button class="tab" data-tab="k8s">Kubernetes</button>
+                    </div>
+                    
+                    <div class="tab-content active" data-tab="docker">
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">bash</span>
+                                <div class="code-actions">
+                                    <button class="copy-btn" data-copy="docker">
+                                        <span class="icon">📋</span>
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <pre><code class="language-bash"># Quick start with Docker
+docker run -d \
+  --name registry \
+  --restart=always \
+  -p 5000:5000 \
+  -v registry-data:/var/lib/registry \
+  registry:2
+
+# Test the installation
+curl http://localhost:5000/v2/_catalog</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" data-tab="compose">
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">yaml</span>
+                                <div class="code-actions">
+                                    <button class="copy-btn" data-copy="compose">
+                                        <span class="icon">📋</span>
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <pre><code class="language-yaml"># docker-compose.yml
+version: '3.8'
+services:
+  registry:
+    image: registry:2
+    container_name: local-registry
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: true
+      REGISTRY_HTTP_CORS_ORIGINS: '[http://localhost:3000]'
+
+volumes:
+  registry-data:</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" data-tab="k8s">
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">yaml</span>
+                                <div class="code-actions">
+                                    <button class="copy-btn" data-copy="k8s">
+                                        <span class="icon">📋</span>
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <pre><code class="language-yaml"># registry-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry
+  template:
+    metadata:
+      labels:
+        app: docker-registry
+    spec:
+      containers:
+      - name: registry
+        image: registry:2
+        ports:
+        - containerPort: 5000</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="operations" class="section">
+                <h2>Common Operations</h2>
+                
+                <div class="operation-grid">
+                    <div class="operation-card">
+                        <h3>
+                            <span class="operation-icon">📤</span>
+                            Push Image
+                        </h3>
+                        <div class="code-block compact">
+                            <pre><code class="language-bash"># Tag and push
+docker tag myapp:latest localhost:5000/myapp:v1.0
+docker push localhost:5000/myapp:v1.0</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="operation-card">
+                        <h3>
+                            <span class="operation-icon">📥</span>
+                            Pull Image
+                        </h3>
+                        <div class="code-block compact">
+                            <pre><code class="language-bash"># Pull from registry
+docker pull localhost:5000/myapp:v1.0</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="operation-card">
+                        <h3>
+                            <span class="operation-icon">📋</span>
+                            List Images
+                        </h3>
+                        <div class="code-block compact">
+                            <pre><code class="language-bash"># List all repositories
+curl http://localhost:5000/v2/_catalog | jq</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="operation-card">
+                        <h3>
+                            <span class="operation-icon">🗑️</span>
+                            Delete Image
+                        </h3>
+                        <div class="code-block compact">
+                            <pre><code class="language-bash"># Delete by digest
+curl -X DELETE http://localhost:5000/v2/myapp/manifests/sha256:...</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="api-reference" class="section">
+                <h2>API Reference</h2>
+                
+                <div class="api-section">
+                    <h3>Authentication</h3>
+                    <div class="endpoint">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/auth/token</span>
+                            <span class="description">Get authentication token</span>
+                        </div>
+                        <div class="endpoint-body">
+                            <div class="code-block">
+                                <pre><code class="language-bash">curl -X POST http://localhost:5000/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"secret"}'</code></pre>
+                            </div>
+                            <div class="response">
+                                <h4>Response</h4>
+                                <div class="code-block">
+                                    <pre><code class="language-json">{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <div class="endpoint-header">
+                            <span class="method get">GET</span>
+                            <span class="path">/v2/_catalog</span>
+                            <span class="description">List all repositories</span>
+                        </div>
+                        <div class="endpoint-body">
+                            <div class="code-block">
+                                <pre><code class="language-bash">curl -H "Authorization: Bearer TOKEN" \
+  http://localhost:5000/v2/_catalog</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="troubleshooting" class="section">
+                <h2>Troubleshooting</h2>
+                
+                <div class="troubleshoot-grid">
+                    <div class="issue-card">
+                        <h3>🚫 Push Denied</h3>
+                        <p class="issue-desc">Cannot push images to registry</p>
+                        <div class="solution">
+                            <h4>Solution:</h4>
+                            <div class="code-block compact">
+                                <pre><code class="language-bash"># Add insecure registry to Docker daemon
+# /etc/docker/daemon.json
+{
+  "insecure-registries": ["localhost:5000"]
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="issue-card">
+                        <h3>🔌 Connection Refused</h3>
+                        <p class="issue-desc">Cannot connect to registry</p>
+                        <div class="solution">
+                            <h4>Solution:</h4>
+                            <div class="code-block compact">
+                                <pre><code class="language-bash"># Check if registry is running
+docker ps | grep registry
+
+# Check logs
+docker logs registry</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                // Update active tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update active content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.querySelector(`[data-tab="${tabName}"].tab-content`).classList.add('active');
+            });
+        });
+
+        // Copy functionality
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const codeBlock = btn.closest('.code-block').querySelector('code');
+                const text = codeBlock.textContent;
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    const icon = btn.querySelector('.icon');
+                    const originalIcon = icon.textContent;
+                    icon.textContent = '✅';
+                    
+                    setTimeout(() => {
+                        icon.textContent = originalIcon;
+                    }, 2000);
+                });
+            });
+        });
+
+        // Navigation link highlighting
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
+
+        // Theme toggle (placeholder)
+        document.querySelector('.theme-toggle').addEventListener('click', () => {
+            // Theme toggle functionality would go here
+            console.log('Theme toggle clicked');
+        });
+    </script>
+</body>
+</html>

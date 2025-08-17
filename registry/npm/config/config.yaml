@@ -1,0 +1,213 @@
+# Verdaccio Configuration for Personal Pipeline Private NPM Registry
+# Authored by: Backend Technical Lead Agent
+# Date: 2025-01-16
+
+# ==============================================================================
+# VERDACCIO PRIVATE NPM REGISTRY CONFIGURATION
+# ==============================================================================
+# Complete configuration for enterprise-grade private npm registry with:
+# - Multi-level authentication and authorization
+# - Advanced package management with scoped packages
+# - Performance optimization with caching
+# - Security hardening and audit logging
+# - Integration with existing infrastructure
+
+# Storage Configuration
+storage: /verdaccio/storage
+
+# Authentication Configuration
+auth:
+  htpasswd:
+    file: /verdaccio/conf/htpasswd
+    # Allow user registration
+    max_users: 100
+    # Enable user management
+    algorithm: bcrypt
+    rounds: 10
+
+# Authorization & Package Access Control
+packages:
+  # Personal Pipeline scoped packages
+  '@personal-pipeline/*':
+    # Publishing access
+    access: '$authenticated'
+    publish: '$authenticated'
+    unpublish: '$authenticated'
+    # Proxy configuration for fallback
+    proxy: npmjs
+
+  # Internal organization packages
+  '@pp/*':
+    access: '$authenticated'
+    publish: '$authenticated'
+    unpublish: '$authenticated'
+    proxy: npmjs
+
+  # Private packages (no scope)
+  'personal-pipeline-*':
+    access: '$authenticated'
+    publish: '$authenticated'
+    unpublish: '$authenticated'
+    proxy: npmjs
+
+  # All other packages - proxy to public npm
+  '**':
+    # Public access for all packages from npmjs
+    access: '$all'
+    publish: '$authenticated'
+    unpublish: '$authenticated'
+    proxy: npmjs
+
+# Upstream Registry Configuration
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    # Cache configuration
+    cache: true
+    # Request timeout
+    timeout: 30s
+    # Agent options
+    agent_options:
+      keepAlive: true
+      keepAliveMsecs: 1000
+      maxSockets: 10
+      maxFreeSockets: 2
+    # Retry configuration
+    maxage: 2m
+    fail_timeout: 5m
+    max_fails: 2
+
+# Server Configuration
+server:
+  # Keep alive timeout
+  keepAliveTimeout: 60
+
+# Web UI Configuration
+web:
+  title: Personal Pipeline Private NPM Registry
+  # Enable web interface
+  enable: true
+  # Gravatar support
+  gravatar: true
+  # Sort packages
+  sort_packages: asc
+  # Dark mode support
+  darkMode: true
+  # Logo configuration
+  logo: https://avatars.githubusercontent.com/u/npm
+  # Primary color
+  primary_color: "#2196F3"
+  # Scope information
+  scope: "@personal-pipeline"
+  # Package information
+  pkgManagers:
+    - npm
+    - yarn
+    - pnpm
+
+# HTTP/HTTPS Configuration
+listen:
+  - 0.0.0.0:4873
+
+# Security Configuration
+security:
+  api:
+    # JWT configuration for API authentication
+    jwt:
+      sign:
+        expiresIn: 7d
+        notBefore: 1s
+      verify:
+        maxAge: 7d
+    legacy: true
+  web:
+    # Session configuration
+    sign:
+      expiresIn: 7d
+    verify:
+      maxAge: 7d
+
+# Logging Configuration
+logs:
+  # Console output
+  - { type: stdout, format: pretty, level: info }
+  # File output for audit trail
+  - { type: file, path: /verdaccio/logs/verdaccio.log, level: info }
+  # Separate file for errors
+  - { type: file, path: /verdaccio/logs/error.log, level: error }
+
+# Notification Configuration (optional)
+notify:
+  method: POST
+  headers: [{'Content-Type': 'application/json'}]
+  endpoint: http://localhost:3000/api/notifications/npm
+  content: '{"name": "{{name}}", "version": "{{version}}", "tag": "{{tag}}"}'
+
+# Middleware Configuration
+middlewares:
+  audit:
+    enabled: true
+
+# Advanced Configuration
+# URL prefix for registry
+url_prefix: '/npm/'
+
+# Enable/disable publishing
+publish:
+  allow_offline: false
+
+# Package metadata
+package_access:
+  # Default package access
+  $all:
+    access: '$all'
+    publish: '$authenticated'
+    unpublish: '$authenticated'
+
+# Rate limiting (optional)
+rate_limit:
+  max: 1000
+  windowMs: 900000 # 15 minutes
+
+# Storage configuration
+storage_options:
+  # Maximum package size (100MB)
+  max_body_size: 100mb
+
+# Health check endpoint
+health_check:
+  enable: true
+  interval: 30000
+
+# Experiment configuration
+experiments:
+  # Enable new features
+  changePassword: true
+  userManagement: true
+  token: true
+
+# NPM Registry Compatibility
+# Support for npm, yarn, pnpm
+npm:
+  # Enable npm cli compatibility
+  enable: true
+  # Registry URL for .npmrc
+  registry: "http://localhost:4873/"
+
+# Performance Tuning
+cache:
+  # Cache TTL for metadata
+  ttl: 300000 # 5 minutes
+
+# Plugin Configuration (for future extensions)
+plugins: /verdaccio/plugins
+
+# Configuration validation
+config_version: "5.x"
+
+# Additional headers for CORS
+http:
+  headers:
+    "Access-Control-Allow-Origin": "*"
+    "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,OPTIONS"
+    "Access-Control-Allow-Headers": "Content-Type,Authorization,Cache-Control"
