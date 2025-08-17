@@ -14,23 +14,138 @@ Personal Pipeline uses YAML configuration files with environment variable suppor
 # config/config.yaml
 server:
   port: 3000
-  host: '0.0.0.0'
-  
+  host: localhost
+  log_level: info
+  cache_ttl_seconds: 3600
+  max_concurrent_requests: 100
+  request_timeout_ms: 30000
+  health_check_interval_ms: 60000
+
 sources:
-  - name: "source-name"
-    type: "adapter-type"
-    # adapter-specific configuration
-    
+  - name: "local-docs"
+    type: "file"
+    base_url: "./docs"
+    refresh_interval: "5m"
+    priority: 1
+    enabled: true
+
 cache:
-  type: "memory|redis"
-  # cache-specific configuration
-  
+  redis:
+    url: "redis://localhost:6379"
+    ttl: 3600
+    max_memory: "100mb"
+  memory:
+    ttl: 300
+    max_size: "50mb"
+
 logging:
-  level: "debug|info|warn|error"
-  format: "json|text"
+  level: "info"
+  format: "json"
+  file: "./logs/app.log"
   
 performance:
-  # performance monitoring settings
+  metrics_enabled: true
+  response_time_threshold_ms: 150
+  cache_hit_rate_threshold: 0.75
+```
+
+## Source Adapter Configuration
+
+Personal Pipeline supports multiple documentation sources through a pluggable adapter framework. Each adapter type has specific configuration requirements.
+
+### FileSystem Adapter
+
+**Basic Configuration**
+```yaml
+sources:
+  - name: "local-runbooks"
+    type: "file"
+    base_url: "./runbooks"
+    refresh_interval: "5m"
+    priority: 1
+    enabled: true
+    timeout_ms: 5000
+    max_retries: 1
+    
+    # Enhanced features
+    watch_changes: true
+    pdf_extraction: true
+    recursive: true
+    max_depth: 5
+    extract_metadata: true
+    
+    supported_extensions: 
+      - '.md'
+      - '.txt' 
+      - '.json'
+      - '.yml'
+      - '.yaml'
+      - '.pdf'
+      - '.rst'
+      
+    file_patterns:
+      include: []
+      exclude: 
+        - '**/node_modules/**'
+        - '**/.git/**'
+        - '**/tmp/**'
+```
+
+### Confluence Adapter (Phase 2)
+
+```yaml
+sources:
+  - name: "confluence-ops"
+    type: "confluence"
+    base_url: "https://company.atlassian.net/wiki"
+    auth:
+      type: "bearer_token"
+      token_env: "CONFLUENCE_TOKEN"
+    refresh_interval: "1h"
+    priority: 1
+    enabled: true
+    timeout_ms: 30000
+    max_retries: 3
+    
+    # Confluence-specific options
+    spaces:
+      - "OPS"
+      - "DEVOPS"
+      - "INCIDENTS"
+    content_types:
+      - "page"
+      - "blogpost"
+    include_attachments: true
+    extract_labels: true
+```
+
+### GitHub Adapter (Phase 2)
+
+```yaml
+sources:
+  - name: "github-docs"
+    type: "github"
+    base_url: "https://api.github.com/repos/company/docs"
+    auth:
+      type: "bearer_token"
+      token_env: "GITHUB_TOKEN"
+    refresh_interval: "30m"
+    priority: 2
+    enabled: true
+    timeout_ms: 15000
+    max_retries: 2
+    
+    # GitHub-specific options
+    repositories:
+      - "company/runbooks"
+      - "company/procedures"
+    branches:
+      - "main"
+      - "docs"
+    file_patterns:
+      - "**/*.md"
+      - "**/*.json"
+    include_wiki: true
 ```
 
 ## Server Configuration

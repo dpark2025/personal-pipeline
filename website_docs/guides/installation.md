@@ -5,11 +5,16 @@ Get Personal Pipeline running in your environment with this comprehensive instal
 ## Quick Start
 
 ```bash
-# Install from local registry
-npm install @personal-pipeline/mcp-server --registry http://localhost:4873
+# Method 1: Clone from source (recommended)
+git clone https://github.com/dpark2025/personal-pipeline.git
+cd personal-pipeline
+npm install && npm run build
 
-# Or using Docker
-docker run -p 3000:3000 localhost:5000/personal-pipeline/mcp-server:latest
+# Method 2: Demo environment (fastest)
+npm run demo:start
+
+# Method 3: Direct development
+npm run dev
 ```
 
 ## Prerequisites
@@ -30,49 +35,48 @@ docker run -p 3000:3000 localhost:5000/personal-pipeline/mcp-server:latest
 
 ## Installation Methods
 
-### Method 1: npm Package (Recommended)
+### Method 1: Source Installation (Recommended)
 
 ```bash
-# Install from local registry
-npm install @personal-pipeline/mcp-server --registry http://localhost:4873
-
-# Or install globally
-npm install -g @personal-pipeline/mcp-server --registry http://localhost:4873
-
-# Verify installation
-personal-pipeline --version
-```
-
-### Method 2: Docker Container
-
-```bash
-# Pull latest image
-docker pull localhost:5000/personal-pipeline/mcp-server:latest
-
-# Run with default configuration
-docker run -p 3000:3000 localhost:5000/personal-pipeline/mcp-server:latest
-
-# Run with custom configuration
-docker run -p 3000:3000 \
-  -v $(pwd)/config:/app/config \
-  localhost:5000/personal-pipeline/mcp-server:latest
-```
-
-### Method 3: Source Code
-
-```bash
-# Clone repository
-git clone https://github.com/your-username/personal-pipeline-mcp.git
-cd personal-pipeline-mcp
+# Clone the repository
+git clone https://github.com/dpark2025/personal-pipeline.git
+cd personal-pipeline
 
 # Install dependencies
 npm install
 
-# Build application
+# Build the application
 npm run build
 
-# Start server
+# Start the MCP server
 npm start
+```
+
+### Method 2: Development Mode
+
+```bash
+# Clone and start in development mode
+git clone https://github.com/dpark2025/personal-pipeline.git
+cd personal-pipeline
+npm install
+
+# Start with hot reload
+npm run dev
+```
+
+### Method 3: Demo Environment
+
+```bash
+# Quick demo with sample data
+git clone https://github.com/dpark2025/personal-pipeline.git
+cd personal-pipeline
+npm install
+
+# Start full demo environment
+npm run demo:start
+
+# Or interactive demo setup
+npm run demo:start:interactive
 ```
 
 ## Configuration

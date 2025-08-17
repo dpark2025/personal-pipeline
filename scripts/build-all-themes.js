@@ -36,15 +36,14 @@ for (const theme of themes) {
     const themeConfigPath = `website_docs/.vitepress/theme-${theme}.js`;
     const originalConfig = fs.readFileSync(themeConfigPath, 'utf8');
     const updatedConfig = originalConfig.replace(
-      "base: '/personal-pipeline/',", 
+      /base:\s*['"`]\/personal-pipeline\/['"`],?/g, 
       `base: '/${theme}/',`
     );
     fs.writeFileSync(themeConfigPath, updatedConfig);
     
-    // Update the config.js to point to the modified theme
+    // Copy the MODIFIED theme config to config.js
     const configPath = 'website_docs/.vitepress/config.js';
-    const configContent = fs.readFileSync(configPath, 'utf8');
-    fs.writeFileSync(configPath, configContent);
+    fs.writeFileSync(configPath, updatedConfig);
     
     // Build the theme
     execSync('npm run docs:build', { 

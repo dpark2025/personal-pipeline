@@ -4,6 +4,7 @@ name: Deploy VitePress Documentation
 on:
   push:
     branches: [main]
+    paths: ['website_docs/**']
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -44,15 +45,17 @@ jobs:
           echo "@personal-pipeline:registry=https://registry.npmjs.org/" >> .npmrc
           npm install
           
-      - name: Build all VitePress themes
+      - name: Build VitePress documentation (minimalist theme)
         run: |
-          npm run build:all-themes
-          touch website_docs/.vitepress/theme-preview/.nojekyll
+          # Switch to minimalist theme and build
+          node website_docs/.vitepress/theme-switcher.js minimalist
+          npm run docs:build
+          touch website_docs/.vitepress/dist/.nojekyll
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website_docs/.vitepress/theme-preview
+          path: website_docs/.vitepress/dist
 
   # Deployment job
   deploy:

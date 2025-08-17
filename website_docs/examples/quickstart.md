@@ -17,26 +17,51 @@ npm --version
 docker --version
 ```
 
-## Method 1: npm Package (Recommended)
+## Method 1: Demo Environment (Fastest)
 
-### Step 1: Set up Local Registry
+### Step 1: Clone and Setup
 
 ```bash
-# Start the local npm registry
-npm run registry:start
+# Clone the repository
+git clone https://github.com/dpark2025/personal-pipeline.git
+cd personal-pipeline
 
-# Verify registry is running
-curl http://localhost:4873/-/ping
+# Install dependencies
+npm install
 ```
 
-### Step 2: Install Personal Pipeline
+### Step 2: Start Demo Environment
 
 ```bash
-# Install from local registry
-npm install @personal-pipeline/mcp-server --registry http://localhost:4873
+# Start the full demo with sample data
+npm run demo:start
 
-# Or install globally
-npm install -g @personal-pipeline/mcp-server --registry http://localhost:4873
+# This will:
+# - Generate sample configuration and test data
+# - Start the MCP server
+# - Start Redis cache (if available)
+# - Set up performance monitoring
+```
+
+## Method 2: Development Mode
+
+### Step 1: Source Installation
+
+```bash
+# Clone and build from source
+git clone https://github.com/dpark2025/personal-pipeline.git
+cd personal-pipeline
+npm install && npm run build
+```
+
+### Step 2: Start Development Server
+
+```bash
+# Start with hot reload
+npm run dev
+
+# Or start production server
+npm start
 ```
 
 ### Step 3: Basic Configuration

@@ -1,94 +1,96 @@
-// Professional Corporate Theme Configuration
+// Minimalist Documentation Theme Configuration
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'Personal Pipeline',
-  description: 'Enterprise-Grade MCP Server Documentation',
+  description: 'Clean, Simple Documentation for MCP Server',
   base: '/personal-pipeline/',
   cleanUrls: true,
-  lastUpdated: true,
   ignoreDeadLinks: true,
   
   themeConfig: {
+    // Minimal navigation
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Documentation', link: '/guides/installation' },
-      { text: 'API Reference', link: '/api/mcp-tools' },
-      { text: 'Enterprise', link: '/enterprise/' },
-      { text: 'Support', link: '/support/' }
+      { text: 'Guide', link: '/guides/installation' },
+      { text: 'API', link: '/api/mcp-tools' },
+      { text: 'Registry', link: '/registry/setup' }
     ],
 
-    sidebar: {
-      '/': [
-        {
-          text: 'Getting Started',
-          collapsible: true,
-          items: [
-            { text: 'Installation', link: '/guides/installation' },
-            { text: 'Configuration', link: '/guides/configuration' },
-            { text: 'Quick Start', link: '/examples/quickstart' }
-          ]
-        },
-        {
-          text: 'API Documentation',
-          collapsible: true,
-          items: [
-            { text: 'MCP Tools', link: '/api/mcp-tools' },
-            { text: 'REST API', link: '/api/rest-api' },
-            { text: 'Source Adapters', link: '/api/adapters' }
-          ]
-        },
-        {
-          text: 'Registry & Distribution',
-          collapsible: true,
-          items: [
-            { text: 'Local Registry Setup', link: '/registry/setup' },
-            { text: 'Package Management', link: '/registry/packages' },
-            { text: 'Docker Distribution', link: '/registry/docker' }
-          ]
-        }
-      ]
-    },
+    // Clean, flat sidebar
+    sidebar: [
+      {
+        text: 'Guide',
+        items: [
+          { text: 'Installation', link: '/guides/installation' },
+          { text: 'Configuration', link: '/guides/configuration' },
+          { text: 'Architecture', link: '/guides/architecture' }
+        ]
+      },
+      {
+        text: 'API',
+        items: [
+          { text: 'MCP Tools', link: '/api/mcp-tools' },
+          { text: 'REST API', link: '/api/rest-api' },
+          { text: 'Adapters', link: '/api/adapters' }
+        ]
+      },
+      {
+        text: 'Registry',
+        items: [
+          { text: 'Setup', link: '/registry/setup' },
+          { text: 'Packages', link: '/registry/packages' },
+          { text: 'Docker', link: '/registry/docker' }
+        ]
+      },
+      {
+        text: 'Examples',
+        items: [
+          { text: 'Quick Start', link: '/examples/quickstart' },
+          { text: 'API Usage', link: '/examples/api-usage' }
+        ]
+      }
+    ],
 
+    // Minimal footer
     footer: {
-      message: 'Professional Corporate Theme | Enterprise-Ready Documentation',
-      copyright: 'Copyright © 2025 Personal Pipeline Team'
+      message: 'Minimalist Theme',
+      copyright: '© 2025 Personal Pipeline'
     },
 
-    // Professional theme customizations
-    logo: '/logo-professional.svg',
+    // Use site title for ultra-clean look
     siteTitle: 'Personal Pipeline',
-    
-    // Corporate-style algolia search
-    algolia: {
-      appId: 'professional-search',
-      apiKey: 'your-api-key',
-      indexName: 'personal-pipeline-enterprise'
+
+    // Simple social links
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/dpark2025/personal-pipeline' }
+    ],
+
+    // Basic search
+    search: {
+      provider: 'local'
     },
 
-    // Professional social links
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/your-username/personal-pipeline-mcp' },
-      { icon: 'linkedin', link: 'https://linkedin.com/company/personal-pipeline' },
-      { icon: 'twitter', link: 'https://twitter.com/personalpipeline' }
-    ]
+    // Clean edit link
+    editLink: {
+      pattern: 'https://github.com/dpark2025/personal-pipeline/edit/main/website_docs/:path',
+      text: 'Edit'
+    }
   },
 
-  // Professional styling
+  // Minimal head
   head: [
-    ['link', { rel: 'icon', href: '/favicon-professional.ico' }],
-    ['meta', { name: 'theme-color', content: '#2563eb' }],
+    ['link', { rel: 'icon', href: '/favicon-minimal.ico' }],
+    ['meta', { name: 'theme-color', content: '#059669' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    ['link', { href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap', rel: 'stylesheet' }]
+    ['link', { href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap', rel: 'stylesheet' }]
   ],
 
-  // Professional markdown theme
+  // Clean markdown theme
   markdown: {
-    theme: {
-      light: 'github-light',
-      dark: 'github-dark'
-    },
-    lineNumbers: true
-  }
+    theme: 'github-light',
+    lineNumbers: false // No line numbers for cleaner look
+  },
+
+  // Minimal base configuration
 })

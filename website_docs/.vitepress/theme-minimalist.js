@@ -58,18 +58,12 @@ export default defineConfig({
       copyright: '© 2025 Personal Pipeline'
     },
 
-    // No site title for ultra-clean look
-    siteTitle: false,
-    logo: { 
-      src: '/logo-minimal.svg', 
-      width: 32, 
-      height: 32,
-      alt: 'PP'
-    },
+    // Use site title for ultra-clean look
+    siteTitle: 'Personal Pipeline',
 
     // Simple social links
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/your-username/personal-pipeline-mcp' }
+      { icon: 'github', link: 'https://github.com/dpark2025/personal-pipeline' }
     ],
 
     // Basic search
@@ -79,7 +73,7 @@ export default defineConfig({
 
     // Clean edit link
     editLink: {
-      pattern: 'https://github.com/your-username/personal-pipeline-mcp/edit/main/website_docs/:path',
+      pattern: 'https://github.com/dpark2025/personal-pipeline/edit/main/website_docs/:path',
       text: 'Edit'
     }
   },
