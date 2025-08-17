@@ -21,11 +21,11 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package*.json ./
+COPY package.json package-lock.json ./
 COPY tsconfig.json ./
 
-# Install dependencies (including devDependencies for build)
-RUN npm ci --verbose
+# Verify package-lock.json exists and install dependencies
+RUN ls -la package* && npm ci --verbose
 
 # Copy source code
 COPY src/ ./src/
