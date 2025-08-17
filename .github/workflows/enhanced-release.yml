@@ -359,7 +359,7 @@ jobs:
           echo "📁 Total artifacts size: $TOTAL_SIZE"
       
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts-${{ needs.semantic-release.outputs.new-version }}
           path: |
@@ -381,7 +381,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-artifacts-${{ needs.semantic-release.outputs.new-version }}
           path: ./artifacts/
@@ -462,7 +462,7 @@ jobs:
         run: npm ci --silent
       
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-artifacts-${{ needs.semantic-release.outputs.new-version }}
           path: ./artifacts/
@@ -505,7 +505,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-artifacts-${{ needs.semantic-release.outputs.new-version }}
           path: ./

@@ -152,7 +152,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: github.event.inputs.force_rebuild != 'true'
         with:
           path: node_modules
@@ -215,7 +215,7 @@ jobs:
           EOF
       
       - name: Upload npm package artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: npm-package-${{ needs.prepare.outputs.build-id }}
           path: |
@@ -228,7 +228,7 @@ jobs:
           retention-days: 30
       
       - name: Upload package for registry
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: npm-package-registry-ready
           path: |
@@ -362,7 +362,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
       
       - name: Upload Docker image artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-image-${{ matrix.platform }}-${{ needs.prepare.outputs.build-id }}
           path: |
@@ -423,7 +423,7 @@ jobs:
     
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: npm-package-${{ needs.prepare.outputs.build-id }}
           path: ./artifacts/npm/
@@ -505,7 +505,7 @@ jobs:
           EOF
       
       - name: Upload build report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-report-${{ needs.prepare.outputs.build-id }}
           path: BUILD_REPORT.md
