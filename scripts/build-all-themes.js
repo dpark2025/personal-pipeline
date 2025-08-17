@@ -32,12 +32,12 @@ for (const theme of themes) {
       stdio: 'pipe' 
     });
     
-    // Update base path for this theme
+    // Update base path for this theme to match GitHub Pages repository name
     const themeConfigPath = `website_docs/.vitepress/theme-${theme}.js`;
     const originalConfig = fs.readFileSync(themeConfigPath, 'utf8');
     const updatedConfig = originalConfig.replace(
-      "base: '/personal-pipeline-mcp/',", 
-      `base: '/personal-pipeline-mcp/${theme}/',`
+      "base: '/personal-pipeline/',", 
+      `base: '/personal-pipeline/${theme}/',`
     );
     fs.writeFileSync(themeConfigPath, updatedConfig);
     
@@ -70,8 +70,8 @@ for (const theme of themes) {
     try {
       const themeConfigPath = `website_docs/.vitepress/theme-${theme}.js`;
       const originalConfig = fs.readFileSync(themeConfigPath, 'utf8').replace(
-        `base: '/personal-pipeline-mcp/${theme}/',`,
-        "base: '/personal-pipeline-mcp/',"
+        `base: '/personal-pipeline/${theme}/',`,
+        "base: '/personal-pipeline/',"
       );
       fs.writeFileSync(themeConfigPath, originalConfig);
     } catch (restoreError) {

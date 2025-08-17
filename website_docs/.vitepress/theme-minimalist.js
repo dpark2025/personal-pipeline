@@ -4,7 +4,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Personal Pipeline',
   description: 'Clean, Simple Documentation for MCP Server',
-  base: '/personal-pipeline-mcp/',
+  base: '/personal-pipeline/',
   cleanUrls: true,
   ignoreDeadLinks: true,
   
