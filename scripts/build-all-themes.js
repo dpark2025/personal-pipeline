@@ -32,12 +32,12 @@ for (const theme of themes) {
       stdio: 'pipe' 
     });
     
-    // Update base path for this theme to match GitHub Pages repository name
+    // Update base path for this theme - use root path for local development
     const themeConfigPath = `website_docs/.vitepress/theme-${theme}.js`;
     const originalConfig = fs.readFileSync(themeConfigPath, 'utf8');
     const updatedConfig = originalConfig.replace(
       "base: '/personal-pipeline/',", 
-      `base: '/personal-pipeline/${theme}/',`
+      `base: '/${theme}/',`
     );
     fs.writeFileSync(themeConfigPath, updatedConfig);
     
@@ -70,7 +70,7 @@ for (const theme of themes) {
     try {
       const themeConfigPath = `website_docs/.vitepress/theme-${theme}.js`;
       const originalConfig = fs.readFileSync(themeConfigPath, 'utf8').replace(
-        `base: '/personal-pipeline/${theme}/',`,
+        `base: '/${theme}/',`,
         "base: '/personal-pipeline/',"
       );
       fs.writeFileSync(themeConfigPath, originalConfig);

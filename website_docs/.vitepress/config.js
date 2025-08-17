@@ -4,6 +4,10 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Personal Pipeline',
   description: 'Enterprise-Grade MCP Server Documentation',
+  base: '/personal-pipeline/',
+  cleanUrls: true,
+  lastUpdated: true,
+  ignoreDeadLinks: true,
   
   themeConfig: {
     nav: [
