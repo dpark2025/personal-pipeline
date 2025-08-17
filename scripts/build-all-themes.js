@@ -363,6 +363,11 @@ const indexHtml = `<!DOCTYPE html>
 // Write the index file
 fs.writeFileSync('website_docs/.vitepress/theme-preview/index.html', indexHtml);
 
+// Copy .nojekyll file to prevent Jekyll processing
+if (fs.existsSync('website_docs/.nojekyll')) {
+  fs.copyFileSync('website_docs/.nojekyll', 'website_docs/.vitepress/theme-preview/.nojekyll');
+}
+
 console.log('✅ Theme preview index created successfully!');
 console.log('\n🎯 Theme preview available at:');
 console.log('   website_docs/.vitepress/theme-preview/index.html');
