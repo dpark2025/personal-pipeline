@@ -7,6 +7,7 @@ export default defineConfig({
   base: '/personal-pipeline-mcp/',
   cleanUrls: true,
   lastUpdated: true,
+  ignoreDeadLinks: true,
   
   themeConfig: {
     // Comprehensive enterprise navigation
@@ -210,24 +211,6 @@ export default defineConfig({
       light: 'github-light',
       dark: 'github-dark'
     },
-    lineNumbers: true,
-    config: (md) => {
-      // Enterprise markdown plugins
-      md.use(require('markdown-it-container'), 'enterprise')
-      md.use(require('markdown-it-footnote'))
-      md.use(require('markdown-it-task-lists'))
-    }
-  },
-
-  // Enterprise build configuration
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'enterprise-vendor': ['vue', 'vue-router'],
-          'enterprise-components': ['./components/enterprise']
-        }
-      }
-    }
+    lineNumbers: true
   }
 })

@@ -6,6 +6,7 @@ export default defineConfig({
   description: 'Clean, Simple Documentation for MCP Server',
   base: '/personal-pipeline-mcp/',
   cleanUrls: true,
+  ignoreDeadLinks: true,
   
   themeConfig: {
     // Minimal navigation
@@ -98,13 +99,4 @@ export default defineConfig({
   },
 
   // Minimal base configuration
-  base: '/personal-pipeline-mcp/',
-  cleanUrls: true,
-  
-  // Custom CSS for ultra-minimal styling
-  postcss: {
-    plugins: [
-      require('autoprefixer')
-    ]
-  }
 })

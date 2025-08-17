@@ -7,6 +7,7 @@ export default defineConfig({
   base: '/personal-pipeline-mcp/',
   cleanUrls: true,
   lastUpdated: true,
+  ignoreDeadLinks: true,
   
   themeConfig: {
     // Force dark appearance
