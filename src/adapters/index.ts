@@ -6,10 +6,7 @@
 
 export { SourceAdapter, SourceAdapterRegistry } from './base.js';
 export { EnhancedFileSystemAdapter as FileSystemAdapter } from './file-enhanced.js';
-// Phase 2 adapters temporarily disabled for build fix
-// export { GitHubAdapter } from './github/index.js';
-export { WebAdapter } from './web.js';
-// export { ConfluenceAdapter } from './confluence/index.js';
+export { WebAdapter } from './web/index.js';
 
 // Future adapters will be exported here
 // export { DiscordAdapter } from './discord.js';

@@ -4,8 +4,8 @@
     "lib": ["ES2022"],
     "module": "ES2022",
     "moduleResolution": "node",
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+    "declarationMap": false,
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -40,11 +40,7 @@
     "node_modules",
     "dist",
     "tests",
-    "src/adapters/confluence/**",
-    "src/adapters/database/**",
-    "src/adapters/github/**",
-    "src/adapters/github.ts",
-    "src/adapters/web/**",
+    "src/adapters/web-old.ts",
     "src/search/query-processing/context-enhancer.ts"
   ]
 }

@@ -49,7 +49,7 @@ pnpm-debug.log*
 .npm
 .yarn-integrity
 *.tgz
-package-lock.json
+# package-lock.json - REQUIRED for Docker builds
 
 # ==============================================================================
 # TypeScript & Build Artifacts

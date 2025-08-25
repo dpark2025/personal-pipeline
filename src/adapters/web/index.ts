@@ -16,7 +16,6 @@ export { UrlManager } from './url-manager.js';
 export { CacheManager } from './cache-manager.js';
 
 export type {
-  WebAdapterOptions,
   WebSource,
   WebEndpoint,
   WebAuthConfig,

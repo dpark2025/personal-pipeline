@@ -556,7 +556,7 @@ export class AuthManager {
 
   private getConfigKey(config: WebAuthConfig): string {
     // Create a unique key for this auth configuration
-    const keyParts = [config.type];
+    const keyParts: string[] = [config.type];
     
     switch (config.type) {
       case 'api_key':

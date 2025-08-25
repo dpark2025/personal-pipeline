@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Personal Pipeline (PP) is an intelligent Model Context Protocol (MCP) server designed for automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management. **Phase 1 is complete** with a fully operational TypeScript/Node.js MCP server implementation and comprehensive REST API access layer.
+Personal Pipeline (PP) is an intelligent Model Context Protocol (MCP) server designed for automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management. **Phase 1 core implementation is complete** with a working TypeScript/Node.js MCP server, REST API, and FileSystemAdapter. Recent bug fixes have resolved critical build and stability issues.
 
 The project planning and milestone documents are located in: `planning/` directory
 
@@ -153,10 +153,8 @@ The system follows a modular architecture with dual access patterns and pluggabl
 External Systems → REST API → 
                             ↘
 LangGraph Agent → MCP Protocol → Core Engine → Source Adapters
-                            ↗                    ├── Wiki (Confluence, Notion)
-         Demo Scripts → REST API                ├── Database (PostgreSQL, MongoDB)
-                                               ├── Web (REST APIs, Websites)
-                                               └── Files (Local, GitHub)
+                            ↗                    ├── Web (REST APIs, Websites)
+         Demo Scripts → REST API                └── Files (Local)
 ```
 
 **Dual Access Patterns** (NEW - Milestone 1.4):
@@ -221,7 +219,7 @@ All adapters implement the `SourceAdapter` abstract class with methods:
 
 **Current Adapters**:
 - **FileSystemAdapter**: Local file and directory indexing with Markdown/JSON support
-- **Planned**: ConfluenceAdapter, GitHubAdapter, DatabaseAdapter
+- **Planned Phase 2**: WebAdapter for REST APIs and website content
 
 #### Performance Requirements (Achieved/Enhanced - Milestone 1.4)
 - **Critical runbooks**: < 150ms response time (achieved with intelligent caching)
@@ -229,7 +227,7 @@ All adapters implement the `SourceAdapter` abstract class with methods:
 - **REST API endpoints**: Sub-150ms for critical operations, sub-10ms for health checks
 - **Concurrent queries**: 50+ simultaneous operations with dual MCP/REST access
 - **Cache performance**: 60-80% MTTR reduction with hybrid Redis + memory caching
-- **Service availability**: 99.9% uptime with circuit breaker resilience patterns
+- **Service availability**: Stable operation with circuit breaker resilience patterns
 
 ## Configuration
 
@@ -310,33 +308,40 @@ All tool responses include:
 
 ## Implementation Phases
 
-1. **Phase 1** (Weeks 1-3): ✅ **COMPLETE** - Core MCP server with enterprise-grade features
+1. **Phase 1** (Weeks 1-3): ✅ **CORE COMPLETE** - Working MCP server with critical issues resolved
    - Milestone 1.1: ✅ **COMPLETE** - Project foundation, 7 MCP tools, FileSystemAdapter
    - Milestone 1.2: ✅ **COMPLETE** - Development tools and testing utilities
    - Milestone 1.3: ✅ **COMPLETE** - Performance optimization and hybrid caching
    - Milestone 1.4: ✅ **COMPLETE** - REST API with 11 endpoints and dual access patterns
-2. **Phase 2** (Weeks 4-6): 📋 **PLANNED** - Multi-source adapter support and enhanced search
+   - **Recent Fixes**: Build system, Redis stability, configuration paths resolved
+2. **Phase 2** (Weeks 4-6): 📋 **PLANNED** - Web adapter integration and enhanced search capabilities
 3. **Phase 3** (Weeks 7-9): 📋 **PLANNED** - LangGraph integration and operational features  
 4. **Phase 4** (Weeks 10-12): 📋 **PLANNED** - Scale testing and enterprise enhancements
 
 ## Key Success Metrics
 
-**Phase 1 Achieved (Grade A Performance):**
-- ✅ **Sub-2ms response time** for critical runbook retrieval (Target: <1000ms) 
-- ✅ **75% cache hit rate** with hybrid Redis + memory caching
-- ✅ **7/7 performance targets met** in benchmark testing
-- ✅ **99.9% uptime** with circuit breaker resilience patterns
-- ✅ **11 REST API endpoints** with dual MCP/REST access patterns
+**Phase 1 Achieved (Working Implementation):**
+- ✅ **Working MCP server** with 7 tools and FileSystemAdapter
+- ✅ **REST API operational** with 11 endpoints and caching
+- ✅ **Critical issues resolved**: Build system, Redis stability, configuration paths
+- ✅ **Hybrid caching** with Redis + memory fallback
+- ✅ **Dual access patterns** via MCP protocol and REST API
 
-**Phase 2+ Targets:**
-- 95%+ accuracy in matching alerts to relevant procedures  
-- Support for 10+ different documentation source types (Currently: 1 FileSystem + 3 planned)
-- 40% reduction in MTTR for automated incident response
+**Phase 2+ Targets (Planned):**
+- Web adapter integration for REST APIs and website content scraping  
 - Enhanced semantic search with transformer embeddings
+- Improved accuracy in matching alerts to relevant procedures
+- Integration with LangGraph for automated workflows
 
 ## 📊 Current Project Status
 
-**Overall Health**: 🟢 EXCELLENT - All systems operational
+**Overall Health**: 🟡 **GOOD** - Core systems operational, critical issues resolved
+
+**Recent Bug Fixes (August 25, 2025):**
+- ✅ **Fixed**: Build system inconsistencies causing runtime import errors
+- ✅ **Fixed**: Redis integration crashes requiring extensive error suppression
+- ✅ **Fixed**: Configuration relative paths failing from different startup directories
+- ⚠️ **Note**: Phase 2 adapters are documented but not implemented (see GitHub issue #24)
 
 For detailed status, progress tracking, and session continuity information, see:
 - **`PROJECT_STATUS.md`** - Real-time project health and session continuity tracker

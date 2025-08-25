@@ -4,37 +4,11 @@
   "description": "Personal Pipeline - Intelligent MCP server for documentation retrieval and incident response",
   "type": "module",
   "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./server": {
-      "types": "./dist/core/server.d.ts",
-      "import": "./dist/core/server.js"
-    },
-    "./adapters": {
-      "types": "./dist/adapters/index.d.ts",
-      "import": "./dist/adapters/index.js"
-    },
-    "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.js"
-    },
-    "./utils": {
-      "types": "./dist/utils/index.d.ts",
-      "import": "./dist/utils/index.js"
-    },
-    "./package.json": "./package.json"
-  },
+  "private": true,
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && npm run build:cleanup",
-    "build:cleanup": "find dist -name '*.d.ts' -type f -delete && find dist -name '*.d.ts.map' -type f -delete",
+    "build": "tsc",
     "clean": "rm -rf dist/",
     "test": "npm run test:node",
     "test:watch": "npm run test:node:watch",

@@ -31,8 +31,11 @@ export class ConfigManager {
       // Apply environment variable overrides
       const config = this.applyEnvironmentOverrides(yamlConfig);
 
+      // Resolve relative paths before validation
+      const resolvedConfig = this.resolveRelativePaths(config);
+
       // Validate configuration
-      const validatedConfig = AppConfig.parse(config);
+      const validatedConfig = AppConfig.parse(resolvedConfig);
 
       this.config = validatedConfig;
       logger.info('Configuration loaded successfully', {
@@ -163,6 +166,85 @@ export class ConfigManager {
   }
 
   /**
+   * Resolve relative paths in configuration with intelligent path resolution
+   */
+  private resolveRelativePaths(config: any): any {
+    if (!config.sources) {
+      return config;
+    }
+
+    const configDir = path.dirname(path.resolve(this.configPath));
+    const configDirParent = path.dirname(configDir); // Usually the project root for config/config.yaml
+    
+    // Create a deep copy to avoid mutating the original config
+    const resolvedConfig = JSON.parse(JSON.stringify(config));
+    
+    // Helper function to resolve a single path with smart fallback logic
+    const resolvePath = (originalPath: string, sourceName: string): string => {
+      // Strategy 1: Try resolving relative to config file directory
+      const configDirPath = path.resolve(configDir, originalPath);
+      
+      // Strategy 2: Try resolving relative to config file's parent directory (usually project root)
+      const configParentPath = path.resolve(configDirParent, originalPath);
+      
+      // Use sync fs.access to check which path exists
+      try {
+        require('fs').accessSync(configDirPath);
+        logger.debug('Resolved relative path (config dir)', {
+          sourceName: sourceName,
+          originalPath: originalPath,
+          resolvedPath: configDirPath,
+          configDir: configDir,
+        });
+        return configDirPath;
+      } catch {
+        // Config dir path doesn't exist, try config parent (project root)
+        try {
+          require('fs').accessSync(configParentPath);
+          logger.debug('Resolved relative path (config parent)', {
+            sourceName: sourceName,
+            originalPath: originalPath,
+            resolvedPath: configParentPath,
+            configDirParent: configDirParent,
+          });
+          return configParentPath;
+        } catch {
+          // Neither path exists, default to config parent and let the adapter handle the error
+          logger.warn('Path does not exist relative to config dir or parent, using config parent', {
+            sourceName: sourceName,
+            originalPath: originalPath,
+            configDirPath: configDirPath,
+            configParentPath: configParentPath,
+          });
+          return configParentPath;
+        }
+      }
+    };
+    
+    // Resolve base_url for each source
+    for (const source of resolvedConfig.sources) {
+      if (source.base_url && typeof source.base_url === 'string') {
+        // Only resolve relative paths (those starting with ./ or ../)
+        if (source.base_url.startsWith('./') || source.base_url.startsWith('../')) {
+          source.base_url = resolvePath(source.base_url, source.name);
+        }
+      }
+      
+      // Also resolve base_paths if present
+      if (source.base_paths && Array.isArray(source.base_paths)) {
+        source.base_paths = source.base_paths.map((basePath: string) => {
+          if (typeof basePath === 'string' && (basePath.startsWith('./') || basePath.startsWith('../'))) {
+            return resolvePath(basePath, source.name);
+          }
+          return basePath;
+        });
+      }
+    }
+
+    return resolvedConfig;
+  }
+
+  /**
    * Create default configuration
    */
   private async createDefaultConfig(): Promise<AppConfig> {
@@ -224,6 +306,10 @@ export class ConfigManager {
           knowledge_base: {
             ttl_seconds: parseInt(process.env.CACHE_KNOWLEDGE_BASE_TTL_SECONDS || '900'),
             warmup: process.env.CACHE_KNOWLEDGE_BASE_WARMUP === 'true',
+          },
+          web_response: {
+            ttl_seconds: parseInt(process.env.CACHE_WEB_RESPONSE_TTL_SECONDS || '1800'),
+            warmup: process.env.CACHE_WEB_RESPONSE_WARMUP === 'true',
           },
         },
       },

@@ -385,8 +385,8 @@ describe('REST API Transforms Unit Tests (Node.js Test Runner)', () => {
 
     it('should enrich metadata with source information', () => {
       const sourceMetadata = {
-        source: 'confluence_ops_wiki',
-        source_type: 'confluence',
+        source: 'web_ops_wiki',
+        source_type: 'web',
         last_updated: '2025-07-30T10:00:00.000Z',
         document_count: 1250,
       };

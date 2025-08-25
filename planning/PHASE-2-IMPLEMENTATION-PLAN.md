@@ -1,29 +1,29 @@
-# Phase 2 Implementation Plan: Multi-Source Adapter Development
+# Phase 2 Implementation Plan: Web Adapter Integration
 
 ## Overview
 
 **Timeline**: 4 weeks (August 18 - September 15, 2025)  
-**Goal**: Implement enterprise-grade multi-source documentation adapters with enhanced search capabilities  
+**Goal**: Implement Web adapter for REST APIs and website content scraping with enhanced search capabilities  
 **Foundation**: Building on Phase 1's enterprise-grade local infrastructure and documentation system  
-**Team**: 1 Backend Lead + 3 Specialist Consultants (Confluence, GitHub, AI/ML)
+**Team**: 1 Backend Lead + 1 Integration Specialist
 
 ---
 
 ## Strategic Objectives
 
 ### Primary Goals
-1. **Multi-Source Integration**: Support 4+ major documentation sources beyond FileSystem
+1. **Web Adapter Integration**: Enable REST API and website content access
 2. **Enhanced Search Capabilities**: Implement semantic search with transformer embeddings
-3. **Real-time Synchronization**: Live updates and change notifications across all sources
-4. **Performance at Scale**: Maintain sub-200ms response times with multiple sources
-5. **Enterprise Readiness**: Authentication, authorization, and compliance features
+3. **Content Synchronization**: Automatic content updates and change detection
+4. **Performance at Scale**: Maintain sub-200ms response times with web sources
+5. **Enterprise Features**: Authentication, caching, and error handling
 
 ### Success Criteria
-- **6+ source adapters operational** (File, Confluence, GitHub, Database, Web, API)
+- **Web adapter fully operational** with REST API and HTML content support
 - **95%+ search accuracy** with semantic understanding and context awareness
-- **Real-time sync** with <5-second lag across all sources
+- **Automated sync** with configurable refresh intervals
 - **Performance targets maintained** (<200ms critical operations, 99.9% uptime)
-- **Enterprise features** including authentication, audit logging, and role-based access
+- **Production-ready features** including authentication, caching, and comprehensive error handling
 
 ---
 
@@ -71,235 +71,147 @@ interface SemanticSearchEngine {
 
 ---
 
-## Milestone 2.2: Confluence Adapter (Week 1-2)
+## Milestone 2.2: Web Adapter Implementation (Week 1-2)
 **Duration**: August 18-31, 2025  
-**Lead**: Confluence Specialist + Backend Lead  
-**Goal**: Enterprise Confluence integration with authentication and real-time synchronization
+**Lead**: Integration Specialist + Backend Lead  
+**Goal**: Complete Web adapter for REST APIs and website content scraping
 
 ### Core Deliverables
-- **Confluence API Integration** with comprehensive space and page management
-- **Authentication Framework** supporting multiple auth methods (Basic, OAuth2, PAT)
-- **Real-time Synchronization** with webhook notifications and change detection
-- **Content Processing Pipeline** for Confluence-specific markup and attachments
-- **Enterprise Features** including space restrictions and permission mapping
+- **Web Content Processing** with HTML parsing and content extraction
+- **REST API Integration** supporting various authentication methods
+- **Content Caching System** with intelligent refresh strategies
+- **URL Management** with crawling policies and rate limiting
+- **Error Handling** with retry logic and circuit breakers
 
 ### Technical Implementation
 ```typescript
-interface ConfluenceAdapter extends SourceAdapter {
-  // Authentication and connection management
-  authenticate(credentials: ConfluenceCredentials): Promise<boolean>
-  
-  // Space and page management
-  listSpaces(filters: SpaceFilters): Promise<ConfluenceSpace[]>
-  indexSpace(spaceKey: string, options: IndexOptions): Promise<IndexResult>
-  
-  // Real-time synchronization
-  setupWebhooks(callback: WebhookCallback): Promise<WebhookConfig>
-  handleSpaceChanges(change: ConfluenceChange): Promise<void>
+interface WebAdapter extends SourceAdapter {
+  // URL and content management
+  addUrl(url: string, options: UrlOptions): Promise<boolean>
+  extractContent(url: string): Promise<ExtractedContent>
   
   // Content processing
-  processConfluenceMarkup(content: string): ProcessedContent
-  extractAttachments(page: ConfluencePage): Promise<Attachment[]>
+  parseHtml(html: string): ProcessedContent
+  extractApiData(response: ApiResponse): ProcessedContent
+  
+  // Caching and updates
+  refreshContent(url: string): Promise<RefreshResult>
+  setupAutoRefresh(urls: string[], interval: number): Promise<void>
+  
+  // Authentication for protected resources
+  authenticate(url: string, credentials: WebCredentials): Promise<boolean>
 }
 ```
 
-### Enterprise Features
-- **Multi-Auth Support**: Basic Auth, OAuth2, Personal Access Tokens
-- **Space Management**: Selective space indexing with permission mapping
-- **Real-time Updates**: Webhook integration for instant content updates
-- **Content Processing**: Advanced markup processing with macro expansion
-- **Security Integration**: Confluence permissions reflected in search results
+### Web Features
+- **Content Types**: HTML pages, REST APIs, JSON endpoints, XML feeds
+- **Authentication**: Bearer tokens, API keys, Basic Auth, OAuth2
+- **Content Processing**: HTML cleanup, markdown conversion, API response parsing
+- **Rate Limiting**: Intelligent throttling to respect website policies
+- **Security Features**: Safe content extraction with XSS protection
 
 ### Performance Targets
-- **Initial Sync**: <2 minutes per 1000 pages
-- **Real-time Updates**: <5 seconds from Confluence change to index update
-- **Search Performance**: Maintain <200ms response times with Confluence content
-- **Memory Usage**: <100MB additional usage per 10,000 Confluence pages
+- **Content Extraction**: <2 seconds per webpage or API endpoint
+- **Refresh Updates**: <10 seconds for content change detection
+- **Search Performance**: Maintain <200ms response times with web content
+- **Memory Usage**: <50MB additional usage per 1000 web sources
 
 ### Success Criteria
-- ✅ Confluence authentication operational with all supported methods
-- ✅ Real-time synchronization working with webhook notifications
-- ✅ Content processing handles all Confluence markup types
-- ✅ Enterprise permissions properly mapped and enforced
-- ✅ Performance targets met with large Confluence instances
+- ✅ Web adapter operational with HTML and API content support
+- ✅ Authentication working with major API providers
+- ✅ Content processing handles various web formats
+- ✅ Rate limiting and caching optimized for performance
+- ✅ Performance targets met with diverse web sources
 
 ---
 
-## Milestone 2.3: GitHub Adapter (Week 2-3)
-**Duration**: August 25 - September 8, 2025  
-**Lead**: GitHub Specialist + Backend Lead  
-**Goal**: Comprehensive GitHub repository documentation indexing with webhook notifications
-
-### Core Deliverables
-- **GitHub API Integration** with repository discovery and content indexing
-- **Multi-Content Support** for README, Wiki, Issues, Discussions, and documentation
-- **Webhook Notifications** for real-time updates on repository changes
-- **Branch Management** with configurable branch indexing strategies
-- **Enterprise GitHub Support** including GitHub Enterprise Server integration
-
-### Technical Implementation
-```typescript
-interface GitHubAdapter extends SourceAdapter {
-  // Repository management
-  discoverRepositories(criteria: RepositoryFilter): Promise<Repository[]>
-  indexRepository(repo: Repository, strategy: IndexStrategy): Promise<IndexResult>
-  
-  // Multi-content indexing
-  indexDocumentation(repo: Repository): Promise<DocumentationIndex>
-  indexWiki(repo: Repository): Promise<WikiIndex>
-  indexIssues(repo: Repository, filters: IssueFilters): Promise<IssueIndex>
-  
-  // Real-time updates
-  setupRepositoryWebhooks(repos: Repository[]): Promise<WebhookConfig[]>
-  handleRepositoryChanges(event: GitHubWebhookEvent): Promise<void>
-  
-  // Branch and release management
-  indexBranches(repo: Repository, branches: string[]): Promise<BranchIndex>
-  indexReleases(repo: Repository): Promise<ReleaseIndex>
-}
-```
-
-### Content Sources
-- **Repository Documentation**: README.md, docs/ directories, Wiki pages
-- **Issue Tracking**: Issues, Pull Requests, Discussions with searchable content
-- **Release Information**: Release notes, changelogs, tag documentation
-- **Code Documentation**: API docs, inline documentation, code examples
-- **Multi-Branch Support**: Configurable branch indexing with version awareness
-
-### Performance Targets
-- **Repository Indexing**: <5 minutes per repository with 1000+ files
-- **Real-time Updates**: <10 seconds from GitHub event to index update
-- **API Rate Limits**: Efficient API usage staying within GitHub rate limits
-- **Memory Usage**: <50MB additional usage per 1000 indexed files
-
-### Success Criteria
-- ✅ GitHub authentication and API integration operational
-- ✅ Multi-content indexing working for all supported content types
-- ✅ Real-time webhook notifications operational
-- ✅ Enterprise GitHub support validated
-- ✅ Performance targets met with large repositories
-
----
-
-## Milestone 2.4: Database Adapter (Week 3-4)
+## Milestone 2.3: Web Adapter Integration & Testing (Week 3-4)
 **Duration**: September 1-15, 2025  
-**Lead**: Backend Lead + Database Specialist  
-**Goal**: PostgreSQL and MongoDB support for structured operational data
+**Lead**: Backend Lead + Integration Specialist  
+**Goal**: Complete Web adapter integration with comprehensive testing and optimization
 
 ### Core Deliverables
-- **PostgreSQL Adapter** with dynamic schema discovery and query optimization
-- **MongoDB Adapter** with collection management and aggregation pipeline support
-- **Unified Query Interface** abstracting database-specific operations
-- **Schema Management** with automatic schema discovery and validation
-- **Performance Optimization** with intelligent caching and connection pooling
+- **Full Web Adapter Integration** with FileSystem adapter coordination
+- **Configuration Management** for web sources in existing config system
+- **Performance Testing** ensuring targets are met with web content
+- **Security Validation** with safe content extraction and XSS protection
+- **Production Readiness** including monitoring, logging, and error handling
 
-### Technical Implementation
-```typescript
-interface DatabaseAdapter extends SourceAdapter {
-  // Connection and schema management
-  connect(config: DatabaseConfig): Promise<ConnectionResult>
-  discoverSchema(): Promise<SchemaDefinition>
-  
-  // Query interface
-  queryStructured(query: StructuredQuery): Promise<QueryResult>
-  searchDocuments(criteria: SearchCriteria): Promise<Document[]>
-  
-  // Performance optimization
-  optimizeQueries(queries: Query[]): Promise<OptimizedQuery[]>
-  cacheStrategy(table: string, usage: UsagePattern): CacheConfig
-}
-```
-
-### Database Support
-- **PostgreSQL**: Full-text search, JSON column support, advanced indexing
-- **MongoDB**: Collection discovery, aggregation pipelines, text search
-- **Connection Management**: Connection pooling, failover, health monitoring
-- **Query Optimization**: Intelligent query planning and execution optimization
-- **Data Processing**: Structured data transformation for search indexing
-
-### Performance Targets
-- **Query Response**: <100ms for typical operational data queries
-- **Connection Pooling**: Support 50+ concurrent database connections
-- **Indexing Performance**: <1ms per record for structured data indexing
-- **Memory Usage**: <200MB for database connection and caching layer
+### Integration Testing
+- **Multi-Source Coordination** between FileSystem and Web adapters
+- **Search Result Aggregation** with proper confidence scoring
+- **Caching Strategy** optimized for web content refresh patterns
+- **Error Handling** with graceful degradation when web sources are unavailable
+- **Authentication Testing** with various API providers and auth methods
 
 ### Success Criteria
-- ✅ PostgreSQL and MongoDB adapters operational
-- ✅ Dynamic schema discovery working for both database types
-- ✅ Unified query interface abstracting database differences
-- ✅ Performance optimization with intelligent caching
-- ✅ Enterprise features including connection security and monitoring
+- ✅ Web adapter fully integrated and operational
+- ✅ Configuration system supporting web sources
+- ✅ Performance targets maintained with combined sources
+- ✅ Security features validated against common web threats
+- ✅ Production monitoring and alerting operational
 
 ---
 
-## Milestone 2.5: Integration & Performance Optimization (Week 4)
+## Milestone 2.4: Performance Optimization & Documentation (Week 4)
 **Duration**: September 8-15, 2025  
-**Lead**: Backend Lead + Performance Specialist  
-**Goal**: Multi-source integration testing and performance optimization at scale
+**Lead**: Backend Lead + Technical Writer  
+**Goal**: Performance optimization and comprehensive documentation for Web adapter
 
 ### Core Deliverables
-- **Multi-Source Coordination** with intelligent query routing and result aggregation
-- **Performance Optimization** maintaining targets with multiple active sources
-- **Caching Strategy Enhancement** with cross-source cache coordination
-- **Load Testing** validating performance with realistic enterprise workloads
-- **Monitoring & Observability** with comprehensive metrics and alerting
+- **Performance Tuning** optimizing Web adapter response times and caching
+- **Comprehensive Documentation** including API docs, configuration guides, and examples
+- **Load Testing** validating performance with realistic web content volumes
+- **Monitoring & Alerting** with Web-specific metrics and health checks
+- **Configuration Templates** for common web source scenarios
 
-### Technical Implementation
-```typescript
-interface MultiSourceOrchestrator {
-  // Query routing and coordination
-  routeQuery(query: SearchQuery, sources: SourceAdapter[]): Promise<RoutingStrategy>
-  aggregateResults(results: SourceResult[]): Promise<AggregatedResult>
-  
-  // Performance optimization
-  optimizeMultiSourceQuery(query: Query): Promise<OptimizedQuery>
-  balanceSourceLoad(sources: SourceAdapter[]): Promise<LoadBalanceConfig>
-  
-  // Caching coordination
-  coordinateCache(operation: CacheOperation): Promise<CacheResult>
-  invalidateAcrossSources(key: CacheKey): Promise<void>
-}
-```
+### Documentation Deliverables
+- **Web Adapter API Reference** complete with code examples and use cases
+- **Configuration Guide** with templates for common web source patterns
+- **Security Best Practices** for web content extraction and API integration
+- **Performance Tuning Guide** with optimization recommendations
+- **Troubleshooting Guide** covering common issues and solutions
 
-### Performance Optimization
-- **Query Routing**: Intelligent routing based on query type and source capabilities
-- **Result Aggregation**: Smart merging with relevance scoring and deduplication
-- **Cache Coordination**: Cross-source cache invalidation and warming strategies
-- **Load Balancing**: Dynamic load distribution across multiple sources
+### Performance Optimization Focus
+- **Web Content Caching** optimizing refresh strategies for different content types
+- **Rate Limiting Optimization** balancing speed with respect for web source policies
+- **Memory Usage** minimizing memory footprint for large web content volumes
+- **Error Recovery** improving resilience when web sources are unavailable
 - **Resource Management**: Memory and connection optimization for multi-source operations
 
 ### Load Testing Scenarios
-- **Concurrent Users**: 100+ simultaneous users across multiple sources
-- **Query Volume**: 1000+ queries per minute with mixed complexity
-- **Data Scale**: 100,000+ documents across all sources
-- **Real-time Updates**: Continuous updates across all sources during testing
-- **Failure Scenarios**: Source failures, network issues, and recovery testing
+- **Concurrent Web Requests**: 50+ simultaneous web content extractions
+- **Query Volume**: 500+ queries per minute with web content included
+- **Content Scale**: 10,000+ web documents with various formats
+- **Refresh Testing**: Automated content refresh with various intervals
+- **Failure Scenarios**: Web source failures, timeouts, and recovery testing
 
 ### Success Criteria
-- ✅ Multi-source integration operational with intelligent query routing
-- ✅ Performance targets maintained with all sources active
-- ✅ Load testing validates enterprise-scale performance
-- ✅ Monitoring and observability comprehensive across all sources
-- ✅ Failure recovery and resilience patterns operational
+- ✅ Web adapter fully integrated with existing FileSystem adapter
+- ✅ Performance targets maintained with web content included
+- ✅ Load testing validates web content handling at scale
+- ✅ Comprehensive documentation completed and validated
+- ✅ Production monitoring and alerting operational for web sources
 
 ---
 
 ## Technical Architecture
 
-### Multi-Source Query Engine
+### Dual-Source Query Engine
 ```typescript
 interface QueryEngine {
-  // Unified search interface
+  // Unified search across FileSystem and Web sources
   search(query: UnifiedQuery): Promise<UnifiedResult>
   
   // Source-specific optimization
-  optimizeForSource(query: Query, source: SourceType): OptimizedQuery
+  optimizeForFileSystem(query: Query): OptimizedQuery
+  optimizeForWeb(query: Query): OptimizedQuery
   
-  // Result aggregation and ranking
-  aggregateResults(results: SourceResult[]): AggregatedResult
+  // Result aggregation with confidence scoring
+  aggregateResults(fileResults: FileResult[], webResults: WebResult[]): AggregatedResult
   
   // Performance monitoring
-  trackPerformance(operation: Operation): PerformanceMetrics
+  trackPerformance(operation: Operation, source: SourceType): PerformanceMetrics
 }
 ```
 

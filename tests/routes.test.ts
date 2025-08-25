@@ -211,7 +211,7 @@ describe('REST API Routes Unit Tests (Node.js Test Runner)', () => {
     });
 
     it('should classify service unavailable errors correctly', () => {
-      const serviceError = new Error('Source adapter "confluence" is unavailable');
+      const serviceError = new Error('Source adapter "web" is unavailable');
 
       const isServiceError =
         serviceError.message.includes('unavailable') || serviceError.message.includes('service');

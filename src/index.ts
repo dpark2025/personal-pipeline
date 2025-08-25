@@ -11,24 +11,6 @@ import { personalPipelineServer } from './core/server.js';
 import { logger } from './utils/logger.js';
 import { createSampleConfig } from './utils/config.js';
 
-// Suppress ioredis unhandled error messages to stderr
-const originalStderrWrite = process.stderr.write;
-process.stderr.write = function (chunk: any, encoding?: any, callback?: any) {
-  // Filter out ioredis unhandled error messages
-  if (typeof chunk === 'string' && chunk.includes('[ioredis] Unhandled error event:')) {
-    // Log it properly through our logger instead
-    if (chunk.includes('connect ECONNREFUSED') && chunk.includes('6379')) {
-      logger.debug('Suppressed ioredis unhandled error message', {
-        message: 'Redis connection error handled by connection manager',
-      });
-    }
-    return true; // Suppress the output
-  }
-
-  // For all other stderr output, use the original write function
-  return originalStderrWrite.call(this, chunk, encoding, callback);
-};
-
 /**
  * Main server startup function
  */
@@ -89,19 +71,6 @@ function setupGracefulShutdown(): void {
 
   // Handle uncaught exceptions and rejections
   process.on('uncaughtException', error => {
-    // Check if this is a Redis connection error that we can safely ignore
-    if (
-      error.message &&
-      error.message.includes('connect ECONNREFUSED') &&
-      error.message.includes('6379')
-    ) {
-      logger.debug('Caught Redis connection error at process level', {
-        error: error.message,
-        message: 'This error is handled by the Redis connection manager',
-      });
-      return; // Don't exit for Redis connection errors
-    }
-
     logger.error('Uncaught Exception', {
       error: error.message,
       stack: error.stack,
@@ -110,20 +79,6 @@ function setupGracefulShutdown(): void {
   });
 
   process.on('unhandledRejection', (reason, promise) => {
-    // Check if this is a Redis-related rejection
-    if (
-      reason instanceof Error &&
-      reason.message &&
-      reason.message.includes('connect ECONNREFUSED') &&
-      reason.message.includes('6379')
-    ) {
-      logger.debug('Caught Redis rejection at process level', {
-        reason: reason.message,
-        message: 'This rejection is handled by the Redis connection manager',
-      });
-      return; // Don't exit for Redis connection rejections
-    }
-
     logger.error('Unhandled Rejection', {
       reason: reason instanceof Error ? reason.message : String(reason),
       stack: reason instanceof Error ? reason.stack : undefined,

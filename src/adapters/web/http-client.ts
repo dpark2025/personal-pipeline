@@ -119,7 +119,9 @@ export class HttpClient {
       await this.axiosInstance.get('https://httpbin.org/status/200', { timeout: 5000 });
       this.logger.debug('HTTP client connectivity test passed');
     } catch (error) {
-      this.logger.warn('HTTP client connectivity test failed', { error: error.message });
+      this.logger.warn('HTTP client connectivity test failed', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   }
 
@@ -272,7 +274,7 @@ export class HttpClient {
     const startTime = Date.now();
     
     // Implement retry logic
-    let lastError: Error;
+    let lastError: Error = new Error('Unknown error');
     const maxRetries = request.endpoint.retry_attempts ?? this.options.retryAttempts;
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -327,7 +329,9 @@ export class HttpClient {
 
     // Add authentication
     const authHeaders = await this.authManager.getAuthHeaders(request.source.auth_override);
-    Object.assign(config.headers, authHeaders);
+    if (authHeaders) {
+      config.headers = { ...config.headers, ...authHeaders };
+    }
 
     // Add query parameters
     if (request.endpoint.query_params) {

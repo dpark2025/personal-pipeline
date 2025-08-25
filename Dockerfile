@@ -8,14 +8,15 @@
 # ==============================================================================
 # Build Stage
 # ==============================================================================
-FROM node:18-alpine AS builder
+FROM node:18-slim AS builder
 
 # Install build dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
-    git
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -40,19 +41,19 @@ RUN npm ci --only=production --verbose
 # ==============================================================================
 # Runtime Stage
 # ==============================================================================
-FROM node:18-alpine AS runtime
+FROM node:18-slim AS runtime
 
 # Install runtime dependencies and security updates
-RUN apk update && apk upgrade && \
-    apk add --no-cache \
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y \
     dumb-init \
     curl \
     jq \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S ppuser && \
-    adduser -S ppuser -u 1001 -G ppuser
+RUN groupadd -g 1001 ppuser && \
+    useradd -r -u 1001 -g ppuser ppuser
 
 # Set working directory
 WORKDIR /app
@@ -71,8 +72,8 @@ RUN mkdir -p /app/data /app/cache /app/logs /app/config && \
 
 # Copy default configuration samples
 COPY config/config.sample.yaml /app/config/
-COPY config/github-sample.yaml /app/config/
 COPY config/web-sample.yaml /app/config/
+COPY config/web-simple-sample.yaml /app/config/
 
 # Health check script
 COPY <<EOF /usr/local/bin/healthcheck.sh

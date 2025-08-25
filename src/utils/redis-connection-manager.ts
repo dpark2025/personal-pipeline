@@ -200,7 +200,7 @@ export class RedisConnectionManager extends EventEmitter {
         }
       }
 
-      // Create new Redis instance with lazy connection to prevent unhandled errors
+      // Create new Redis instance with proper error handling configuration
       this.redis = new Redis(this.config.url, {
         connectTimeout: this.config.connection_timeout_ms,
         maxRetriesPerRequest: 0, // Don't retry failed commands
@@ -260,8 +260,12 @@ export class RedisConnectionManager extends EventEmitter {
   private setupRedisEventHandlers(): void {
     if (!this.redis) return;
 
+    // Remove any existing listeners to prevent duplicates
+    this.redis.removeAllListeners();
+
     this.redis.on('ready', () => {
       logger.debug('Redis client ready');
+      this.handleConnectionSuccess();
     });
 
     this.redis.on('connect', () => {
@@ -269,8 +273,11 @@ export class RedisConnectionManager extends EventEmitter {
     });
 
     // Handle all errors to prevent unhandled error events
-    this.redis.on('error', error => {
-      // Prevent this error from becoming unhandled
+    this.redis.on('error', (error: Error) => {
+      // This handler MUST be synchronous and handle ALL errors
+      // to prevent them from becoming unhandled
+      this.handleConnectionFailure(error);
+      
       // Log level depends on circuit breaker state and failure count
       if (this.state === ConnectionState.CIRCUIT_OPEN) {
         // Circuit breaker is open, log at trace level to reduce spam
@@ -294,6 +301,9 @@ export class RedisConnectionManager extends EventEmitter {
           consecutiveFailures: this.consecutiveFailures,
         });
       }
+      
+      // Prevent error propagation
+      return;
     });
 
     this.redis.on('close', () => {

@@ -314,6 +314,10 @@ export const CacheConfig = z.object({
       ttl_seconds: z.number().default(900),
       warmup: z.boolean().default(false),
     }),
+    web_response: z.object({
+      ttl_seconds: z.number().default(1800),
+      warmup: z.boolean().default(false),
+    }),
   }),
 });
 export type CacheConfig = z.infer<typeof CacheConfig>;

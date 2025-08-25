@@ -14,7 +14,7 @@
  */
 
 import { Logger } from 'winston';
-import { CacheService } from '../../../utils/cache.js';
+import { CacheService } from '../../utils/cache.js';
 
 export interface CacheManagerOptions {
   defaultTtl: string;
@@ -186,8 +186,7 @@ export class CacheManager {
         try {
           await this.globalCache.set(
             { type: 'web_response', identifier: key }, 
-            data,
-            ttlMs
+            data
           );
         } catch (error: any) {
           this.logger.warn('Global cache set failed', {
@@ -255,7 +254,7 @@ export class CacheManager {
       // Clear global cache if available
       if (this.globalCache) {
         try {
-          await this.globalCache.clearPattern('web_response:*');
+          await this.globalCache.clearByType('web_response');
         } catch (error: any) {
           this.logger.warn('Global cache clear failed', {
             error: error.message

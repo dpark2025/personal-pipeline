@@ -990,6 +990,10 @@ export class PersonalPipelineServer {
             ttl_seconds: 900,
             warmup: false,
           },
+          web_response: {
+            ttl_seconds: 1800,
+            warmup: false,
+          },
         },
       };
 

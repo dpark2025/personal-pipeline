@@ -7,36 +7,25 @@ server:
   request_timeout_ms: 30000
   health_check_interval_ms: 60000
 sources:
-  - name: confluence-ops
-    type: confluence
-    base_url: https://your-company.atlassian.net/wiki
-    auth:
-      type: bearer_token
-      token_env: CONFLUENCE_TOKEN
-    refresh_interval: 1h
+  - name: local-runbooks
+    type: file
+    base_url: ./runbooks
+    refresh_interval: 5m
     priority: 1
     enabled: true
-    timeout_ms: 30000
-    max_retries: 3
-  - name: github-docs
-    type: github
-    base_url: https://api.github.com/repos/your-org/docs
+    timeout_ms: 5000
+    max_retries: 1
+  - name: company-wiki
+    type: web
+    base_url: https://wiki.company.com/api/v1/pages
     auth:
       type: bearer_token
-      token_env: GITHUB_TOKEN
+      token_env: WIKI_API_TOKEN
     refresh_interval: 30m
     priority: 2
     enabled: true
     timeout_ms: 15000
     max_retries: 2
-  - name: local-runbooks
-    type: file
-    base_url: ./runbooks
-    refresh_interval: 5m
-    priority: 3
-    enabled: true
-    timeout_ms: 5000
-    max_retries: 1
     # Enhanced FileSystem Adapter features
     watch_changes: true              # Monitor file changes for real-time updates
     pdf_extraction: true             # Extract text from PDF files

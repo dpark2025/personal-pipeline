@@ -16,8 +16,11 @@
       "Bash(npm run test-mcp:*)",
       "Bash(npm run generate-sample-data:*)",
       "Bash(npm run validate-config:*)",
-      "mcp__serena__check_onboarding_performed"
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__read_memory",
+      "mcp__serena__get_symbols_overview"
     ],
     "deny": []
-  }
+  },
+  "outputStyle": "default"
 }
