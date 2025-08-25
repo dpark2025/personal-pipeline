@@ -107,7 +107,7 @@ export class UrlManager {
       const url = new URL(endpoint.path, baseUrl);
       
       // Apply parameter substitution
-      let finalUrl = this.processUrlTemplate(url.href, params);
+      const finalUrl = this.processUrlTemplate(url.href, params);
       
       this.logger.debug('Built endpoint URL', {
         source: source.name,
@@ -186,7 +186,7 @@ export class UrlManager {
       const urls: string[] = [];
       
       const stateKey = `${source.name}:${endpoint.name}`;
-      let state = this.paginationState.get(stateKey) || {
+      const state = this.paginationState.get(stateKey) || {
         currentPage: startPage,
         hasMore: true
       };

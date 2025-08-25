@@ -776,11 +776,11 @@ export class ContentExtractor {
     if (data.label) return String(data.label);
     
     // Look in common XML structures
-    if (data.rss && data.rss.channel && data.rss.channel.title) {
+    if (data.rss?.channel?.title) {
       return String(data.rss.channel.title);
     }
     
-    if (data.feed && data.feed.title) {
+    if (data.feed?.title) {
       return String(data.feed.title);
     }
     

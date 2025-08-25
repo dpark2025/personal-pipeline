@@ -33,19 +33,41 @@ describe('WebAdapter (Node.js Test Runner)', () => {
     mockConfig = {
       name: 'test-web',
       type: 'web',
-      base_urls: ['https://example.com'],
-      max_depth: 1,
-      rate_limit: {
-        requests_per_second: 10, // Faster for tests
-        concurrent_requests: 2,
-      },
-      cache_ttl: '5m',
-      respect_robots_txt: false, // Disable for tests
       refresh_interval: '1h',
       priority: 1,
       enabled: true,
       timeout_ms: 30000,
       max_retries: 3,
+      sources: [{
+        name: 'test-source',
+        type: 'scraping',
+        base_url: 'https://example.com',
+        endpoints: [{
+          name: 'test-endpoint',
+          path: '/',
+          method: 'GET',
+          content_type: 'html'
+        }]
+      }],
+      performance: {
+        default_timeout_ms: 15000,
+        max_concurrent_requests: 2,
+        default_retry_attempts: 2,
+        default_cache_ttl: '5m',
+        user_agent: 'PersonalPipeline-Test/1.0'
+      },
+      content_processing: {
+        max_content_size_mb: 5,
+        follow_redirects: true,
+        validate_ssl: false, // Disable for tests
+        extract_links: false,
+        respect_robots: false
+      },
+      rate_limiting: {
+        global_requests_per_minute: 100,
+        per_source_requests_per_minute: 30,
+        burst_allowance: 10
+      }
     };
 
     adapter = new WebAdapter(mockConfig);
@@ -66,22 +88,51 @@ describe('WebAdapter (Node.js Test Runner)', () => {
       const minimalConfig = {
         name: 'minimal-web',
         type: 'web',
-        base_urls: ['https://example.com'],
         refresh_interval: '1h',
         priority: 1,
         enabled: true,
         timeout_ms: 30000,
         max_retries: 3,
+        sources: [{
+          name: 'minimal-source',
+          type: 'scraping',
+          base_url: 'https://example.com',
+          endpoints: [{
+            name: 'minimal-endpoint',
+            path: '/',
+            method: 'GET',
+            content_type: 'html'
+          }]
+        }],
+        performance: {
+          default_timeout_ms: 15000,
+          max_concurrent_requests: 2,
+          default_retry_attempts: 2,
+          default_cache_ttl: '5m',
+          user_agent: 'PersonalPipeline-Test/1.0'
+        },
+        content_processing: {
+          max_content_size_mb: 5,
+          follow_redirects: true,
+          validate_ssl: false,
+          extract_links: false,
+          respect_robots: false
+        },
+        rate_limiting: {
+          global_requests_per_minute: 100,
+          per_source_requests_per_minute: 30,
+          burst_allowance: 10
+        }
       };
 
       const minimalAdapter = new WebAdapter(minimalConfig);
       const config = minimalAdapter.config;
 
-      assert.strictEqual(config.max_depth, 1);
-      assert.strictEqual(config.rate_limit.requests_per_second, 2);
-      assert.strictEqual(config.rate_limit.concurrent_requests, 3);
-      assert.strictEqual(config.respect_robots_txt, true);
-      assert.strictEqual(config.max_urls_per_domain, 100);
+      assert.strictEqual(config.name, 'minimal-web');
+      assert.strictEqual(config.type, 'web');
+      assert.strictEqual(config.performance.default_timeout_ms, 15000);
+      assert.strictEqual(config.content_processing.follow_redirects, true);
+      assert.strictEqual(config.rate_limiting.global_requests_per_minute, 100);
     });
   });
 

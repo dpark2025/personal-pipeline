@@ -161,25 +161,25 @@ export class VisualInterface {
     });
     
     // Create separator
-    const separator = '┌' + colWidths.map(w => '─'.repeat(w + 2)).join('┬') + '┐';
-    const middleSep = '├' + colWidths.map(w => '─'.repeat(w + 2)).join('┼') + '┤';
-    const bottomSep = '└' + colWidths.map(w => '─'.repeat(w + 2)).join('┴') + '┘';
+    const separator = `┌${  colWidths.map(w => '─'.repeat(w + 2)).join('┬')  }┐`;
+    const middleSep = `├${  colWidths.map(w => '─'.repeat(w + 2)).join('┼')  }┤`;
+    const bottomSep = `└${  colWidths.map(w => '─'.repeat(w + 2)).join('┴')  }┘`;
     
-    let table = separator + '\n';
+    let table = `${separator  }\n`;
     
     // Add headers
-    const headerRow = '│' + headers.map((header, i) => 
+    const headerRow = `│${  headers.map((header, i) => 
       ` ${chalk.bold(header.padEnd(colWidths[i]!))} `
-    ).join('│') + '│';
-    table += headerRow + '\n' + middleSep + '\n';
+    ).join('│')  }│`;
+    table += `${headerRow  }\n${  middleSep  }\n`;
     
     // Add rows
     rows.forEach(row => {
-      const tableRow = '│' + row.map((cell, i) => {
+      const tableRow = `│${  row.map((cell, i) => {
         const paddedCell = cell + ' '.repeat(Math.max(0, colWidths[i]! - getDisplayWidth(cell)));
         return ` ${paddedCell} `;
-      }).join('│') + '│';
-      table += tableRow + '\n';
+      }).join('│')  }│`;
+      table += `${tableRow  }\n`;
     });
     
     table += bottomSep;
@@ -194,7 +194,7 @@ export class VisualInterface {
     const timeColor = responseTime < 100 ? 'green' : responseTime < 500 ? 'yellow' : 'red';
     
     console.log(chalk.bold('\n📊 Response Details:'));
-    console.log(`⏱️  Response time: ${chalk[timeColor](responseTime + 'ms')}`);
+    console.log(`⏱️  Response time: ${chalk[timeColor](`${responseTime  }ms`)}`);
     console.log(`🆔 Request ID: ${chalk.gray(response.requestId)}`);
     
     if (response.success) {
@@ -208,7 +208,7 @@ export class VisualInterface {
       if (response.result.confidence_score) {
         const confidence = response.result.confidence_score;
         const confidenceColor = confidence > 0.8 ? 'green' : confidence > 0.6 ? 'yellow' : 'red';
-        console.log(`\n🎯 Confidence: ${chalk[confidenceColor]((confidence * 100).toFixed(1) + '%')}`);
+        console.log(`\n🎯 Confidence: ${chalk[confidenceColor](`${(confidence * 100).toFixed(1)  }%`)}`);
       }
       
     } else {
@@ -225,14 +225,14 @@ export class VisualInterface {
     
     if (typeof data === 'object' && data !== null) {
       if (Array.isArray(data)) {
-        console.log(indentStr + '[');
+        console.log(`${indentStr  }[`);
         data.forEach((item, index) => {
           this.displayFormattedJSON(item, indent + 1);
           if (index < data.length - 1) console.log(',');
         });
-        console.log(indentStr + ']');
+        console.log(`${indentStr  }]`);
       } else {
-        console.log(indentStr + '{');
+        console.log(`${indentStr  }{`);
         const entries = Object.entries(data);
         entries.forEach(([key, value], index) => {
           process.stdout.write(`${indentStr}  ${chalk.blue(`"${key}"`)}: `);
@@ -244,7 +244,7 @@ export class VisualInterface {
           }
           if (index < entries.length - 1) console.log(',');
         });
-        console.log(indentStr + '}');
+        console.log(`${indentStr  }}`);
       }
     } else {
       const valueColor = typeof data === 'string' ? 'green' : 
@@ -315,8 +315,8 @@ export class VisualInterface {
     
     console.log(chalk.bold('Overall Statistics:'));
     console.log(`📈 Total Requests: ${chalk.cyan(totalRequests)}`);
-    console.log(`⚡ Avg Response Time: ${chalk.cyan(avgResponseTime.toFixed(1) + 'ms')}`);
-    console.log(`✅ Success Rate: ${chalk.green((successRate * 100).toFixed(1) + '%')}\n`);
+    console.log(`⚡ Avg Response Time: ${chalk.cyan(`${avgResponseTime.toFixed(1)  }ms`)}`);
+    console.log(`✅ Success Rate: ${chalk.green(`${(successRate * 100).toFixed(1)  }%`)}\n`);
     
     // Tool-specific stats
     const toolStats = analytics.getToolStats();
@@ -326,10 +326,10 @@ export class VisualInterface {
       const statsTable = Object.entries(toolStats).map(([tool, stats]: [string, any]) => [
         chalk.bold(tool),
         chalk.cyan(stats.calls.toString()),
-        chalk.cyan(stats.avgTime.toFixed(1) + 'ms'),
-        stats.successRate >= 0.9 ? chalk.green((stats.successRate * 100).toFixed(1) + '%') :
-        stats.successRate >= 0.7 ? chalk.yellow((stats.successRate * 100).toFixed(1) + '%') :
-        chalk.red((stats.successRate * 100).toFixed(1) + '%')
+        chalk.cyan(`${stats.avgTime.toFixed(1)  }ms`),
+        stats.successRate >= 0.9 ? chalk.green(`${(stats.successRate * 100).toFixed(1)  }%`) :
+        stats.successRate >= 0.7 ? chalk.yellow(`${(stats.successRate * 100).toFixed(1)  }%`) :
+        chalk.red(`${(stats.successRate * 100).toFixed(1)  }%`)
       ]);
       
       console.log(this.formatTable(['Tool', 'Calls', 'Avg Time', 'Success Rate'], statsTable));
@@ -360,20 +360,20 @@ export class VisualInterface {
     console.log(chalk.bold('═'.repeat(50)));
     
     // Overall results
-    console.log(`🕒 Duration: ${chalk.cyan(duration + 'ms')}`);
+    console.log(`🕒 Duration: ${chalk.cyan(`${duration  }ms`)}`);
     console.log(`📊 Total Tests: ${chalk.cyan(results.total)}`);
     console.log(`✅ Passed: ${chalk.green(results.passed)}`);
     console.log(`❌ Failed: ${chalk.red(results.failed)}`);
     
     const successColor = successRate >= 90 ? 'green' : successRate >= 70 ? 'yellow' : 'red';
-    console.log(`📈 Success Rate: ${chalk[successColor](successRate.toFixed(1) + '%')}`);
+    console.log(`📈 Success Rate: ${chalk[successColor](`${successRate.toFixed(1)  }%`)}`);
     
     // Performance summary
     const avgResponseTime = results.tests
       .filter((test: any) => test.success)
       .reduce((sum: number, test: any) => sum + test.responseTime, 0) / results.passed;
     
-    console.log(`⚡ Avg Response Time: ${chalk.cyan(avgResponseTime.toFixed(1) + 'ms')}`);
+    console.log(`⚡ Avg Response Time: ${chalk.cyan(`${avgResponseTime.toFixed(1)  }ms`)}`);
     
     // Failed tests details
     const failedTests = results.tests.filter((test: any) => !test.success);
@@ -454,8 +454,8 @@ export class VisualInterface {
     const avgTime = analytics.getAverageResponseTime();
     const successRate = analytics.getSuccessRate();
     
-    console.log(chalk.gray('Quick Stats: ') + 
-      `${totalRequests} requests • ` +
+    console.log(`${chalk.gray('Quick Stats: ')  
+      }${totalRequests} requests • ` +
       `${avgTime.toFixed(0)}ms avg • ` +
       `${(successRate * 100).toFixed(0)}% success • ` +
       `${favoritesCount} favorites`);
@@ -479,6 +479,6 @@ export class VisualInterface {
     if (text.length <= maxLength) {
       return text;
     }
-    return text.substring(0, maxLength - 3) + '...';
+    return `${text.substring(0, maxLength - 3)  }...`;
   }
 }

@@ -17,9 +17,7 @@ import {
   DocumentationIndexer, 
   ProgressTracker, 
   ChangeDetectionService,
-  IndexerConfig,
-  DocumentFingerprint,
-  ChangeSet
+  IndexerConfig
 } from '../../../scripts/index-docs.js';
 import { ConfigManager } from '../../../src/utils/config.js';
 import { CacheService } from '../../../src/utils/cache.js';

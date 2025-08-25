@@ -123,7 +123,7 @@ export class AutoCompleter {
     const { toolName, parameterName, partialValue } = parameterContext;
     const tool = this.tools[toolName];
     
-    if (!tool || !tool.parameters[parameterName]) {
+    if (!tool?.parameters[parameterName]) {
       return [[], partialValue];
     }
     
@@ -364,7 +364,7 @@ export class AutoCompleter {
     const formatted = suggestions.map((suggestion, _index) => {
       const tool = this.tools[suggestion];
       if (tool) {
-        return `${chalk.cyan(suggestion)} ${chalk.gray('- ' + tool.description)}`;
+        return `${chalk.cyan(suggestion)} ${chalk.gray(`- ${  tool.description}`)}`;
       }
       return chalk.cyan(suggestion);
     });

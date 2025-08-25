@@ -191,10 +191,10 @@ export class ConfigManager {
       try {
         require('fs').accessSync(configDirPath);
         logger.debug('Resolved relative path (config dir)', {
-          sourceName: sourceName,
-          originalPath: originalPath,
+          sourceName,
+          originalPath,
           resolvedPath: configDirPath,
-          configDir: configDir,
+          configDir,
         });
         return configDirPath;
       } catch {
@@ -202,19 +202,19 @@ export class ConfigManager {
         try {
           require('fs').accessSync(configParentPath);
           logger.debug('Resolved relative path (config parent)', {
-            sourceName: sourceName,
-            originalPath: originalPath,
+            sourceName,
+            originalPath,
             resolvedPath: configParentPath,
-            configDirParent: configDirParent,
+            configDirParent,
           });
           return configParentPath;
         } catch {
           // Neither path exists, default to config parent and let the adapter handle the error
           logger.warn('Path does not exist relative to config dir or parent, using config parent', {
-            sourceName: sourceName,
-            originalPath: originalPath,
-            configDirPath: configDirPath,
-            configParentPath: configParentPath,
+            sourceName,
+            originalPath,
+            configDirPath,
+            configParentPath,
           });
           return configParentPath;
         }

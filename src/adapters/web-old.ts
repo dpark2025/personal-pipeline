@@ -688,7 +688,7 @@ export class WebAdapter extends SourceAdapter {
 
     // Add search query for GET requests
     if (query && endpoint.method === 'GET') {
-      config.params = { ...config.params, q: query, query: query, search: query };
+      config.params = { ...config.params, q: query, query, search: query };
     }
 
     // Add API key as query parameter if configured

@@ -299,7 +299,7 @@ export class IntelligentSearchEngine {
 
     // Convert SearchResult to Runbook and apply runbook-specific scoring
     return results
-      .filter(result => result.metadata && result.metadata.runbook_data)
+      .filter(result => result.metadata?.runbook_data)
       .map(result => result.metadata!.runbook_data as Runbook)
       .sort((a, b) => this.calculateRunbookRelevanceScore(b, operationalContext) - 
                       this.calculateRunbookRelevanceScore(a, operationalContext));

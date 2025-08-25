@@ -5,8 +5,7 @@
  * Provides factory functions for creating realistic test scenarios.
  */
 
-import { createCacheKey } from '../../src/utils/cache.js';
-import type { CacheKey } from '../../src/utils/cache.js';
+import { createCacheKey, type CacheKey } from '../../src/utils/cache.js';
 
 /**
  * Generate test runbook data

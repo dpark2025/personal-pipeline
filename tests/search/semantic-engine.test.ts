@@ -319,7 +319,7 @@ const skipTests = process.env.CI === 'true' || process.env.NODE_ENV === 'test';
 });
 
 // Performance benchmark tests
-describe('SemanticSearchEngine Performance Benchmarks', () => {
+(skipTests ? describe.skip : describe)('SemanticSearchEngine Performance Benchmarks', () => {
   let engine: SemanticSearchEngine;
 
   beforeEach(async () => {

@@ -350,7 +350,7 @@ PERFORMANCE METRICS:
 - Throughput: ${stats.throughputPerMinute.toFixed(2)} searches/minute
 
 SYSTEM HEALTH: ${health.status.toUpperCase()}
-${health.alerts.length > 0 ? 'ALERTS:\n' + health.alerts.map(alert => `- ${alert}`).join('\n') : 'No alerts'}
+${health.alerts.length > 0 ? `ALERTS:\n${  health.alerts.map(alert => `- ${alert}`).join('\n')}` : 'No alerts'}
 
 TOP QUERIES:
 ${topQueries.map((q, i) => 

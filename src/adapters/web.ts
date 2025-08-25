@@ -21,7 +21,7 @@ import { logger } from '../utils/logger.js';
 import { Logger } from 'winston';
 import axios, { AxiosInstance } from 'axios';
 import * as cheerio from 'cheerio';
-import * as TurndownService from 'turndown';
+import TurndownService from 'turndown';
 
 // Use existing WebConfig type instead of defining our own
 
@@ -62,7 +62,7 @@ export class WebAdapter extends SourceAdapter {
     });
 
     // Initialize HTML to Markdown converter
-    this.turndownService = new (TurndownService as any)({
+    this.turndownService = new TurndownService({
       headingStyle: 'atx',
       codeBlockStyle: 'fenced'
     });
@@ -441,7 +441,7 @@ export class WebAdapter extends SourceAdapter {
       
       // Construct URL from base + path
       const baseUrl = source.base_url.endsWith('/') ? source.base_url.slice(0, -1) : source.base_url;
-      const path = endpoint.path.startsWith('/') ? endpoint.path : '/' + endpoint.path;
+      const path = endpoint.path.startsWith('/') ? endpoint.path : `/${  endpoint.path}`;
       const url = baseUrl + path;
       
       // Apply parameter substitution

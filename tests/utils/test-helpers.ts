@@ -7,7 +7,7 @@
 
 import { CacheService } from '../../src/utils/cache.js';
 import type { CacheConfig } from '../../src/types/index.js';
-import { memoryOnlyCacheConfig, hybridCacheConfig } from './test-configs.js';
+import { memoryOnlyCacheConfig } from './test-configs.js';
 
 /**
  * Service cleanup tracking for proper test isolation
@@ -37,9 +37,9 @@ export async function waitForServiceInitialization(
   const {
     maxAttempts = 20,
     intervalMs = 50,
-    checkFunction = service => {
+    checkFunction = _service => {
       try {
-        const stats = service.getStats();
+        const stats = _service.getStats();
         return typeof stats.redis_connected === 'boolean';
       } catch {
         return false;
@@ -119,7 +119,7 @@ export async function retryOperation<T>(
     initialDelayMs?: number;
     maxDelayMs?: number;
     backoffMultiplier?: number;
-    shouldRetry?: (error: any) => boolean;
+    shouldRetry?: (_error: any) => boolean;
   } = {}
 ): Promise<T> {
   const {

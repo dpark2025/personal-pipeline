@@ -13,7 +13,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { WebAdapter } from '../../../src/adapters/web.js';
 import { CacheService } from '../../../src/utils/cache.js';
-import type { WebConfig, SearchFilters } from '../../../src/types/index.js';
+import type { WebConfig } from '../../../src/types/index.js';
 
 // ============================
 // Test Configuration & Setup
@@ -76,12 +76,12 @@ const createTestWebConfig = (): WebConfig => ({
 
 // Mock cache service for testing
 const createMockCache = () => ({
-  get: async (key: string) => null,
-  set: async (key: string, value: any, ttl?: string) => {},
-  delete: async (key: string) => {},
+  get: async (_key: string) => null,
+  set: async (_key: string, _value: any, _ttl?: string) => {},
+  delete: async (_key: string) => {},
   clear: async () => {},
-  keys: async (pattern?: string) => [],
-  ttl: async (key: string) => 0,
+  keys: async (_pattern?: string) => [],
+  ttl: async (_key: string) => 0,
   healthCheck: async () => ({ healthy: true, latency_ms: 1 }),
   getStats: () => ({ hits: 0, misses: 0, sets: 0, deletes: 0, size: 0 })
 });
@@ -380,7 +380,7 @@ describe('WebAdapter - Rate Limiting & Performance', () => {
     // Test timeout handling (this will likely timeout quickly due to short timeout)
     const startTime = Date.now();
     const results = await timeoutAdapter.search('test query');
-    const duration = Date.now() - startTime;
+    const _duration = Date.now() - startTime;
     
     // Should return empty results for timeout scenarios
     assert.ok(Array.isArray(results));

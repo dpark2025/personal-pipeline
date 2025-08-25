@@ -260,7 +260,7 @@ export class QueryProcessor {
           processingId,
           targetTime: `${this.config.performance.targetProcessingTime}ms`,
           actualTime: `${totalProcessingTime.toFixed(2)}ms`,
-          query: query.substring(0, 50) + '...',
+          query: `${query.substring(0, 50)  }...`,
         });
       } else {
         logger.debug('Query processing completed within target', {

@@ -270,7 +270,7 @@ export class SemanticSearchEngine {
     
     // Convert SearchResult to Runbook (assumes runbook data is in metadata)
     return results
-      .filter(result => result.metadata && result.metadata.runbook_data)
+      .filter(result => result.metadata?.runbook_data)
       .map(result => result.metadata!.runbook_data as Runbook);
   }
 

@@ -66,7 +66,7 @@ function generateTestDocuments(count: number): SearchResult[] {
     documents.push({
       id: `perf-doc-${i}`,
       title: `Performance Test Document ${i}`,
-      content: content + ` Additional context and detailed procedures for document ${i}.`,
+      content: `${content  } Additional context and detailed procedures for document ${i}.`,
       source: 'performance-test',
       source_type: 'file',
       confidence_score: 0.8,
