@@ -205,11 +205,11 @@ packages:
     unpublish: \$authenticated
     proxy: npmjs
 log:
-  - {type: stdout, format: pretty, level: warn}
+  - {type: stdout, format: pretty, level: error}
 EOF
 
-  # Start verdaccio
-  verdaccio --config "$config_file" --listen "http://localhost:$TEMP_REGISTRY_PORT" &
+  # Start verdaccio (silently)
+  verdaccio --config "$config_file" --listen "http://localhost:$TEMP_REGISTRY_PORT" >/dev/null 2>&1 &
   local registry_pid=$!
   REGISTRY_PID=$registry_pid  # Store in global variable for cleanup
   
