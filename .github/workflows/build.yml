@@ -458,7 +458,7 @@ jobs:
   quality-gates:
     name: Build Quality Gates
     runs-on: ubuntu-latest
-    needs: [prepare, npm-build, docker-build]
+    needs: [prepare, npm-build]
     
     steps:
       - name: Download build artifacts
@@ -568,12 +568,13 @@ jobs:
           MANIFEST_STATUS="${{ needs.docker-manifest.result }}"
           QUALITY_STATUS="${{ needs.quality-gates.result }}"
           
-          if [[ "$NPM_STATUS" == "success" && "$DOCKER_STATUS" == "success" && "$MANIFEST_STATUS" == "success" && "$QUALITY_STATUS" == "success" ]]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-            echo "message=All builds completed successfully!" >> $GITHUB_OUTPUT
-          else
+          # Check for actual failures (skipped jobs don't count as failures)
+          if [[ "$NPM_STATUS" == "failure" || "$DOCKER_STATUS" == "failure" || "$MANIFEST_STATUS" == "failure" || "$QUALITY_STATUS" == "failure" ]]; then
             echo "status=failure" >> $GITHUB_OUTPUT
             echo "message=Some builds failed. Check the workflow for details." >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=All enabled builds completed successfully!" >> $GITHUB_OUTPUT
           fi
       
       - name: Build notification
