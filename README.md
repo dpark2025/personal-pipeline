@@ -305,6 +305,60 @@ Personal Pipeline is committed to remaining open source. We believe in:
 - 40% MTTR reduction through automation
 - Real-time sync across all sources
 
+## 📁 Important Files & Scripts
+
+### 🔧 CI/CD Automation Scripts
+
+The project includes **47 specialized scripts** across 6 categories that power our enterprise-grade automation:
+
+| **Script Name** | **Type** | **Used in Workflow** | **Primary Purpose** | **Description** |
+|-----------------|----------|---------------------|-------------------|-----------------|
+| **`test-package.sh`** | Shell | ✅ build.yml, ci.yml | Package Validation | Comprehensive package testing including local/global installation, CLI testing, and integrity checks (642 lines) |
+| **`build-package.sh`** | Shell | ✅ ci.yml | Build & Package | Production build process with TypeScript compilation and optimization |
+| **`semantic-release.js`** | Node.js | ✅ enhanced-release.yml | Release Automation | Semantic versioning and automated release note generation |
+| **`github-release.js`** | Node.js | ✅ enhanced-release.yml | GitHub Integration | Creates GitHub releases with automated release notes |
+| **`version.sh`** | Shell | ✅ version.yml, release.yml | Version Management | Handles semantic versioning (patch, minor, major, prerelease) |
+
+### 📊 Script Categories Overview
+
+| **Category** | **Count** | **Purpose** |
+|--------------|-----------|-------------|
+| **Build & Package** | 6 | Building, packaging, and publishing workflows |
+| **Testing & Validation** | 12 | Package testing, integration testing, performance validation |
+| **CI/CD & Release** | 8 | Continuous integration and automated releases |
+| **Demo & Setup** | 6 | Demo environment management and setup |
+| **Performance & Monitoring** | 8 | Performance testing and monitoring |
+| **Documentation & Data** | 7 | Data generation and documentation management |
+
+### 🎯 Workflow Integration Matrix
+
+| **Workflow File** | **Scripts Used** | **Trigger** | **Purpose** |
+|-------------------|------------------|-------------|-------------|
+| **`build.yml`** | `test-package.sh --full` | Push to main, PR | Full package validation and testing |
+| **`ci.yml`** | `build-package.sh --dev`, `test-package.sh --quick`, size analysis | Push, PR | Continuous integration testing |
+| **`enhanced-release.yml`** | `semantic-release.js`, `github-release.js` | Manual dispatch | Automated release management |
+| **`version.yml`** | `version.sh` with version args | Manual dispatch | Version bumping and tagging |
+| **`release.yml`** | `version.sh --skip-git` | Manual dispatch | Release preparation |
+
+### 🚀 Key Script Features
+
+**Most Critical Scripts:**
+- **`test-package.sh`**: 642 lines of comprehensive validation including tarball creation, installation testing, CLI functionality, and integrity checks
+- **`mcp-explorer.ts`**: Interactive MCP testing tool with 24/24 test scenarios passing
+- **`setup-demo.sh`**: Full demo environment with Redis, performance monitoring, and sample data
+- **`build-package.sh`**: Production build with optimization and size analysis
+
+**Script Languages:**
+- **Shell Scripts (.sh)**: 18 scripts - Infrastructure, setup, testing
+- **JavaScript (.js)**: 16 scripts - Application logic, validation, benchmarking  
+- **TypeScript (.ts)**: 13 scripts - Advanced tooling, integration tests, MCP tools
+
+**Advanced Features:**
+- All scripts support CLI flags for different execution modes (`--quick`, `--full`, `--verbose`, `--production`)
+- Proper error handling and exit codes for seamless CI/CD integration
+- Comprehensive logging with color-coded output and progress indicators
+- Automatic cleanup and resource management
+
 ---
 
 **🏆 Phase 1: Mission Accomplished with Distinction** | **🚀 Ready for Phase 2** | **🌟 Built for Excellence**

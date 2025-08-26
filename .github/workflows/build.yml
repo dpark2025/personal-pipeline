@@ -171,6 +171,7 @@ jobs:
       
       - name: Pre-build validation
         run: |
+          set -e  # Exit immediately on any error
           echo "🔍 Pre-build validation..."
           npm run lint -- --quiet
           npm run typecheck
@@ -199,6 +200,7 @@ jobs:
       
       - name: Validate package
         run: |
+          set -e  # Exit immediately on any error
           echo "🧪 Validating package..."
           bash scripts/test-package.sh --full
       
@@ -429,7 +431,6 @@ jobs:
     name: Build Quality Gates
     runs-on: ubuntu-latest
     needs: [prepare, npm-build, docker-build]
-    if: always()
     
     steps:
       - name: Download build artifacts
