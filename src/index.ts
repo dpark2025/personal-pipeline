@@ -1,5 +1,5 @@
 /**
- * Personal Pipeline MCP Server - Main Entry Point
+ * Personal Pipeline MCP Server - Main Entry Point 
  *
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
