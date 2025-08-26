@@ -1,16 +1,4 @@
-/**
- * Personal Pipeline MCP Server - Main Entry Point
- *
- * Intelligent MCP server for documentation retrieval and incident response.
- * Provides structured access to operational runbooks, procedures, and
- * 
- * BUILD TRIGGER: Replace import tests with service functionality tests
- * decision trees through the Model Context Protocol.
- * 
- * Build trigger: Debug package validation errors - import test failure (adapter list fix)
- */
-
-// Polyfill for Node.js compatibility with undici/web APIs
+// Polyfill for Node.js compatibility with undici/web APIs - MUST BE FIRST
 if (typeof globalThis.File === 'undefined') {
   // Basic File polyfill for Node.js environment
   globalThis.File = class File {
@@ -21,6 +9,36 @@ if (typeof globalThis.File === 'undefined') {
     }
   } as any;
 }
+
+// Additional web API polyfills for undici compatibility
+if (typeof globalThis.Blob === 'undefined') {
+  globalThis.Blob = class Blob {
+    constructor(parts: any[] = [], options: any = {}) {
+      Object.defineProperty(this, 'size', { value: 0, enumerable: true });
+      Object.defineProperty(this, 'type', { value: options.type || '', enumerable: true });
+    }
+  } as any;
+}
+
+if (typeof globalThis.FormData === 'undefined') {
+  globalThis.FormData = class FormData {
+    private data = new Map();
+    append(name: string, value: any) { this.data.set(name, value); }
+    get(name: string) { return this.data.get(name); }
+  } as any;
+}
+
+/**
+ * Personal Pipeline MCP Server - Main Entry Point
+ *
+ * Intelligent MCP server for documentation retrieval and incident response.
+ * Provides structured access to operational runbooks, procedures, and
+ * 
+ * BUILD TRIGGER: Disable Docker build, fix File API polyfill placement
+ * decision trees through the Model Context Protocol.
+ * 
+ * Build trigger: Debug package validation errors - import test failure (adapter list fix)
+ */
 
 import 'dotenv/config';
 import { personalPipelineServer } from './core/server.js';
