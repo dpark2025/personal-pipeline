@@ -432,9 +432,13 @@ export class CacheService {
       });
 
       this.redisManager.on('connectionFailed', (error: Error) => {
-        logger.debug('Redis connection attempt failed', {
-          error: error.message,
-        });
+        // Only log Redis connection failures if not in test mode with error-level logging
+        const isTestEnv = process.env.NODE_ENV === 'test' || process.env.LOG_LEVEL === 'error';
+        if (!isTestEnv) {
+          logger.debug('Redis connection attempt failed', {
+            error: error.message,
+          });
+        }
       });
 
       this.redisManager.on('circuitOpened', () => {

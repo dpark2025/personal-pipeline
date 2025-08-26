@@ -52,6 +52,13 @@ const fileFormat = winston.format.combine(
 
 // Determine log level based on environment
 const level = () => {
+  // Check LOG_LEVEL environment variable first
+  const logLevel = process.env.LOG_LEVEL;
+  if (logLevel && ['error', 'warn', 'info', 'http', 'debug'].includes(logLevel.toLowerCase())) {
+    return logLevel.toLowerCase();
+  }
+  
+  // Fallback to NODE_ENV-based logic
   const env = process.env.NODE_ENV || 'development';
   const isDevelopment = env === 'development';
   return isDevelopment ? 'debug' : 'info';

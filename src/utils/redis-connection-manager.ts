@@ -278,28 +278,33 @@ export class RedisConnectionManager extends EventEmitter {
       // to prevent them from becoming unhandled
       this.handleConnectionFailure(error);
       
-      // Log level depends on circuit breaker state and failure count
-      if (this.state === ConnectionState.CIRCUIT_OPEN) {
-        // Circuit breaker is open, log at trace level to reduce spam
-        logger.debug('Redis client error (circuit open)', {
-          error: error.message,
-          state: this.state,
-          consecutiveFailures: this.consecutiveFailures,
-        });
-      } else if (this.consecutiveFailures <= 3) {
-        // First few failures, log at debug level
-        logger.debug('Redis client error', {
-          error: error.message,
-          state: this.state,
-          consecutiveFailures: this.consecutiveFailures,
-        });
-      } else {
-        // Repeated failures, log at trace level to minimize spam
-        logger.debug('Redis client error (repeated)', {
-          error: error.message,
-          state: this.state,
-          consecutiveFailures: this.consecutiveFailures,
-        });
+      // Suppress Redis error logging during tests with error-level logging
+      const isTestEnv = process.env.NODE_ENV === 'test' || process.env.LOG_LEVEL === 'error';
+      
+      if (!isTestEnv) {
+        // Log level depends on circuit breaker state and failure count
+        if (this.state === ConnectionState.CIRCUIT_OPEN) {
+          // Circuit breaker is open, log at trace level to reduce spam
+          logger.debug('Redis client error (circuit open)', {
+            error: error.message,
+            state: this.state,
+            consecutiveFailures: this.consecutiveFailures,
+          });
+        } else if (this.consecutiveFailures <= 3) {
+          // First few failures, log at debug level
+          logger.debug('Redis client error', {
+            error: error.message,
+            state: this.state,
+            consecutiveFailures: this.consecutiveFailures,
+          });
+        } else {
+          // Repeated failures, log at trace level to minimize spam
+          logger.debug('Redis client error (repeated)', {
+            error: error.message,
+            state: this.state,
+            consecutiveFailures: this.consecutiveFailures,
+          });
+        }
       }
       
       // Prevent error propagation
@@ -358,20 +363,27 @@ export class RedisConnectionManager extends EventEmitter {
     }
 
     // Log appropriately based on failure count and circuit breaker state
+    // Suppress logging during tests unless LOG_LEVEL allows it
+    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.LOG_LEVEL === 'error';
+    
     if (this.consecutiveFailures === 1) {
-      // First failure - log as warning to alert administrators
-      logger.warn('Redis connection failed - first attempt', {
-        error: error.message,
-        attempt: this.totalAttempts,
-        consecutiveFailures: this.consecutiveFailures,
-      });
+      // First failure - log as warning to alert administrators (unless in test mode)
+      if (!isTestEnv) {
+        logger.warn('Redis connection failed - first attempt', {
+          error: error.message,
+          attempt: this.totalAttempts,
+          consecutiveFailures: this.consecutiveFailures,
+        });
+      }
     } else if (this.consecutiveFailures <= 3) {
-      // Second and third failures - log as info to show the issue persists
-      logger.info('Redis connection failed - persistent issue', {
-        error: error.message,
-        attempt: this.totalAttempts,
-        consecutiveFailures: this.consecutiveFailures,
-      });
+      // Second and third failures - log as info to show the issue persists (unless in test mode)
+      if (!isTestEnv) {
+        logger.info('Redis connection failed - persistent issue', {
+          error: error.message,
+          attempt: this.totalAttempts,
+          consecutiveFailures: this.consecutiveFailures,
+        });
+      }
     } else {
       // Repeated failures after 3 attempts - reduce to debug level to prevent spam
       logger.debug('Redis connection failed (repeated failures)', {
