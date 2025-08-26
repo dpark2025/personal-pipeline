@@ -225,8 +225,10 @@ jobs:
           EOF
           fi
           
-          # Output for use in other steps
-          echo "changelog=$(cat "$CHANGELOG_FILE" | base64 -w 0)" >> $GITHUB_OUTPUT
+          # Output for use in other steps (using EOF delimiter for multiline)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat "$CHANGELOG_FILE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           
           echo "✅ Changelog generated"
       
@@ -519,7 +521,7 @@ jobs:
         with:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           release_name: Personal Pipeline MCP Server ${{ needs.prepare-release.outputs.version }}
-          body: ${{ base64decode(needs.prepare-release.outputs.changelog) }}
+          body: ${{ needs.prepare-release.outputs.changelog }}
           draft: false
           prerelease: ${{ needs.prepare-release.outputs.is-prerelease }}
       
