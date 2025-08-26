@@ -279,93 +279,43 @@ jobs:
   # ==============================================================================
   build-release-artifacts:
     name: Build Release Artifacts
-    runs-on: ubuntu-latest
     needs: [validate-release, semantic-release]
     if: needs.validate-release.outputs.should-proceed == 'true' && github.event.inputs.dry_run != 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      force_rebuild: true
+      build_target: 'all'
+      push_artifacts: false
+      verbose: true
+    secrets: inherit
+
+  # ==============================================================================
+  # Prepare Release Outputs (compatibility layer)
+  # ==============================================================================
+  prepare-release-outputs:
+    name: Prepare Release Outputs
+    runs-on: ubuntu-latest
+    needs: [build-release-artifacts, semantic-release]
     
     outputs:
-      npm-package: ${{ steps.build.outputs.npm-package }}
-      docker-image: ${{ steps.build.outputs.docker-image }}
-      artifacts-size: ${{ steps.build.outputs.artifacts-size }}
+      docker-image: ${{ steps.outputs.outputs.docker-image }}
+      artifacts-size: ${{ steps.outputs.outputs.artifacts-size }}
+      npm-package: ${{ steps.outputs.outputs.npm-package }}
       
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
-      
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY_GHCR }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Install dependencies
-        run: npm ci --silent
-      
-      - name: Build all artifacts
-        id: build
+      - name: Generate release outputs
+        id: outputs
         run: |
-          echo "🔧 Building release artifacts..."
-          
           NEW_VERSION="${{ needs.semantic-release.outputs.new-version }}"
-          
-          # Update package version (if not already updated by semantic release)
-          npm version "$NEW_VERSION" --no-git-tag-version || true
-          
-          # Clean and build
-          npm run clean
-          npm run build
-          
-          # Create npm package
-          npm pack
-          NPM_PACKAGE=$(ls *.tgz)
-          NPM_SIZE=$(du -sh "$NPM_PACKAGE" | cut -f1)
-          
-          # Build Docker image
           DOCKER_IMAGE="${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:$NEW_VERSION"
           
-          docker build -t "$DOCKER_IMAGE" .
-          docker tag "$DOCKER_IMAGE" "${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:latest"
-          
-          # Create artifact bundles
-          zip -r documentation-bundle.zip docs/ README.md CHANGELOG.md LICENSE SECURITY.md 2>/dev/null || true
-          cd config && zip -r ../configuration-templates.zip *.yaml *.yml *.json 2>/dev/null || true
-          cd ../scripts && zip -r ../installation-scripts.zip setup*.sh install*.sh deploy*.sh 2>/dev/null || true
-          cd ..
-          
-          # Calculate total artifacts size
-          TOTAL_SIZE=$(du -sh *.tgz *.zip 2>/dev/null | awk '{sum+=$1} END {print sum "MB"}' || echo "0MB")
-          
-          echo "npm-package=$NPM_PACKAGE" >> $GITHUB_OUTPUT
+          # Extract build information from the build workflow
           echo "docker-image=$DOCKER_IMAGE" >> $GITHUB_OUTPUT
-          echo "artifacts-size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+          echo "artifacts-size=N/A" >> $GITHUB_OUTPUT  # Build workflow doesn't track total size
+          echo "npm-package=@personal-pipeline/mcp-server-$NEW_VERSION.tgz" >> $GITHUB_OUTPUT
           
-          echo "✅ All artifacts built successfully"
-          echo "📦 npm package: $NPM_PACKAGE ($NPM_SIZE)"
+          echo "✅ Release outputs prepared"
           echo "🐳 Docker image: $DOCKER_IMAGE"
-          echo "📁 Total artifacts size: $TOTAL_SIZE"
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-artifacts-${{ needs.semantic-release.outputs.new-version }}
-          path: |
-            *.tgz
-            *.zip
-          retention-days: 30
 
   # ==============================================================================
   # Security Validation
@@ -373,7 +323,7 @@ jobs:
   security-validation:
     name: Security Validation
     runs-on: ubuntu-latest
-    needs: [validate-release, build-release-artifacts]
+    needs: [validate-release, prepare-release-outputs]
     if: needs.validate-release.outputs.should-proceed == 'true' && github.event.inputs.dry_run != 'true'
     
     steps:
@@ -405,7 +355,7 @@ jobs:
       - name: Security scan Docker image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ needs.build-release-artifacts.outputs.docker-image }}
+          image-ref: ${{ needs.prepare-release-outputs.outputs.docker-image }}
           format: 'json'
           output: 'docker-security-scan.json'
           severity: 'CRITICAL,HIGH'
@@ -439,7 +389,7 @@ jobs:
   create-github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [validate-release, semantic-release, build-release-artifacts, security-validation]
+    needs: [validate-release, semantic-release, prepare-release-outputs, security-validation]
     if: |
       needs.validate-release.outputs.should-proceed == 'true' && 
       github.event.inputs.dry_run != 'true' && 
@@ -588,7 +538,7 @@ jobs:
           echo "🌐 GitHub Release: ${{ needs.create-github-release.result }}"
           echo "📦 npm Publish: ${{ needs.publish-npm.result }}"
           echo "🐳 Docker Publish: ${{ needs.publish-docker.result }}"
-          echo "💾 Artifacts Size: ${{ needs.build-release-artifacts.outputs.artifacts-size }}"
+          echo "💾 Artifacts Size: ${{ needs.prepare-release-outputs.outputs.artifacts-size }}"
           echo ""
           
           if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
