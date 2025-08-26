@@ -10,6 +10,18 @@
  * Build trigger: Debug package validation errors - import test failure (silent test script)
  */
 
+// Polyfill for Node.js compatibility with undici/web APIs
+if (typeof globalThis.File === 'undefined') {
+  // Basic File polyfill for Node.js environment
+  globalThis.File = class File {
+    constructor(bits: any, name: string, options?: any) {
+      Object.defineProperty(this, 'name', { value: name, enumerable: true });
+      Object.defineProperty(this, 'size', { value: 0, enumerable: true });
+      Object.defineProperty(this, 'type', { value: options?.type || '', enumerable: true });
+    }
+  } as any;
+}
+
 import 'dotenv/config';
 import { personalPipelineServer } from './core/server.js';
 import { logger } from './utils/logger.js';
