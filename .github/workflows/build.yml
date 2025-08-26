@@ -50,7 +50,6 @@ on:
 # ==============================================================================
 env:
   NODE_VERSION: '18'
-  REGISTRY_URL: 'localhost:4873'
   IMAGE_NAME: personal-pipeline/mcp-server
   REGISTRY_GHCR: ghcr.io
 
@@ -199,6 +198,8 @@ jobs:
           echo "📊 Package size: $PACKAGE_SIZE"
       
       - name: Validate package
+        env:
+          REGISTRY_URL: 'localhost:4873'
         run: |
           set +e  # Don't exit immediately on error
           set -x  # Enable bash debugging (shows each command before execution)
