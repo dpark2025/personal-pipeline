@@ -509,13 +509,15 @@ main() {
   # Show summary
   show_version_summary "$current_version" "$new_version" "$BUMP_TYPE"
   
-  # Confirmation for non-dry-run
-  if [[ "$DRY_RUN" != "true" ]]; then
+  # Confirmation for non-dry-run (skip if force enabled)
+  if [[ "$DRY_RUN" != "true" && "$FORCE" != "true" ]]; then
     read -p "Proceed with version bump? (y/N): " confirm
     if [[ "$confirm" != [yY] ]]; then
       log_info "Version bump cancelled"
       exit 0
     fi
+  elif [[ "$FORCE" == "true" ]]; then
+    log_info "Proceeding with version bump (--force enabled)"
   fi
   
   # Pre-flight checks

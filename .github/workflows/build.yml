@@ -7,18 +7,13 @@
 name: Build & Package
 
 on:
-  # Trigger on pushes to main branch
-  push:
+  # Trigger after version management workflow completes successfully
+  workflow_run:
+    workflows: ["Version Management"]
+    types:
+      - completed
     branches:
       - main
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - '.gitignore'
-      - 'LICENSE'
-      - 'planning/**'
-      - 'test-data/**'
-      - '.claude/**'
   
   # Allow manual triggering
   workflow_dispatch:
