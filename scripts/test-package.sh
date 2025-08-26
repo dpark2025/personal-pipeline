@@ -205,20 +205,40 @@ EOF
   # Wait for registry to start
   local attempts=0
   while [[ $attempts -lt 60 ]]; do  # Increased from 30 to 60 seconds for CI
+    # Check if the process is still running
+    if ! kill -0 $registry_pid 2>/dev/null; then
+      log_error "Verdaccio process died during startup"
+      return 1
+    fi
+    
+    # Check if the registry is responding
     if curl -s "http://localhost:$TEMP_REGISTRY_PORT" >/dev/null 2>&1; then
-      log_success "Local registry started on port $TEMP_REGISTRY_PORT"
+      log_success "Local registry started on port $TEMP_REGISTRY_PORT (PID: $registry_pid)"
       # Give registry an extra moment to fully initialize
       sleep 2
       return 0
     fi
+    
     sleep 1
     ((attempts++))
     if [[ $((attempts % 10)) -eq 0 ]]; then
-      log_verbose "Still waiting for registry... attempt $attempts/60"
+      log_verbose "Still waiting for registry... attempt $attempts/60 (PID: $registry_pid)"
+      # Additional debugging - check if port is in use
+      if command -v netstat >/dev/null 2>&1; then
+        netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT " || log_verbose "Port $TEMP_REGISTRY_PORT not yet bound"
+      fi
     fi
   done
   
-  log_error "Failed to start local registry"
+  log_error "Registry startup timed out after 60 seconds"
+  log_error "Process status: $(kill -0 $registry_pid 2>/dev/null && echo "alive" || echo "dead")"
+  log_error "Port check: $(curl -s "http://localhost:$TEMP_REGISTRY_PORT" && echo "responding" || echo "not responding")"
+  
+  # Try to get some debugging info before killing
+  if command -v netstat >/dev/null 2>&1; then
+    log_error "Port usage: $(netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT " || echo "port not bound")"
+  fi
+  
   kill $registry_pid 2>/dev/null || true
   return 1
 }
