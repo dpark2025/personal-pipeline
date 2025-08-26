@@ -410,11 +410,10 @@ async function testService() {
 sources:
   - name: "test"
     type: "file"
+    base_url: "${testDir}"
     refresh_interval: "1m"
     priority: 1
-    config:
-      root_path: "${testDir}"
-      file_patterns: ["*.md"]
+    enabled: true
 logging:
   level: "error"
 performance:

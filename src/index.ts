@@ -4,7 +4,7 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * 
- * BUILD TRIGGER: Fix service test config with required fields
+ * BUILD TRIGGER: Fix service test config structure (base_url not nested)
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors - import test failure (adapter list fix)
