@@ -60,6 +60,9 @@ cache:
     knowledge_base:
       ttl_seconds: 300
       warmup: false
+    web_response:
+      ttl_seconds: 300
+      warmup: false
 
 # Semantic search disabled for simpler testing
 semantic_search:
