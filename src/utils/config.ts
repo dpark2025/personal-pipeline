@@ -15,8 +15,14 @@ export class ConfigManager {
   private config: AppConfig | null = null;
   private configPath: string;
 
-  constructor(configPath: string = './config/config.yaml') {
-    this.configPath = configPath;
+  constructor(configPath?: string) {
+    // Priority: 1) explicit parameter, 2) CONFIG_FILE env var, 3) default
+    this.configPath = configPath ?? process.env.CONFIG_FILE ?? './config/config.yaml';
+    
+    // Log config path for debugging
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`ConfigManager using config path: ${this.configPath}`);
+    }
   }
 
   /**
