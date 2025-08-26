@@ -40,7 +40,6 @@
     "node_modules",
     "dist",
     "tests",
-    "src/adapters/web-old.ts",
     "src/search/query-processing/context-enhancer.ts"
   ]
 }
