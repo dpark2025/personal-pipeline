@@ -7,7 +7,7 @@
  * BUILD TRIGGER: Fix registry startup loop exit-on-error behavior
  * decision trees through the Model Context Protocol.
  * 
- * Build trigger: Debug package validation errors - import test failure (ES module fix)
+ * Build trigger: Debug package validation errors - import test failure (silent test script)
  */
 
 import 'dotenv/config';
