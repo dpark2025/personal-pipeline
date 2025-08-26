@@ -40,6 +40,30 @@ on:
         required: false
         default: 'false'
         type: boolean
+  
+  # Allow reusable workflow calls (for release workflow)
+  workflow_call:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild without cache'
+        required: false
+        default: false
+        type: boolean
+      build_target:
+        description: 'Build target'
+        required: false
+        default: 'all'
+        type: string
+      push_artifacts:
+        description: 'Push artifacts to registries'
+        required: false
+        default: false
+        type: boolean
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        default: false
+        type: boolean
 
 # ==============================================================================
 # Environment Variables
@@ -59,7 +83,7 @@ jobs:
   pre-check:
     name: Pre-Build Analysis
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' }}
     
     outputs:
       should-run-builds: ${{ steps.check.outputs.should-run-builds }}
@@ -75,6 +99,15 @@ jobs:
         id: check
         run: |
           echo "🔍 Pre-analyzing changes to determine if builds are needed..."
+          
+          # Force builds when called from release workflow or manual dispatch with force_rebuild
+          if [[ "${{ github.event_name }}" == "workflow_call" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "🔄 Called via ${{ github.event_name }} - builds will be executed"
+            echo "has-source-changes=true" >> $GITHUB_OUTPUT
+            echo "should-run-builds=true" >> $GITHUB_OUTPUT
+            echo "✅ Build workflow needed - explicit workflow call"
+            exit 0
+          fi
           
           # Get the commits from the version workflow that just completed
           # Look at changes since the previous version tag
