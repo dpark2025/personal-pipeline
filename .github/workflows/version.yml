@@ -41,14 +41,12 @@ on:
         required: false
         default: ''
   
-  # Automatic version bumping on main branch pushes
+  # Trigger version management when a version tag is pushed
   push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - 'package.json'
-      - 'Dockerfile'
+    tags:
+      - 'v*.*.*'        # Semantic version tags (v1.0.0, v0.2.1, etc.)
+      - 'version-*'     # Alternative version tags (version-1.0.0)
+      - 'release-*'     # Release tags (release-1.0.0)
   
   # Schedule weekly version analysis
   schedule:
@@ -240,7 +238,28 @@ jobs:
       - name: Determine bump type
         id: bump-type
         run: |
-          if [[ -n "${{ github.event.inputs.custom_version }}" ]]; then
+          # Check if triggered by tag push
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            # Extract version from tag
+            TAG_NAME="${{ github.ref_name }}"
+            echo "Triggered by tag push: $TAG_NAME"
+            
+            # Extract version from different tag formats
+            if [[ "$TAG_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+.*) ]]; then
+              CUSTOM_VERSION="${BASH_REMATCH[1]}"
+            elif [[ "$TAG_NAME" =~ ^version-([0-9]+\.[0-9]+\.[0-9]+.*) ]]; then
+              CUSTOM_VERSION="${BASH_REMATCH[1]}"
+            elif [[ "$TAG_NAME" =~ ^release-([0-9]+\.[0-9]+\.[0-9]+.*) ]]; then
+              CUSTOM_VERSION="${BASH_REMATCH[1]}"
+            else
+              echo "❌ Invalid tag format: $TAG_NAME"
+              echo "Expected formats: v1.0.0, version-1.0.0, or release-1.0.0"
+              exit 1
+            fi
+            
+            BUMP_TYPE="custom:$CUSTOM_VERSION"
+            echo "Using version from tag: $CUSTOM_VERSION"
+          elif [[ -n "${{ github.event.inputs.custom_version }}" ]]; then
             BUMP_TYPE="custom:${{ github.event.inputs.custom_version }}"
             echo "Using custom version: ${{ github.event.inputs.custom_version }}"
           elif [[ "${{ github.event.inputs.bump_type }}" == "auto" ]] || [[ -z "${{ github.event.inputs.bump_type }}" ]]; then
