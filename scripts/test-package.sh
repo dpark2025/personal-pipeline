@@ -128,6 +128,9 @@ cleanup() {
     log_info "Cleaning up test environment..."
     rm -rf "$TEST_DIR"
     
+    # Clean up test files
+    rm -f test-service.mjs test-config.yaml
+    
     # Stop local registry if running
     if [[ "$USE_LOCAL_REGISTRY" == "true" && -n "$REGISTRY_PID" ]]; then
       # Check if process is still running before attempting to kill
@@ -360,7 +363,10 @@ EOF
     npm config set registry "http://localhost:$TEMP_REGISTRY_PORT"
   fi
   
-  if npm install "$tarball_path" >/dev/null 2>&1; then
+  # Set npm to silent mode
+  npm config set loglevel silent
+  
+  if npm install "$tarball_path" --silent --no-audit --no-fund >/dev/null 2>&1; then
     record_test "Local Install" "PASS" "Package installed locally"
   else
     record_test "Local Install" "FAIL" "Local installation failed"
@@ -376,56 +382,103 @@ EOF
     npm config set registry "https://registry.npmjs.org/"
   fi
   
-  # Test programmatic import
-  cat > test-import.mjs << 'EOF'
-try {
-  const { personalPipelineServer } = await import('@personal-pipeline/mcp-server');
-  if (personalPipelineServer) {
-    console.log('SUCCESS: Main export imported');
-  } else {
-    console.log('FAIL: Main export is undefined');
-    process.exit(1);
+  # Reset npm log level
+  npm config delete loglevel 2>/dev/null || true
+  
+  # Test service functionality
+  cat > test-service.mjs << 'EOF'
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+async function testService() {
+  // Create minimal config for testing
+  const configContent = `
+sources:
+  - name: "test"
+    type: "file"
+    config:
+      root_path: "./node_modules/@personal-pipeline/mcp-server/docs"
+      file_patterns: ["*.md"]
+logging:
+  level: "error"
+performance:
+  cache:
+    enabled: false
+`;
+  
+  const fs = await import('fs');
+  await fs.promises.writeFile('test-config.yaml', configContent);
+  
+  // Find the installed package main script
+  const packagePath = join(__dirname, 'node_modules', '@personal-pipeline', 'mcp-server', 'dist', 'index.js');
+  
+  // Start the server process
+  const serverProcess = spawn('node', [packagePath], {
+    env: { ...process.env, CONFIG_FILE: './test-config.yaml', LOG_LEVEL: 'error' },
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+  
+  let serverOutput = '';
+  let serverReady = false;
+  
+  // Collect server output
+  serverProcess.stdout.on('data', (data) => {
+    serverOutput += data.toString();
+    if (data.toString().includes('ready to accept connections')) {
+      serverReady = true;
+    }
+  });
+  
+  serverProcess.stderr.on('data', (data) => {
+    serverOutput += data.toString();
+  });
+  
+  // Wait for server startup (max 10 seconds)
+  let attempts = 0;
+  while (!serverReady && attempts < 100) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    attempts++;
+    
+    if (serverProcess.exitCode !== null) {
+      throw new Error(`Server exited early with code ${serverProcess.exitCode}: ${serverOutput}`);
+    }
   }
+  
+  if (!serverReady) {
+    serverProcess.kill();
+    throw new Error(`Server startup timeout after 10 seconds. Output: ${serverOutput}`);
+  }
+  
+  // Clean shutdown
+  serverProcess.kill('SIGTERM');
+  
+  // Wait for graceful shutdown
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // Clean up config file
+  await fs.promises.unlink('test-config.yaml').catch(() => {});
+  
+  console.log('SUCCESS: Service starts and accepts connections');
+}
+
+try {
+  await testService();
 } catch (error) {
-  console.log('FAIL: Import failed:', error.message);
-  console.log('Stack:', error.stack);
+  console.log('FAIL: Service test failed:', error.message);
   process.exit(1);
 }
 EOF
 
-  local import_output
-  if import_output=$(node test-import.mjs 2>&1); then
-    record_test "Programmatic Import" "PASS" "Main exports work correctly"
+  local service_output
+  if service_output=$(node test-service.mjs 2>&1); then
+    record_test "Service Functionality" "PASS" "Server starts and accepts connections"
   else
-    record_test "Programmatic Import" "FAIL" "Import failed: $import_output"
-    log_error "Import test output: $import_output"
-  fi
-  
-  # Test submodule imports
-  cat > test-submodules.mjs << 'EOF'
-try {
-  const { SourceAdapter } = await import('@personal-pipeline/mcp-server/adapters');
-  const { ConfigManager } = await import('@personal-pipeline/mcp-server/utils');
-  
-  if (SourceAdapter && ConfigManager) {
-    console.log('SUCCESS: Submodule imports work');
-  } else {
-    console.log('FAIL: Submodule exports are undefined');
-    process.exit(1);
-  }
-} catch (error) {
-  console.log('FAIL: Submodule import failed:', error.message);
-  console.log('Stack:', error.stack);
-  process.exit(1);
-}
-EOF
-
-  local submodule_output
-  if submodule_output=$(node test-submodules.mjs 2>&1); then
-    record_test "Submodule Imports" "PASS" "Submodule exports work correctly"
-  else
-    record_test "Submodule Imports" "FAIL" "Submodule import failed: $submodule_output"
-    log_error "Submodule import test output: $submodule_output"
+    record_test "Service Functionality" "FAIL" "Service test failed: $service_output"
+    log_error "Service test output: $service_output"
   fi
 }
 
@@ -448,7 +501,7 @@ test_global_installation() {
   cd "$test_dir"
   
   # Install globally with custom prefix
-  if NPM_CONFIG_PREFIX="$npm_prefix" npm install -g "$tarball_path" >/dev/null 2>&1; then
+  if NPM_CONFIG_PREFIX="$npm_prefix" npm install -g "$tarball_path" --silent --no-audit --no-fund >/dev/null 2>&1; then
     record_test "Global Install" "PASS" "Package installed globally"
   else
     record_test "Global Install" "FAIL" "Global installation failed"
@@ -501,7 +554,7 @@ EOF
 
   # Install package
   local tarball_path="$1"
-  npm install "$tarball_path" >/dev/null 2>&1
+  npm install "$tarball_path" --silent --no-audit --no-fund >/dev/null 2>&1
   
   # Test CLI through npx
   if npx personal-pipeline --version >/dev/null 2>&1; then

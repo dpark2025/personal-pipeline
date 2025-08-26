@@ -4,7 +4,7 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * 
- * BUILD TRIGGER: Fix registry startup loop exit-on-error behavior
+ * BUILD TRIGGER: Replace import tests with service functionality tests
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors - import test failure (adapter list fix)
