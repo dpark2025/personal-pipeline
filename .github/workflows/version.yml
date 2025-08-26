@@ -6,6 +6,10 @@
 
 name: Version Management
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   # Manual version management
   workflow_dispatch:
@@ -378,8 +382,23 @@ jobs:
             echo "📝 Updating Dockerfile version label..."
             sed -i "s/org.opencontainers.image.version=\"[^\"]*\"/org.opencontainers.image.version=\"$PACKAGE_VERSION\"/" Dockerfile
             
-            if [[ "${{ github.event.inputs.commit_and_tag }}" == "true" && "${{ github.event.inputs.dry_run }}" != "true" ]]; then
+            # For tag-triggered workflows or when commit_and_tag is true, add to commit
+            if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag") || 
+                  ("${{ github.event.inputs.commit_and_tag }}" == "true" && "${{ github.event.inputs.dry_run }}" != "true") ]]; then
               git add Dockerfile
+              git commit --amend --no-edit
+            fi
+          fi
+          
+          # Check for any other modified files that need to be committed
+          if [[ -n "$(git diff --name-only)" ]]; then
+            echo "📝 Additional files modified during version process:"
+            git diff --name-only
+            
+            # For tag-triggered workflows, commit any additional changes
+            if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+              echo "📝 Committing additional changes..."
+              git add .
               git commit --amend --no-edit
             fi
           fi
