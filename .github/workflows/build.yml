@@ -281,8 +281,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: prepare
     if: needs.prepare.outputs.should-build-docker == 'true' || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'docker-only'
+    continue-on-error: true  # Don't cancel workflow if one architecture fails
     
     strategy:
+      fail-fast: false  # Allow other architectures to continue if one fails
       matrix:
         platform:
           - linux/amd64
@@ -420,7 +422,8 @@ jobs:
     name: Docker Multi-Arch Manifest
     runs-on: ubuntu-latest
     needs: [prepare, docker-build]
-    if: needs.docker-build.result == 'success'
+    if: contains(needs.docker-build.result, 'success') || needs.docker-build.result == 'failure'  # Run if at least one architecture built
+    continue-on-error: true  # Don't fail entire workflow if manifest creation fails
     
     steps:
       - name: Checkout code
@@ -442,9 +445,37 @@ jobs:
         run: |
           echo "🔗 Creating multi-architecture manifest..."
           
-          # Build and push multi-arch image
+          # Check which platforms have cache available (indicating successful build)
+          AVAILABLE_PLATFORMS=""
+          
+          if docker buildx imagetools inspect --raw type=gha,scope=linux/amd64 >/dev/null 2>&1; then
+            AVAILABLE_PLATFORMS="linux/amd64"
+            echo "✅ AMD64 build cache found"
+          else
+            echo "⚠️  AMD64 build cache not found, excluding from manifest"
+          fi
+          
+          if docker buildx imagetools inspect --raw type=gha,scope=linux/arm64 >/dev/null 2>&1; then
+            if [ -n "$AVAILABLE_PLATFORMS" ]; then
+              AVAILABLE_PLATFORMS="$AVAILABLE_PLATFORMS,linux/arm64"
+            else
+              AVAILABLE_PLATFORMS="linux/arm64"
+            fi
+            echo "✅ ARM64 build cache found"
+          else
+            echo "⚠️  ARM64 build cache not found, excluding from manifest"
+          fi
+          
+          if [ -z "$AVAILABLE_PLATFORMS" ]; then
+            echo "❌ No successful builds found, skipping manifest creation"
+            exit 1
+          fi
+          
+          echo "📋 Building for platforms: $AVAILABLE_PLATFORMS"
+          
+          # Build and push with available platforms only
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
+            --platform "$AVAILABLE_PLATFORMS" \
             --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }} \
             --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.build-id }} \
             --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:latest \
@@ -453,7 +484,7 @@ jobs:
             --cache-from type=gha \
             --push .
           
-          echo "✅ Multi-architecture image pushed successfully"
+          echo "✅ Multi-architecture image pushed successfully with platforms: $AVAILABLE_PLATFORMS"
 
   # ==============================================================================
   # Quality Gates
@@ -521,7 +552,8 @@ jobs:
           | Component | Status | Details |
           |-----------|--------|---------|
           | npm Package | ${{ needs.npm-build.result == 'success' && '✅ Success' || '❌ Failed' }} | Size: ${{ needs.npm-build.outputs.package-size }}, Time: ${{ needs.npm-build.outputs.build-time }} |
-          | Docker Image | ${{ needs.docker-build.result == 'success' && '✅ Success' || '❌ Failed' }} | Multi-arch (amd64, arm64) |
+          | Docker Image | ${{ contains(needs.docker-build.result, 'success') && '⚠️ Partial Success' || (needs.docker-build.result == 'success' && '✅ Success' || '❌ Failed') }} | Multi-arch build attempted (some platforms may have failed) |
+          | Docker Manifest | ${{ needs.docker-manifest.result == 'success' && '✅ Success' || (needs.docker-manifest.result == 'failure' && '❌ Failed' || '⏭️ Skipped') }} | Combined available architectures |
           
           ## Artifacts
           
