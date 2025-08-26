@@ -67,8 +67,11 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY config/*.sample.yaml /app/config/
 COPY config/config.test.yaml /app/config/
 
-# Copy test data for container testing
-COPY test-data/ /test-data/
+# Create minimal test data for container testing (avoiding build context issues)
+RUN mkdir -p /test-data/runbooks /test-data/knowledge-base && \
+    echo '{"id":"test-runbook-001","title":"Container Health Check Validation","version":"1.0.0","triggers":[{"alert_type":"test_alert","severity":["LOW","MEDIUM","HIGH"],"systems":["test-system","container","api"],"conditions":["service_name == '\''personal-pipeline'\''","environment == '\''test'\''"]}],"severity_mapping":{"LOW":{"response_time_sla":"< 5 minutes","escalation_threshold":"15 minutes"},"MEDIUM":{"response_time_sla":"< 2 minutes","escalation_threshold":"10 minutes"},"HIGH":{"response_time_sla":"< 1 minute","escalation_threshold":"5 minutes"}},"decision_tree":{"root":{"condition":"Is API responding to health checks?","actions":{"yes":{"condition":"Are source adapters healthy?","actions":{"yes":"proceed_to_cache_check","no":"check_source_configuration"}},"no":"restart_service"}},"proceed_to_cache_check":{"condition":"Is cache system operational?","actions":{"yes":"validate_mcp_tools","no":"check_cache_configuration"}}},"procedures":[{"id":"validate_api_health","name":"Validate API Health Check","steps":[{"step":1,"action":"Send GET request to /api/health","expected_result":"HTTP 200 or 503 with structured response","timeout_seconds":10},{"step":2,"action":"Verify response contains configuration section","expected_result":"sources_configured, cache_enabled, tools_available fields present"},{"step":3,"action":"Check for proper error handling","expected_result":"No INTERNAL_SERVER_ERROR responses"}]}],"metadata":{"confidence_score":1.0,"success_rate":1.0,"last_validated":"2025-08-26","test_environment":true,"dependencies":[]}}' > /test-data/runbooks/test-runbook.json && \
+    echo '# Container Health Check Test Runbook\n\nThis is a test runbook for validating container health checks.\n\n## Purpose\nValidate that the API health check system works correctly in containerized environments.\n\n## Test Scenarios\n- API responds to /api/health requests\n- Source adapters report proper status\n- Cache system is operational' > /test-data/runbooks/test-runbook.md && \
+    echo '{"title":"Test Knowledge Base Entry","content":"This is test knowledge base content for container validation.","category":"testing","tags":["container","health-check","validation"]}' > /test-data/knowledge-base/test-kb.json
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/data /app/cache /app/logs /app/config && \
