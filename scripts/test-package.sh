@@ -473,7 +473,7 @@ semantic_search:
   
   // Start the server process
   const serverProcess = spawn('node', [packagePath], {
-    env: { ...process.env, CONFIG_FILE: configFile, LOG_LEVEL: 'error' },
+    env: { ...process.env, CONFIG_FILE: configFile },
     stdio: ['pipe', 'pipe', 'pipe']
   });
   
