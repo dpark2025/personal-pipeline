@@ -49,7 +49,7 @@ on:
 env:
   NODE_VERSION: '20'
   REGISTRY_URL: 'localhost:4873'
-  IMAGE_NAME: personal-pipeline/mcp-server
+  IMAGE_NAME: dpark2025/personal-pipeline
 
 # ==============================================================================
 # Jobs

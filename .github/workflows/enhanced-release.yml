@@ -71,7 +71,7 @@ on:
 env:
   NODE_VERSION: '20'
   REGISTRY_GHCR: ghcr.io
-  IMAGE_NAME: personal-pipeline/mcp-server
+  IMAGE_NAME: dpark2025/personal-pipeline
 
 # ==============================================================================
 # Jobs
