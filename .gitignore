@@ -194,7 +194,9 @@ config/config.yaml
 # Session and temporary runtime data
 .session/
 *.session
-session-*
+session-*.json
+session-*.dat
+session-*.tmp
 
 # Test results and generated reports (keep test data, ignore results)
 *-test-results.json
