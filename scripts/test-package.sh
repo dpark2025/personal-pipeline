@@ -130,6 +130,7 @@ cleanup() {
     
     # Clean up test files
     rm -f test-service.mjs test-config.yaml
+    rm -rf test-service-data
     
     # Stop local registry if running
     if [[ "$USE_LOCAL_REGISTRY" == "true" && -n "$REGISTRY_PID" ]]; then
@@ -395,13 +396,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function testService() {
+  // Create a test directory and file for the service to use
+  const fs = await import('fs');
+  const testDir = './test-service-data';
+  const testFile = `${testDir}/test-document.md`;
+  
+  // Create test directory and file
+  await fs.promises.mkdir(testDir, { recursive: true });
+  await fs.promises.writeFile(testFile, '# Test Document\nThis is a test document for service functionality testing.');
+  
   // Create minimal config for testing
   const configContent = `
 sources:
   - name: "test"
     type: "file"
     config:
-      root_path: "./node_modules/@personal-pipeline/mcp-server/docs"
+      root_path: "${testDir}"
       file_patterns: ["*.md"]
 logging:
   level: "error"
@@ -410,7 +420,6 @@ performance:
     enabled: false
 `;
   
-  const fs = await import('fs');
   await fs.promises.writeFile('test-config.yaml', configContent);
   
   // Find the installed package main script
@@ -459,8 +468,9 @@ performance:
   // Wait for graceful shutdown
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Clean up config file
+  // Clean up test files
   await fs.promises.unlink('test-config.yaml').catch(() => {});
+  await fs.promises.rmdir(testDir, { recursive: true }).catch(() => {});
   
   console.log('SUCCESS: Service starts and accepts connections');
 }
