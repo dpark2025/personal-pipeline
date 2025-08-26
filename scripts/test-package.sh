@@ -398,15 +398,25 @@ const __dirname = dirname(__filename);
 async function testService() {
   // Create a test directory and file for the service to use
   const fs = await import('fs');
-  const testDir = './test-service-data';
-  const testFile = `${testDir}/test-document.md`;
+  const path = await import('path');
+  const testDir = path.resolve('./test-service-data');
+  const testFile = path.join(testDir, 'test-document.md');
+  const configFile = path.resolve('./test-config.yaml');
   
   // Create test directory and file
   await fs.promises.mkdir(testDir, { recursive: true });
   await fs.promises.writeFile(testFile, '# Test Document\nThis is a test document for service functionality testing.');
   
-  // Create minimal config for testing
+  // Create minimal config for testing with absolute paths
   const configContent = `
+server:
+  port: 3001
+  host: "localhost"
+  log_level: "error"
+  cache_ttl_seconds: 3600
+  max_concurrent_requests: 100
+  request_timeout_ms: 30000
+  health_check_interval_ms: 60000
 sources:
   - name: "test"
     type: "file"
@@ -414,21 +424,56 @@ sources:
     refresh_interval: "1m"
     priority: 1
     enabled: true
-logging:
-  level: "error"
-performance:
-  cache:
+    timeout_ms: 5000
+    max_retries: 1
+cache:
+  enabled: false
+  strategy: "memory_only"
+  memory:
+    max_keys: 1000
+    ttl_seconds: 3600
+    check_period_seconds: 600
+  redis:
     enabled: false
+    url: "redis://localhost:6379"
+    ttl_seconds: 7200
+    key_prefix: "pp:cache:"
+    connection_timeout_ms: 5000
+    retry_attempts: 3
+    retry_delay_ms: 1000
+    max_retry_delay_ms: 30000
+    backoff_multiplier: 2
+    connection_retry_limit: 5
+  content_types:
+    runbooks:
+      ttl_seconds: 3600
+      warmup: true
+    procedures:
+      ttl_seconds: 1800
+      warmup: false
+    decision_trees:
+      ttl_seconds: 2400
+      warmup: true
+    knowledge_base:
+      ttl_seconds: 900
+      warmup: false
+    web_response:
+      ttl_seconds: 1800
+      warmup: false
+semantic_search:
+  enabled: false
+  fallback_to_fuzzy: true
+  enhance_existing_adapters: false
 `;
   
-  await fs.promises.writeFile('test-config.yaml', configContent);
+  await fs.promises.writeFile(configFile, configContent);
   
   // Find the installed package main script
   const packagePath = join(__dirname, 'node_modules', '@personal-pipeline', 'mcp-server', 'dist', 'index.js');
   
   // Start the server process
   const serverProcess = spawn('node', [packagePath], {
-    env: { ...process.env, CONFIG_FILE: './test-config.yaml', LOG_LEVEL: 'error' },
+    env: { ...process.env, CONFIG_FILE: configFile, LOG_LEVEL: 'error' },
     stdio: ['pipe', 'pipe', 'pipe']
   });
   
@@ -447,9 +492,9 @@ performance:
     serverOutput += data.toString();
   });
   
-  // Wait for server startup (max 10 seconds)
+  // Wait for server startup (max 20 seconds to allow for semantic search initialization)
   let attempts = 0;
-  while (!serverReady && attempts < 100) {
+  while (!serverReady && attempts < 200) {
     await new Promise(resolve => setTimeout(resolve, 100));
     attempts++;
     
@@ -460,7 +505,7 @@ performance:
   
   if (!serverReady) {
     serverProcess.kill();
-    throw new Error(`Server startup timeout after 10 seconds. Output: ${serverOutput}`);
+    throw new Error(`Server startup timeout after 20 seconds. Output: ${serverOutput}`);
   }
   
   // Clean shutdown

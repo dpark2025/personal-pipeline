@@ -84,14 +84,17 @@ export class MonitoringService extends EventEmitter {
       enabled: true,
     });
 
-    // Critical: Cache service completely down
+    // Critical: Cache service completely down (only when cache is enabled)
     this.addRule({
       id: 'cache_down',
       name: 'Cache Service Down',
       description: 'Cache service is completely unavailable',
       severity: 'critical',
       condition: metrics =>
-        metrics.cache && !metrics.cache.memory_healthy && !metrics.cache.redis_healthy,
+        metrics.cache && 
+        metrics.cache.cache_enabled && 
+        !metrics.cache.memory_healthy && 
+        !metrics.cache.redis_healthy,
       cooldownMs: 300000, // 5 minutes
       enabled: true,
     });
@@ -308,6 +311,7 @@ export class MonitoringService extends EventEmitter {
         redis_healthy: cacheHealth.redis_cache?.healthy || false,
         redis_connected: cacheStats.redis_connected || false,
         redis_enabled: true,
+        cache_enabled: true,
       };
     } catch (error) {
       // Cache service not initialized yet or unavailable
@@ -322,6 +326,7 @@ export class MonitoringService extends EventEmitter {
         redis_healthy: false,
         redis_connected: false,
         redis_enabled: false,
+        cache_enabled: false,
       };
     }
 
