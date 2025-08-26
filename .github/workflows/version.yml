@@ -306,8 +306,7 @@ jobs:
           fi
           
           if [[ "$BUMP_TYPE" == custom:* ]]; then
-            CUSTOM_VERSION="${BUMP_TYPE#custom:}"
-            VERSION_ARGS+=("custom" "$CUSTOM_VERSION")
+            VERSION_ARGS+=("$BUMP_TYPE")
           else
             VERSION_ARGS+=("$BUMP_TYPE")
           fi
