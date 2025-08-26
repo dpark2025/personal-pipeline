@@ -47,7 +47,7 @@ on:
 # Environment Variables
 # ==============================================================================
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   REGISTRY_URL: 'localhost:4873'
   IMAGE_NAME: personal-pipeline/mcp-server
 

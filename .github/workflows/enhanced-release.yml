@@ -69,7 +69,7 @@ on:
 # Environment Variables
 # ==============================================================================
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   REGISTRY_GHCR: ghcr.io
   IMAGE_NAME: personal-pipeline/mcp-server
 
