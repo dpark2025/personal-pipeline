@@ -1,0 +1,45 @@
+server:
+  port: 0
+  host: "localhost"
+  log_level: "error"
+sources:
+  - name: "test"
+    type: "file"
+    base_url: "/tmp/test-debug"
+    refresh_interval: "1m"
+    priority: 1
+    enabled: true
+cache:
+  enabled: false
+  strategy: "memory_only"
+  memory:
+    max_keys: 1000
+    ttl_seconds: 3600
+    check_period_seconds: 600
+  redis:
+    enabled: false
+    url: "redis://localhost:6379"
+    ttl_seconds: 7200
+    key_prefix: "pp:cache:"
+    connection_timeout_ms: 5000
+    retry_attempts: 3
+    retry_delay_ms: 1000
+    max_retry_delay_ms: 30000
+    backoff_multiplier: 2
+    connection_retry_limit: 5
+  content_types:
+    runbooks:
+      ttl_seconds: 3600
+      warmup: true
+    procedures:
+      ttl_seconds: 1800
+      warmup: false
+    decision_trees:
+      ttl_seconds: 2400
+      warmup: true
+    knowledge_base:
+      ttl_seconds: 900
+      warmup: false
+    web_response:
+      ttl_seconds: 1800
+      warmup: false

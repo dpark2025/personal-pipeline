@@ -493,10 +493,25 @@ semantic_search:
   });
   
   // Wait for server startup (max 20 seconds to allow for semantic search initialization)
+  // Try both log message detection and health check for robustness
   let attempts = 0;
   while (!serverReady && attempts < 200) {
     await new Promise(resolve => setTimeout(resolve, 100));
     attempts++;
+    
+    // After 5 seconds, start trying health checks in case log messages are suppressed
+    if (attempts > 50 && attempts % 10 === 0) {
+      try {
+        const response = await fetch('http://localhost:3000/api/health');
+        if (response.ok) {
+          console.log('Server detected via health check');
+          serverReady = true;
+          break;
+        }
+      } catch (err) {
+        // Health check failed, continue waiting
+      }
+    }
     
     if (serverProcess.exitCode !== null) {
       throw new Error(`Server exited early with code ${serverProcess.exitCode}: ${serverOutput}`);
