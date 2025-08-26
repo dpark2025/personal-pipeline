@@ -279,7 +279,7 @@ build_package() {
 
 # Create package tarball
 create_package_tarball() {
-  log_info "Creating package tarball..."
+  log_info "Creating package tarball..." >&2
   
   cd "$PROJECT_ROOT"
   
@@ -290,14 +290,14 @@ create_package_tarball() {
     local created_tarball=$(find "$TEST_DIR" -name "*.tgz" | head -1)
     if [[ -f "$created_tarball" ]]; then
       mv "$created_tarball" "$tarball_path"
-      record_test "Package Tarball" "PASS" "Tarball created: $(basename "$tarball_path")"
+      record_test "Package Tarball" "PASS" "Tarball created: $(basename "$tarball_path")" >&2
       echo "$tarball_path"
     else
-      record_test "Package Tarball" "FAIL" "Tarball not found after npm pack"
+      record_test "Package Tarball" "FAIL" "Tarball not found after npm pack" >&2
       return 1
     fi
   else
-    record_test "Package Tarball" "FAIL" "npm pack failed"
+    record_test "Package Tarball" "FAIL" "npm pack failed" >&2
     return 1
   fi
 }
