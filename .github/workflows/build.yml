@@ -400,7 +400,7 @@ jobs:
       - name: Upload Docker image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image-${{ matrix.platform }}-${{ needs.prepare.outputs.build-id }}
+          name: docker-image-${{ replace(matrix.platform, '/', '-') }}-${{ needs.prepare.outputs.build-id }}
           path: |
             /tmp/image-${{ strategy.job-index }}.tar
             scan-results-${{ strategy.job-index }}.json
