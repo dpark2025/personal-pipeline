@@ -4,6 +4,8 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * decision trees through the Model Context Protocol.
+ * 
+ * Build trigger: Updated workflow paths
  */
 
 import 'dotenv/config';
