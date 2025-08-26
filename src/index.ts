@@ -4,7 +4,7 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * 
- * BUILD TRIGGER: Remove unnecessary File API polyfills (Node.js v24 has built-in support)
+ * BUILD TRIGGER: Update CI to Node.js v20 for built-in File API support
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors - import test failure (adapter list fix)
