@@ -5,7 +5,7 @@
  * Provides structured access to operational runbooks, procedures, and
  * decision trees through the Model Context Protocol.
  * 
- * Build trigger: Testing independent Docker architecture builds
+ * Build trigger: Testing version workflow permissions fix
  */
 
 import 'dotenv/config';
