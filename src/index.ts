@@ -4,7 +4,7 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * 
- * BUILD TRIGGER: Corrected bash debugging approach for validation
+ * BUILD TRIGGER: Fix Verdaccio startup reliability in package validation
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors
