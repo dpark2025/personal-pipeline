@@ -265,11 +265,12 @@ jobs:
           VERSION_ARGS=()
           
           # Add bump type
-          if [[ "${{ steps.bump-type.outputs.bump-type }}" == custom:* ]]; then
-            CUSTOM_VERSION="${{ steps.bump-type.outputs.bump-type #custom: }}"
+          BUMP_TYPE="${{ steps.bump-type.outputs.bump-type }}"
+          if [[ "$BUMP_TYPE" == custom:* ]]; then
+            CUSTOM_VERSION="${BUMP_TYPE#custom:}"
             VERSION_ARGS+=("custom" "$CUSTOM_VERSION")
           else
-            VERSION_ARGS+=("${{ steps.bump-type.outputs.bump-type }}")
+            VERSION_ARGS+=("$BUMP_TYPE")
           fi
           
           # Add flags
