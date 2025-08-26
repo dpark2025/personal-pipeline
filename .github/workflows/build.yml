@@ -202,9 +202,29 @@ jobs:
         run: |
           set +e  # Don't exit immediately on error
           echo "🧪 Validating package..."
+          echo "📋 Starting package validation with full test suite..."
+          
           bash scripts/test-package.sh --full
           EXIT_CODE=$?
-          echo "Package validation exited with code: $EXIT_CODE"
+          
+          echo "📋 Package validation completed with exit code: $EXIT_CODE"
+          
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ Package validation failed, gathering debug information..."
+            echo "📋 Checking if test environment was set up..."
+            ls -la .package-test/ || echo "No .package-test directory found"
+            echo "📋 Checking for any running processes..."
+            ps aux | grep -E "(verdaccio|npm)" || echo "No verdaccio/npm processes found"
+            echo "📋 Checking for any log files..."
+            find . -name "*.log" -exec echo "Found log: {}" \; -exec cat {} \; || echo "No log files found"
+            echo "📋 Checking npm configuration..."
+            npm config list || echo "Failed to list npm config"
+            echo "📋 Checking environment variables..."
+            env | grep -E "(npm|NODE|REGISTRY)" || echo "No relevant environment variables found"
+          else
+            echo "✅ Package validation passed"
+          fi
+          
           exit $EXIT_CODE
         env:
           ACTIONS_STEP_DEBUG: true
