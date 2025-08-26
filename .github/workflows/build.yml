@@ -12,8 +12,6 @@ on:
     workflows: ["Version Management"]
     types:
       - completed
-    branches:
-      - main
   
   # Allow manual triggering
   workflow_dispatch:
