@@ -201,10 +201,11 @@ jobs:
       - name: Validate package
         run: |
           set +e  # Don't exit immediately on error
+          set -x  # Enable bash debugging (shows each command before execution)
           echo "🧪 Validating package..."
           echo "📋 Starting package validation with full test suite..."
           
-          bash scripts/test-package.sh --full
+          bash -x scripts/test-package.sh --full
           EXIT_CODE=$?
           
           echo "📋 Package validation completed with exit code: $EXIT_CODE"
@@ -226,9 +227,6 @@ jobs:
           fi
           
           exit $EXIT_CODE
-        env:
-          ACTIONS_STEP_DEBUG: true
-          RUNNER_DEBUG: true
       
       - name: Generate package metadata
         run: |
