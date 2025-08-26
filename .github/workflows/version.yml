@@ -220,6 +220,8 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          # When triggered by tag push, checkout main branch for pushing changes
+          ref: ${{ github.event_name == 'push' && github.ref_type == 'tag' && 'main' || github.ref }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -391,6 +393,10 @@ jobs:
           (github.event_name == 'push' && github.ref_type == 'tag' && steps.bump-type.outputs.bump-type != 'none')
         run: |
           echo "📤 Pushing version changes and tags..."
+          
+          # Ensure we're on main branch
+          git checkout main || git checkout -b main
+          git status
           
           # Push commits and tags
           git push origin main
