@@ -8,15 +8,14 @@
 # ==============================================================================
 # Build Stage
 # ==============================================================================
-FROM node:18-slim AS builder
+FROM node:20-alpine AS builder
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
+# Install build dependencies (Alpine is much faster)
+RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+    git
 
 # Set working directory
 WORKDIR /app
@@ -25,8 +24,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY tsconfig.json ./
 
-# Verify package-lock.json exists and install dependencies
-RUN ls -la package* && npm ci --silent
+# Install dependencies with optimizations
+RUN npm ci --silent --prefer-offline --no-audit --no-fund
 
 # Copy source code
 COPY src/ ./src/
@@ -36,24 +35,21 @@ COPY config/*.sample.yaml ./config/
 RUN npm run build
 
 # Remove devDependencies to reduce size
-RUN npm ci --only=production --silent
+RUN npm ci --only=production --silent --prefer-offline --no-audit --no-fund
 
 # ==============================================================================
 # Runtime Stage
 # ==============================================================================
-FROM node:18-slim AS runtime
+FROM node:20-alpine AS runtime
 
-# Install runtime dependencies and security updates
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y \
+# Install minimal runtime dependencies (Alpine is much faster)
+RUN apk add --no-cache \
     dumb-init \
-    curl \
-    jq \
-    && rm -rf /var/lib/apt/lists/*
+    curl
 
-# Create non-root user for security
-RUN groupadd -g 1001 ppuser && \
-    useradd -r -u 1001 -g ppuser ppuser
+# Create non-root user for security (Alpine syntax)
+RUN addgroup -g 1001 ppuser && \
+    adduser -D -u 1001 -G ppuser ppuser
 
 # Set working directory
 WORKDIR /app
@@ -64,16 +60,13 @@ COPY package*.json ./
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/config ./config
+
+# Copy configuration samples directly
+COPY config/*.sample.yaml /app/config/
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/data /app/cache /app/logs /app/config && \
     chown -R ppuser:ppuser /app
-
-# Copy default configuration samples
-COPY config/config.sample.yaml /app/config/
-COPY config/web-sample.yaml /app/config/
-COPY config/web-simple-sample.yaml /app/config/
 
 # Health check script
 COPY <<EOF /usr/local/bin/healthcheck.sh
