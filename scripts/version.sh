@@ -33,6 +33,10 @@ while [[ $# -gt 0 ]]; do
       BUMP_TYPE="$1"
       shift
       ;;
+    custom:*)
+      BUMP_TYPE="$1"
+      shift
+      ;;
     --dry-run)
       DRY_RUN=true
       shift
@@ -61,6 +65,7 @@ while [[ $# -gt 0 ]]; do
       echo "  minor       Increment minor version (1.0.0 -> 1.1.0)"
       echo "  major       Increment major version (1.0.0 -> 2.0.0)"
       echo "  prerelease  Increment prerelease version (1.0.0 -> 1.0.1-0)"
+      echo "  custom:X.Y.Z Set specific version (custom:2.1.0)"
       echo ""
       echo "Options:"
       echo "  --dry-run        Show what would be done without making changes"
@@ -74,6 +79,7 @@ while [[ $# -gt 0 ]]; do
       echo "  $0 patch                    # Bump patch version"
       echo "  $0 minor --dry-run          # Preview minor version bump"
       echo "  $0 major --skip-changelog   # Bump major without changelog"
+      echo "  $0 custom:2.1.0 --force     # Set specific version"
       exit 0
       ;;
     *)
