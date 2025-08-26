@@ -79,6 +79,14 @@ on:
         type: boolean
 
 # ==============================================================================
+# Permissions
+# ==============================================================================
+permissions:
+  contents: read       # Required for checking out code
+  packages: write      # Required for pushing to GitHub Container Registry
+  actions: read        # Required for downloading artifacts from previous jobs
+
+# ==============================================================================
 # Environment Variables
 # ==============================================================================
 env:
