@@ -1,40 +1,10 @@
-// Polyfill for Node.js compatibility with undici/web APIs - MUST BE FIRST
-if (typeof globalThis.File === 'undefined') {
-  // Basic File polyfill for Node.js environment
-  globalThis.File = class File {
-    constructor(bits: any, name: string, options?: any) {
-      Object.defineProperty(this, 'name', { value: name, enumerable: true });
-      Object.defineProperty(this, 'size', { value: 0, enumerable: true });
-      Object.defineProperty(this, 'type', { value: options?.type || '', enumerable: true });
-    }
-  } as any;
-}
-
-// Additional web API polyfills for undici compatibility
-if (typeof globalThis.Blob === 'undefined') {
-  globalThis.Blob = class Blob {
-    constructor(parts: any[] = [], options: any = {}) {
-      Object.defineProperty(this, 'size', { value: 0, enumerable: true });
-      Object.defineProperty(this, 'type', { value: options.type || '', enumerable: true });
-    }
-  } as any;
-}
-
-if (typeof globalThis.FormData === 'undefined') {
-  globalThis.FormData = class FormData {
-    private data = new Map();
-    append(name: string, value: any) { this.data.set(name, value); }
-    get(name: string) { return this.data.get(name); }
-  } as any;
-}
-
 /**
  * Personal Pipeline MCP Server - Main Entry Point
  *
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * 
- * BUILD TRIGGER: Disable Docker build, fix File API polyfill placement
+ * BUILD TRIGGER: Remove unnecessary File API polyfills (Node.js v24 has built-in support)
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors - import test failure (adapter list fix)
