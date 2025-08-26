@@ -386,7 +386,9 @@ jobs:
           echo "Package version: $PACKAGE_VERSION"
       
       - name: Push changes
-        if: github.event.inputs.commit_and_tag == 'true' && github.event.inputs.dry_run != 'true'
+        if: |
+          (github.event.inputs.commit_and_tag == 'true' && github.event.inputs.dry_run != 'true') ||
+          (github.event_name == 'push' && github.ref_type == 'tag' && steps.bump-type.outputs.bump-type != 'none')
         run: |
           echo "📤 Pushing version changes and tags..."
           
