@@ -376,7 +376,7 @@ groups:
 
 ### GitHub Actions (Included)
 
-The repository includes a complete GitHub Actions workflow (`.github/workflows/docker-build.yml`) that:
+The repository includes complete GitHub Actions workflows (`.github/workflows/build.yml` and `ci.yml`) that:
 
 - ✅ Runs tests and code quality checks
 - ✅ Builds multi-architecture images

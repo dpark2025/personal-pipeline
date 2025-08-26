@@ -11,7 +11,7 @@
 - Fixed IMAGE_NAME in `.github/workflows/build.yml` ✅
 - Fixed IMAGE_NAME in `.github/workflows/ci.yml` ✅ 
 - Fixed IMAGE_NAME in `.github/workflows/enhanced-release.yml` ✅
-- Fixed IMAGE_NAME in `.github/workflows/docker-build.yml` ✅
+- Removed legacy `.github/workflows/docker-build.yml` (deprecated) ✅
 
 **Expected Result**: Docker images will now push to `ghcr.io/dpark2025/personal-pipeline:*` which matches the repository owner.
 
