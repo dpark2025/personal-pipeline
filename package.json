@@ -18,6 +18,8 @@
     "test:node:coverage": "tsx --test --experimental-test-coverage tests/**/*.test.ts",
     "test:basic": "node test-basic.js",
     "test:ci": "LOG_LEVEL=error tsx --test tests/**/*.test.ts | grep -E '(✔|✗|▶|Failed|Error|tests?.*passing|passed|failed)'",
+    "test:redis": "TEST_REDIS=true tsx --test tests/**/*.test.ts",
+    "test:redis:watch": "TEST_REDIS=true tsx --test --watch tests/**/*.test.ts",
     "lint": "eslint src/ tests/ --ext .ts,.js",
     "lint:fix": "eslint src/ tests/ --ext .ts,.js --fix",
     "format": "prettier --write \"src/**/*.{ts,js,json}\" \"tests/**/*.{ts,js,json}\"",

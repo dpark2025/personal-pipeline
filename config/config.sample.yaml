@@ -51,10 +51,11 @@ cache:
     check_period_seconds: 600      # Cleanup interval (10 minutes)
   
   # Redis Cache Settings (optional external dependency)
-  # System automatically falls back to memory-only if Redis unavailable
+  # Redis is DISABLED by default. Enable by setting REDIS_URL env var or enabled: true
+  # System uses memory-only caching unless Redis is explicitly configured
   redis:
-    enabled: true                  # Enable Redis caching (auto-detected)
-    url: redis://localhost:6379    # Redis connection URL
+    enabled: false                 # Enable Redis caching (set to true or use REDIS_URL env var)
+    url: redis://localhost:6379    # Redis connection URL (or use REDIS_URL environment variable)
                                   # Supports: redis://host:port, rediss://host:port (SSL)
                                   # With auth: redis://user:pass@host:port
     ttl_seconds: 7200              # Redis TTL (2 hours, longer than memory)

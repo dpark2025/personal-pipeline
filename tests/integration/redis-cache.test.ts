@@ -12,12 +12,12 @@ import { CacheService, createCacheKey } from '../../src/utils/cache.js';
 import { CacheConfig } from '../../src/types/index.js';
 
 describe('Redis Cache Integration Tests', () => {
-  // Skip Redis integration tests in CI or when LOG_LEVEL=error to reduce noise
-  const shouldSkipRedisTests = process.env.LOG_LEVEL === 'error' || process.env.CI === 'true';
+  // Only run Redis integration tests when explicitly enabled
+  const shouldRunRedisTests = process.env.TEST_REDIS === 'true' || process.env.REDIS_URL !== undefined;
   
-  if (shouldSkipRedisTests) {
-    it('should skip Redis integration tests when LOG_LEVEL=error or CI=true', () => {
-      console.log('Skipping Redis integration tests - Redis not available or LOG_LEVEL=error');
+  if (!shouldRunRedisTests) {
+    it('should skip Redis integration tests unless TEST_REDIS=true or REDIS_URL is set', () => {
+      console.log('Skipping Redis integration tests - Use TEST_REDIS=true or set REDIS_URL to enable');
     });
     return;
   }

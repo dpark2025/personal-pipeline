@@ -272,14 +272,16 @@ export class ConfigManager {
       ],
       cache: {
         enabled: process.env.CACHE_ENABLED !== 'false',
-        strategy: (process.env.CACHE_STRATEGY as any) || 'hybrid',
+        // Default to memory-only unless Redis is explicitly configured
+        strategy: (process.env.CACHE_STRATEGY as any) || (process.env.REDIS_URL ? 'hybrid' : 'memory_only'),
         memory: {
           max_keys: parseInt(process.env.CACHE_MEMORY_MAX_KEYS || '1000'),
           ttl_seconds: parseInt(process.env.CACHE_MEMORY_TTL_SECONDS || '3600'),
           check_period_seconds: parseInt(process.env.CACHE_MEMORY_CHECK_PERIOD_SECONDS || '600'),
         },
         redis: {
-          enabled: process.env.REDIS_ENABLED !== 'false',
+          // Only enable Redis if REDIS_URL is provided or explicitly enabled
+          enabled: process.env.REDIS_URL ? true : (process.env.REDIS_ENABLED === 'true'),
           url: process.env.REDIS_URL || 'redis://localhost:6379',
           ttl_seconds: parseInt(process.env.CACHE_REDIS_TTL_SECONDS || '7200'),
           key_prefix: process.env.CACHE_REDIS_KEY_PREFIX || 'pp:cache:',

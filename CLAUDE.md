@@ -42,9 +42,11 @@ npm run build
 npm start
 
 # Run tests
-npm test
+npm test                # Run all tests (Redis integration tests skipped by default)
 npm run test:watch      # Run tests in watch mode  
 npm run test:coverage   # Run tests with coverage
+npm run test:redis      # Run tests WITH Redis integration tests (requires Redis)
+npm run test:redis:watch # Run Redis tests in watch mode
 
 # Code quality and validation
 npm run lint            # Run ESLint
@@ -167,7 +169,7 @@ LangGraph Agent → MCP Protocol → Core Engine → Source Adapters
 - **Web Framework**: Express.js with security middleware (helmet, cors)
 - **Search**: `fuse.js` (fuzzy search), `@xenova/transformers` (planned for Phase 2)
 - **Content Processing**: `cheerio`, `turndown`
-- **Caching**: Hybrid Redis + `node-cache` with circuit breaker resilience
+- **Caching**: Memory-only by default, optional Redis with `REDIS_URL` environment variable
 - **Validation**: Zod for runtime type checking and schema validation
 - **Logging**: Winston structured logging
 - **Configuration**: YAML format with environment variable support
