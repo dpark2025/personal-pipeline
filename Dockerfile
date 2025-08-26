@@ -122,7 +122,7 @@ CMD ["npm", "start"]
 LABEL org.opencontainers.image.title="Personal Pipeline MCP Server" \
       org.opencontainers.image.description="Intelligent MCP server for documentation retrieval and incident response" \
       org.opencontainers.image.vendor="Personal Pipeline Team" \
-      org.opencontainers.image.version="0.3.3" \
+      org.opencontainers.image.version="0.3.4" \
       org.opencontainers.image.url="https://personal-pipeline.dev" \
       org.opencontainers.image.documentation="https://github.com/your-username/personal-pipeline-mcp" \
       org.opencontainers.image.source="https://github.com/your-username/personal-pipeline-mcp" \

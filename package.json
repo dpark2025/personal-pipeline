@@ -1,6 +1,6 @@
 {
   "name": "@personal-pipeline/mcp-server",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Personal Pipeline - Intelligent MCP server for documentation retrieval and incident response",
   "type": "module",
   "main": "dist/index.js",
