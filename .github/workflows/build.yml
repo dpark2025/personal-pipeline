@@ -83,7 +83,7 @@ on:
 # ==============================================================================
 env:
   NODE_VERSION: '20'
-  IMAGE_NAME: personal-pipeline/mcp-server
+  IMAGE_NAME: dpark2025/personal-pipeline
   REGISTRY_GHCR: ghcr.io
 
 # ==============================================================================
