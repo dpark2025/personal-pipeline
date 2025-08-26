@@ -5,7 +5,7 @@
  * Provides structured access to operational runbooks, procedures, and
  * decision trees through the Model Context Protocol.
  * 
- * Build trigger: Testing version workflow permissions fix
+ * Build trigger: Testing complete CI/CD pipeline after workflow fixes
  */
 
 import 'dotenv/config';
