@@ -4,7 +4,7 @@
  * Core MCP server implementation that provides intelligent documentation
  * retrieval for incident response and operational support.
  *
- * Version: 0.1.0 - Testing Node 20 upgrade for test coverage support
+ * Version: 0.1.0 - Testing silent test logging in validation step
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';

@@ -393,3 +393,4 @@ npm run demo:start
 # Performance dashboard
 npm run health:dashboard
 ```
+- remember that this project uses node 20 and we should make sure that all related tooling and services are node 20 or support it.
