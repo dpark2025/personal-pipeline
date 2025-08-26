@@ -4,13 +4,33 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * 
- * BUILD TRIGGER: Add CONFIG_FILE environment variable support
+ * BUILD TRIGGER: Fix service test config with required fields
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors - import test failure (adapter list fix)
  */
 
 import 'dotenv/config';
+
+// Check for help before any imports to avoid initialization overhead
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`
+Personal Pipeline MCP Server v0.1.0
+
+Usage: node dist/index.js [options]
+
+Options:
+  -c, --config <path>         Specify config file path (default: ./config/config.yaml)
+  --create-sample-config      Create a sample configuration file and exit
+  -h, --help                  Show this help message
+
+Environment Variables:
+  CONFIG_FILE                 Config file path (overridden by --config option)
+  LOG_LEVEL                   Logging level (debug, info, warn, error)
+  `);
+  process.exit(0);
+}
+
 import { personalPipelineServer } from './core/server.js';
 import { logger } from './utils/logger.js';
 import { createSampleConfig } from './utils/config.js';
@@ -20,6 +40,7 @@ import { createSampleConfig } from './utils/config.js';
  */
 async function main(): Promise<void> {
   try {
+
     logger.info('Starting Personal Pipeline MCP Server...', {
       version: '0.1.0',
       nodeVersion: process.version,
@@ -29,6 +50,15 @@ async function main(): Promise<void> {
     // Handle graceful shutdown
     setupGracefulShutdown();
 
+    // Parse command-line arguments
+    const configIndex = process.argv.findIndex(arg => arg === '--config' || arg === '-c');
+    let configPath: string | undefined;
+    
+    if (configIndex !== -1 && configIndex + 1 < process.argv.length) {
+      configPath = process.argv[configIndex + 1];
+      logger.info(`Using explicit config file: ${configPath}`);
+    }
+
     // Create sample configuration if needed
     if (process.argv.includes('--create-sample-config')) {
       await createSampleConfig();
@@ -36,8 +66,17 @@ async function main(): Promise<void> {
       process.exit(0);
     }
 
-    // Start the server
-    await personalPipelineServer.start();
+    // Start the server with optional config path
+    if (configPath) {
+      // Create a new server instance with explicit config path
+      const { PersonalPipelineServer } = await import('./core/server.js');
+      const { ConfigManager } = await import('./utils/config.js');
+      const serverWithCustomConfig = new PersonalPipelineServer(new ConfigManager(configPath));
+      await serverWithCustomConfig.start();
+    } else {
+      // Use default server instance
+      await personalPipelineServer.start();
+    }
 
     logger.info('Personal Pipeline MCP Server is ready to accept connections');
   } catch (error) {
@@ -105,11 +144,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-// Export server instance for testing and programmatic usage
-export { personalPipelineServer };
-
 // Re-export main classes and interfaces for library usage
 export { PersonalPipelineServer } from './core/server.js';
+
+// Export server instance for testing and programmatic usage
+export { personalPipelineServer };
 
 // Export types for TypeScript users
 export * from './types/index.js';
