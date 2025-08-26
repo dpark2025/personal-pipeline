@@ -278,14 +278,14 @@ export type EscalationResponse = z.infer<typeof EscalationResponse>;
  */
 export const CacheConfig = z.object({
   enabled: z.boolean().default(true),
-  strategy: z.enum(['memory_only', 'redis_only', 'hybrid']).default('hybrid'),
+  strategy: z.enum(['memory_only', 'redis_only', 'hybrid']).default('memory_only'),
   memory: z.object({
     max_keys: z.number().default(1000),
     ttl_seconds: z.number().default(3600),
     check_period_seconds: z.number().default(600),
   }),
   redis: z.object({
-    enabled: z.boolean().default(true),
+    enabled: z.boolean().default(false),
     url: z.string().default('redis://localhost:6379'),
     ttl_seconds: z.number().default(7200),
     key_prefix: z.string().default('pp:cache:'),

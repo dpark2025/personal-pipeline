@@ -952,18 +952,22 @@ export class PersonalPipelineServer {
     }
 
     try {
-      // Use default cache configuration if not provided
+      // Use environment-aware cache configuration if not provided
+      const redisUrl = process.env.REDIS_URL;
+      const isRedisConfigured = redisUrl !== undefined;
+      
       const cacheConfig: CacheConfig = this.config.cache || {
         enabled: true,
-        strategy: 'hybrid',
+        // Default to memory-only unless Redis is explicitly configured
+        strategy: isRedisConfigured ? 'hybrid' : 'memory_only',
         memory: {
           max_keys: 1000,
           ttl_seconds: 3600,
           check_period_seconds: 600,
         },
         redis: {
-          enabled: true,
-          url: process.env.REDIS_URL || 'redis://localhost:6379',
+          enabled: isRedisConfigured,
+          url: redisUrl || 'redis://localhost:6379',
           ttl_seconds: 7200,
           key_prefix: 'pp:cache:',
           connection_timeout_ms: 5000,
