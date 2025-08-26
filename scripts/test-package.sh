@@ -102,6 +102,9 @@ declare -a TEST_RESULTS=()
 TESTS_PASSED=0
 TESTS_FAILED=0
 
+# Registry process tracking
+REGISTRY_PID=""
+
 # Record test result
 record_test() {
   local test_name="$1"
@@ -126,8 +129,18 @@ cleanup() {
     rm -rf "$TEST_DIR"
     
     # Stop local registry if running
-    if [[ "$USE_LOCAL_REGISTRY" == "true" ]]; then
-      pkill -f "verdaccio.*$TEMP_REGISTRY_PORT" 2>/dev/null || true
+    if [[ "$USE_LOCAL_REGISTRY" == "true" && -n "$REGISTRY_PID" ]]; then
+      # Check if process is still running before attempting to kill
+      if kill -0 "$REGISTRY_PID" 2>/dev/null; then
+        log_verbose "Stopping Verdaccio registry (PID: $REGISTRY_PID)..."
+        kill "$REGISTRY_PID" 2>/dev/null || true
+        # Give it a moment to shutdown gracefully
+        sleep 1
+        # Force kill if still running
+        kill -9 "$REGISTRY_PID" 2>/dev/null || true
+      else
+        log_verbose "Registry process (PID: $REGISTRY_PID) already stopped"
+      fi
     fi
   else
     log_info "Test directory preserved: $TEST_DIR"
@@ -201,6 +214,7 @@ EOF
   # Start verdaccio
   verdaccio --config "$config_file" --listen "http://localhost:$TEMP_REGISTRY_PORT" &
   local registry_pid=$!
+  REGISTRY_PID=$registry_pid  # Store in global variable for cleanup
   
   # Wait for registry to start - disable exit on error for the entire loop
   set +e
