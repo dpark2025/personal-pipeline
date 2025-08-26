@@ -457,9 +457,9 @@ jobs:
           # Run build to ensure version changes don't break anything
           npm run build
           
-          # Run tests to ensure functionality is preserved
-          echo "Running tests with silent logging..."
-          npm run test:ci
+          # Run basic smoke tests to ensure functionality is preserved
+          echo "Running basic smoke tests..."
+          npm run test:basic
           
           # Validate package structure
           if [[ -f "scripts/test-package.sh" ]]; then

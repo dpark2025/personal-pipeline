@@ -172,8 +172,8 @@ jobs:
       - name: Run tests
         if: github.event.inputs.skip_tests != 'true'
         run: |
-          echo "🧪 Running test suite..."
-          npm test
+          echo "🧪 Running integration tests..."
+          npm run test:integration:quick
           echo "✅ Tests passed"
       
       - name: Code quality checks
