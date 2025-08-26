@@ -11,7 +11,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_DIR="$PROJECT_ROOT/.package-test"
-TEMP_REGISTRY_PORT="4874"
+# Extract port from REGISTRY_URL if available, otherwise default to 4873
+if [[ -n "${REGISTRY_URL:-}" ]]; then
+  TEMP_REGISTRY_PORT="${REGISTRY_URL##*:}"
+else
+  TEMP_REGISTRY_PORT="${REGISTRY_PORT:-4873}"
+fi
 
 # Colors for output
 RED='\033[0;31m'
