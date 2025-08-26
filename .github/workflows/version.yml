@@ -298,7 +298,8 @@ jobs:
             VERSION_ARGS+=("--dry-run")
           fi
           
-          if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
+          # Always add --force in CI to avoid interactive prompts
+          if [[ "${{ github.event.inputs.force }}" == "true" ]] || [[ "${{ github.event_name }}" == "push" ]]; then
             VERSION_ARGS+=("--force")
           fi
           
