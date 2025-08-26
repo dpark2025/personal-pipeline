@@ -16,6 +16,9 @@ on:
       - '*.md'
       - '.gitignore'
       - 'LICENSE'
+      - 'planning/**'
+      - 'test-data/**'
+      - '.claude/**'
   
   # Allow manual triggering
   workflow_dispatch:
@@ -109,16 +112,16 @@ jobs:
               - 'package-lock.json'
               - 'tsconfig.json'
               - 'tsconfig.*.json'
-              - 'scripts/**'
+              - 'scripts/build-package.sh'
+              - 'scripts/test-package.sh'
               - '.eslintrc.*'
             docker:
               - 'src/**'
-              - 'tests/**'
               - 'Dockerfile'
               - 'package.json'
               - 'package-lock.json'
               - 'docker/**'
-              - 'scripts/**'
+              - 'config/*.sample.yaml'
       
       - name: Build summary
         run: |
