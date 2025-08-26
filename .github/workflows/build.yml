@@ -327,8 +327,11 @@ jobs:
           IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           echo "Testing image: $IMAGE_TAG"
           
-          # Start container for testing
-          docker run --name test-container -d -p 3000:3000 "$IMAGE_TAG"
+          # Start container for testing (use memory-only cache for CI)
+          docker run --name test-container -d -p 3000:3000 \
+            -e NODE_ENV=production \
+            -e LOG_LEVEL=info \
+            "$IMAGE_TAG"
           
           # Wait for container to start
           sleep 15
