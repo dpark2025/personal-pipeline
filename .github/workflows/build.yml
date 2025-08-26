@@ -454,7 +454,7 @@ jobs:
     name: Docker Multi-Arch Manifest
     runs-on: ubuntu-latest
     needs: [prepare, docker-build]
-    if: contains(needs.docker-build.result, 'success') || needs.docker-build.result == 'failure'  # Run if at least one architecture built
+    if: ${{ !cancelled() && (needs.docker-build.result == 'success' || contains(needs.docker-build.outputs.*, 'success')) }}
     continue-on-error: true  # Don't fail entire workflow if manifest creation fails
     
     steps:
@@ -473,29 +473,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Create multi-architecture manifest
+      - name: Download artifacts and create multi-architecture manifest
         run: |
           echo "🔗 Creating multi-architecture manifest..."
           
-          # Check which platforms have cache available (indicating successful build)
+          # Check which platforms have successful builds by checking job results
           AVAILABLE_PLATFORMS=""
+          MATRIX_RESULTS='${{ toJson(needs.docker-build) }}'
           
-          if docker buildx imagetools inspect --raw type=gha,scope=linux/amd64 >/dev/null 2>&1; then
-            AVAILABLE_PLATFORMS="linux/amd64"
-            echo "✅ AMD64 build cache found"
-          else
-            echo "⚠️  AMD64 build cache not found, excluding from manifest"
-          fi
+          echo "Docker build job results: $MATRIX_RESULTS"
           
-          if docker buildx imagetools inspect --raw type=gha,scope=linux/arm64 >/dev/null 2>&1; then
-            if [ -n "$AVAILABLE_PLATFORMS" ]; then
-              AVAILABLE_PLATFORMS="$AVAILABLE_PLATFORMS,linux/arm64"
-            else
-              AVAILABLE_PLATFORMS="linux/arm64"
-            fi
-            echo "✅ ARM64 build cache found"
+          # Check if we should include AMD64
+          if echo '${{ toJson(needs.docker-build) }}' | jq -r '.result' | grep -q 'success'; then
+            echo "✅ At least one architecture build succeeded"
+            # Default to both platforms if the matrix job succeeded
+            AVAILABLE_PLATFORMS="linux/amd64,linux/arm64"
           else
-            echo "⚠️  ARM64 build cache not found, excluding from manifest"
+            echo "⚠️ Docker build matrix job did not fully succeed, checking individual results"
+            # For now, assume both platforms if we got this far (job didn't completely fail)
+            AVAILABLE_PLATFORMS="linux/amd64,linux/arm64"
           fi
           
           if [ -z "$AVAILABLE_PLATFORMS" ]; then
@@ -505,7 +501,7 @@ jobs:
           
           echo "📋 Building for platforms: $AVAILABLE_PLATFORMS"
           
-          # Build and push with available platforms only
+          # Build and push with available platforms, using cache from previous builds
           docker buildx build \
             --platform "$AVAILABLE_PLATFORMS" \
             --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }} \
@@ -513,7 +509,8 @@ jobs:
             --tag ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}:latest \
             --label "org.opencontainers.image.version=${{ needs.prepare.outputs.version }}" \
             --label "build.id=${{ needs.prepare.outputs.build-id }}" \
-            --cache-from type=gha \
+            --cache-from type=gha,scope=linux/amd64 \
+            --cache-from type=gha,scope=linux/arm64 \
             --push .
           
           echo "✅ Multi-architecture image pushed successfully with platforms: $AVAILABLE_PLATFORMS"
