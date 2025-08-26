@@ -392,10 +392,12 @@ try {
 }
 EOF
 
-  if node test-import.js >/dev/null 2>&1; then
+  local import_output
+  if import_output=$(node test-import.js 2>&1); then
     record_test "Programmatic Import" "PASS" "Main exports work correctly"
   else
-    record_test "Programmatic Import" "FAIL" "Import failed"
+    record_test "Programmatic Import" "FAIL" "Import failed: $import_output"
+    log_error "Import test output: $import_output"
   fi
   
   # Test submodule imports
@@ -416,10 +418,12 @@ try {
 }
 EOF
 
-  if node test-submodules.js >/dev/null 2>&1; then
+  local submodule_output
+  if submodule_output=$(node test-submodules.js 2>&1); then
     record_test "Submodule Imports" "PASS" "Submodule exports work correctly"
   else
-    record_test "Submodule Imports" "FAIL" "Submodule import failed"
+    record_test "Submodule Imports" "FAIL" "Submodule import failed: $submodule_output"
+    log_error "Submodule import test output: $submodule_output"
   fi
 }
 
