@@ -32,6 +32,34 @@ cache:
     max_keys: 100
     ttl_seconds: 300
     check_period_seconds: 60
+  
+  # Redis configuration (disabled but required by schema)
+  redis:
+    enabled: false
+    url: 'redis://localhost:6379'  # Not used in memory_only strategy
+    ttl_seconds: 300
+    key_prefix: 'pp:test:'
+    connection_timeout_ms: 5000
+    retry_attempts: 1
+    retry_delay_ms: 1000
+    max_retry_delay_ms: 5000
+    backoff_multiplier: 1.5
+    connection_retry_limit: 1
+    
+  # Content-specific cache settings for testing
+  content_types:
+    runbooks:
+      ttl_seconds: 300
+      warmup: false  # No warmup in tests
+    procedures:
+      ttl_seconds: 300
+      warmup: false
+    decision_trees:
+      ttl_seconds: 300
+      warmup: false
+    knowledge_base:
+      ttl_seconds: 300
+      warmup: false
 
 # Semantic search disabled for simpler testing
 semantic_search:
