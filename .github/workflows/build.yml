@@ -200,9 +200,20 @@ jobs:
       
       - name: Validate package
         run: |
-          set -e  # Exit immediately on any error
           echo "🧪 Validating package..."
-          bash scripts/test-package.sh --full
+          echo "📋 Starting package validation with full test suite..."
+          
+          if ! bash scripts/test-package.sh --full; then
+            echo "❌ Package validation failed with exit code $?"
+            echo "📋 Checking if test environment was set up..."
+            ls -la .package-test/ || echo "No .package-test directory found"
+            echo "📋 Checking for any running processes..."
+            ps aux | grep -E "(verdaccio|npm)" || echo "No verdaccio/npm processes found"
+            echo "📋 Checking for any log files..."
+            find . -name "*.log" -exec echo "Found log: {}" \; -exec cat {} \; || echo "No log files found"
+            exit 1
+          fi
+          echo "✅ Package validation passed"
       
       - name: Generate package metadata
         run: |
