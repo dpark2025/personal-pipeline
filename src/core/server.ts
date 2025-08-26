@@ -1165,7 +1165,7 @@ export class PersonalPipelineServer {
     // });
 
     logger.debug('Source adapter factories registered with semantic enhancement support', {
-      adapters: ['file', 'github', 'web', 'confluence', 'database'],
+      adapters: ['file', 'web'],
       semanticEnabled: this.semanticConfig.enabled,
       semanticEnhancement: this.semanticConfig.enhanceExistingAdapters,
     });
