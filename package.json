@@ -15,7 +15,7 @@
     "test:coverage": "npm run test:node:coverage",
     "test:node": "tsx --test tests/**/*.test.ts",
     "test:node:watch": "tsx --test --watch tests/**/*.test.ts",
-    "test:node:coverage": "tsx --test --experimental-test-coverage tests/**/*.test.ts",
+    "test:node:coverage": "tsx --test --experimental-test-coverage tests/**/*.test.ts >/dev/null 2>&1 || (echo 'Tests failed during coverage run' >&2 && exit 1)",
     "test:basic": "node test-basic.js",
     "test:ci": "LOG_LEVEL=silent tsx --test tests/**/*.test.ts",
     "test:redis": "TEST_REDIS=true tsx --test tests/**/*.test.ts",
