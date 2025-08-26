@@ -202,22 +202,20 @@ EOF
   verdaccio --config "$config_file" --listen "http://localhost:$TEMP_REGISTRY_PORT" &
   local registry_pid=$!
   
-  # Wait for registry to start
+  # Wait for registry to start - disable exit on error for the entire loop
+  set +e
   local attempts=0
   while [[ $attempts -lt 60 ]]; do  # Increased from 30 to 60 seconds for CI
     # Check if the process is still running
     if ! kill -0 $registry_pid 2>/dev/null; then
+      set -e
       log_error "Verdaccio process died during startup"
       return 1
     fi
     
-    # Check if the registry is responding (disable exit on error for this check)
-    set +e
-    curl -s "http://localhost:$TEMP_REGISTRY_PORT" >/dev/null 2>&1
-    local curl_result=$?
-    set -e
-    
-    if [[ $curl_result -eq 0 ]]; then
+    # Check if the registry is responding
+    if curl -s "http://localhost:$TEMP_REGISTRY_PORT" >/dev/null 2>&1; then
+      set -e
       log_success "Local registry started on port $TEMP_REGISTRY_PORT (PID: $registry_pid)"
       # Give registry an extra moment to fully initialize
       sleep 2
@@ -230,9 +228,7 @@ EOF
       log_verbose "Still waiting for registry... attempt $attempts/60 (PID: $registry_pid)"
       # Additional debugging - check if port is in use
       if command -v netstat >/dev/null 2>&1; then
-        set +e
-        local netstat_result=$(netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT ")
-        set -e
+        local netstat_result=$(netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT " || echo "")
         if [[ -z "$netstat_result" ]]; then
           log_verbose "Port $TEMP_REGISTRY_PORT not yet bound"
         else
@@ -241,6 +237,9 @@ EOF
       fi
     fi
   done
+  
+  # Re-enable exit on error for the rest of the function
+  set -e
   
   log_error "Registry startup timed out after 60 seconds"
   log_error "Process status: $(kill -0 $registry_pid 2>/dev/null && echo "alive" || echo "dead")"
