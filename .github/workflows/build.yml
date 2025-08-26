@@ -66,8 +66,8 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       build-id: ${{ steps.build-id.outputs.build-id }}
       cache-key: ${{ steps.cache-key.outputs.cache-key }}
-      should-build-npm: ${{ steps.changes.outputs.npm }}
-      should-build-docker: ${{ steps.changes.outputs.docker }}
+      should-build-npm: ${{ steps.build-analysis.outputs.should-build-npm }}
+      should-build-docker: ${{ steps.build-analysis.outputs.should-build-docker }}
       
     steps:
       - name: Checkout code
@@ -103,7 +103,6 @@ jobs:
             npm:
               - 'src/**'
               - 'tests/**'
-              - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
               - 'tsconfig.*.json'
@@ -113,10 +112,50 @@ jobs:
             docker:
               - 'src/**'
               - 'Dockerfile'
-              - 'package.json'
               - 'package-lock.json'
               - 'docker/**'
               - 'config/*.sample.yaml'
+            version-only:
+              - 'package.json'
+              - 'CHANGELOG.md'
+      
+      - name: Analyze build requirements
+        id: build-analysis
+        run: |
+          echo "🔍 Analyzing build requirements..."
+          
+          # Check if we have only version-related changes
+          NPM_CHANGES="${{ steps.changes.outputs.npm }}"
+          DOCKER_CHANGES="${{ steps.changes.outputs.docker }}"
+          VERSION_CHANGES="${{ steps.changes.outputs.version-only }}"
+          
+          # Manual overrides always build
+          if [[ "${{ github.event.inputs.build_target }}" == "all" || "${{ github.event.inputs.build_target }}" == "npm-only" ]]; then
+            echo "should-build-npm=true" >> $GITHUB_OUTPUT
+            echo "📦 npm build: Required (manual override)"
+          elif [[ "$NPM_CHANGES" == "true" ]]; then
+            echo "should-build-npm=true" >> $GITHUB_OUTPUT
+            echo "📦 npm build: Required (source changes)"
+          else
+            echo "should-build-npm=false" >> $GITHUB_OUTPUT
+            echo "📦 npm build: Skipped (no source changes)"
+          fi
+          
+          if [[ "${{ github.event.inputs.build_target }}" == "all" || "${{ github.event.inputs.build_target }}" == "docker-only" ]]; then
+            echo "should-build-docker=true" >> $GITHUB_OUTPUT
+            echo "🐳 Docker build: Required (manual override)"
+          elif [[ "$DOCKER_CHANGES" == "true" ]]; then
+            echo "should-build-docker=true" >> $GITHUB_OUTPUT
+            echo "🐳 Docker build: Required (source changes)"
+          else
+            echo "should-build-docker=false" >> $GITHUB_OUTPUT
+            echo "🐳 Docker build: Skipped (no source changes)"
+          fi
+          
+          # Log version-only changes
+          if [[ "$VERSION_CHANGES" == "true" ]]; then
+            echo "📋 Version-only changes detected (package.json, CHANGELOG.md)"
+          fi
       
       - name: Build summary
         run: |
@@ -124,9 +163,10 @@ jobs:
           echo "============================"
           echo "📝 Version: ${{ steps.version.outputs.version }}"
           echo "🆔 Build ID: ${{ steps.build-id.outputs.build-id }}"
-          echo "📦 Build npm: ${{ steps.changes.outputs.npm || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'npm-only' }}"
-          echo "🐳 Build Docker: ${{ steps.changes.outputs.docker || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'docker-only' }}"
+          echo "📦 Build npm: ${{ steps.build-analysis.outputs.should-build-npm }}"
+          echo "🐳 Build Docker: ${{ steps.build-analysis.outputs.should-build-docker }}"
           echo "🔄 Force rebuild: ${{ github.event.inputs.force_rebuild }}"
+          echo "📋 Version changes: ${{ steps.changes.outputs.version-only }}"
 
   # ==============================================================================
   # npm Package Build
