@@ -132,14 +132,11 @@ cleanup() {
     if [[ "$USE_LOCAL_REGISTRY" == "true" && -n "$REGISTRY_PID" ]]; then
       # Check if process is still running before attempting to kill
       if kill -0 "$REGISTRY_PID" 2>/dev/null; then
-        log_verbose "Stopping Verdaccio registry (PID: $REGISTRY_PID)..."
         kill "$REGISTRY_PID" 2>/dev/null || true
         # Give it a moment to shutdown gracefully
         sleep 1
         # Force kill if still running
         kill -9 "$REGISTRY_PID" 2>/dev/null || true
-      else
-        log_verbose "Registry process (PID: $REGISTRY_PID) already stopped"
       fi
     fi
   else
@@ -238,17 +235,9 @@ EOF
     
     sleep 1
     ((attempts++))
-    if [[ $((attempts % 10)) -eq 0 ]]; then
-      log_verbose "Still waiting for registry... attempt $attempts/60 (PID: $registry_pid)"
-      # Additional debugging - check if port is in use
-      if command -v netstat >/dev/null 2>&1; then
-        local netstat_result=$(netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT " || echo "")
-        if [[ -z "$netstat_result" ]]; then
-          log_verbose "Port $TEMP_REGISTRY_PORT not yet bound"
-        else
-          log_verbose "Port $TEMP_REGISTRY_PORT is bound: $netstat_result"
-        fi
-      fi
+    # Additional debugging every 10 attempts - check if port is in use
+    if [[ $((attempts % 10)) -eq 0 ]] && command -v netstat >/dev/null 2>&1; then
+      netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT " >/dev/null || true
     fi
   done
   
@@ -560,7 +549,6 @@ test_package_integrity() {
   
   # Extract tarball
   mkdir -p "$extract_dir"
-  log_verbose "Extracting tarball: '$tarball_path' to '$extract_dir'"
   local tar_output
   if tar_output=$(tar -xzf "$tarball_path" -C "$extract_dir" 2>&1); then
     record_test "Package Extract" "PASS" "Tarball extracts correctly"
