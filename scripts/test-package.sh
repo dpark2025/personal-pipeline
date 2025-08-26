@@ -28,7 +28,8 @@ NC='\033[0m' # No Color
 # Test configuration
 TEST_MODE="full"
 CLEANUP_ON_EXIT=true
-VERBOSE=false
+# Enable verbose in CI environments
+VERBOSE=${CI:-false}
 USE_LOCAL_REGISTRY=true
 
 # Parse command line arguments
@@ -203,13 +204,18 @@ EOF
   
   # Wait for registry to start
   local attempts=0
-  while [[ $attempts -lt 30 ]]; do
+  while [[ $attempts -lt 60 ]]; do  # Increased from 30 to 60 seconds for CI
     if curl -s "http://localhost:$TEMP_REGISTRY_PORT" >/dev/null 2>&1; then
       log_success "Local registry started on port $TEMP_REGISTRY_PORT"
+      # Give registry an extra moment to fully initialize
+      sleep 2
       return 0
     fi
     sleep 1
     ((attempts++))
+    if [[ $((attempts % 10)) -eq 0 ]]; then
+      log_verbose "Still waiting for registry... attempt $attempts/60"
+    fi
   done
   
   log_error "Failed to start local registry"
@@ -223,11 +229,16 @@ build_package() {
   
   cd "$PROJECT_ROOT"
   
-  # Build the package
+  # Build the package with verbose output in CI
+  log_verbose "Running: bash scripts/build-package.sh --production"
   if bash scripts/build-package.sh --production; then
     record_test "Package Build" "PASS" "Package built successfully"
+    log_verbose "Build completed successfully"
   else
-    record_test "Package Build" "FAIL" "Package build failed"
+    local exit_code=$?
+    record_test "Package Build" "FAIL" "Package build failed with exit code $exit_code"
+    log_error "Build failed with exit code: $exit_code"
+    log_error "Check the build-package.sh script output above for details"
     return 1
   fi
 }
@@ -309,11 +320,26 @@ EOF
 
   # Install package locally
   local tarball_path="$1"
+  
+  # Configure npm to use local registry if it's running
+  if [[ "$USE_LOCAL_REGISTRY" == "true" ]]; then
+    npm config set registry "http://localhost:$TEMP_REGISTRY_PORT"
+  fi
+  
   if npm install "$tarball_path" >/dev/null 2>&1; then
     record_test "Local Install" "PASS" "Package installed locally"
   else
     record_test "Local Install" "FAIL" "Local installation failed"
+    # Reset npm registry on failure
+    if [[ "$USE_LOCAL_REGISTRY" == "true" ]]; then
+      npm config set registry "https://registry.npmjs.org/"
+    fi
     return 1
+  fi
+  
+  # Reset npm registry after successful install
+  if [[ "$USE_LOCAL_REGISTRY" == "true" ]]; then
+    npm config set registry "https://registry.npmjs.org/"
   fi
   
   # Test programmatic import
