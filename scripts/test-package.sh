@@ -159,7 +159,11 @@ start_local_registry() {
   # Check if verdaccio is available
   if ! command -v verdaccio >/dev/null 2>&1; then
     log_warning "verdaccio not found, installing..."
-    npm install -g verdaccio
+    # Install verdaccio, ignore warnings (but not errors)
+    npm install -g verdaccio --no-audit --no-fund 2>/dev/null || {
+      # If silent install fails, try with output to see real errors
+      npm install -g verdaccio --no-audit --no-fund
+    }
   fi
   
   # Create minimal verdaccio config
@@ -184,7 +188,7 @@ packages:
     publish: \$authenticated
     unpublish: \$authenticated
     proxy: npmjs
-logs:
+log:
   - {type: stdout, format: pretty, level: warn}
 EOF
 
