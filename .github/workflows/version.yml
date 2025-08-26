@@ -417,9 +417,20 @@ jobs:
           git checkout main || git checkout -b main
           git status
           
-          # Push commits and tags
+          # Push commits
           git push origin main
-          git push origin ${{ steps.bump.outputs.version-tag }}
+          
+          # Push tag only if it doesn't exist on remote or if we need to update it
+          TAG_NAME="${{ steps.bump.outputs.version-tag }}"
+          echo "Checking if tag $TAG_NAME needs to be pushed..."
+          
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
+            echo "Tag $TAG_NAME already exists on remote, force updating..."
+            git push origin "+$TAG_NAME:$TAG_NAME"
+          else
+            echo "Pushing new tag $TAG_NAME..."
+            git push origin "$TAG_NAME"
+          fi
           
           echo "✅ Changes pushed successfully"
       
