@@ -93,7 +93,7 @@ export class PersonalPipelineServer {
 
     this.setupExpress();
     this.setupMCPHandlers();
-    this.registerSourceAdapters();
+    // registerSourceAdapters() will be called after config is loaded in start()
   }
 
   /**
@@ -124,6 +124,9 @@ export class PersonalPipelineServer {
         semanticSearchEnabled: this.semanticConfig.enabled,
         semanticEnhancement: this.semanticConfig.enhanceExistingAdapters,
       });
+
+      // Register source adapters based on configuration
+      this.registerSourceAdapters();
 
       // Initialize performance monitoring
       initializePerformanceMonitor({
@@ -1044,25 +1047,36 @@ export class PersonalPipelineServer {
       return baseAdapter;
     });
 
-    // Register Web adapter factory with semantic enhancement
-    this.sourceRegistry.registerFactory('web', config => {
-      const baseAdapter = new WebAdapter(config as WebConfig);
-      if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
-        logger.info('Creating semantic-enhanced WebAdapter', {
-          name: config.name,
-          fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
-        });
-        const semanticConfig = this.config?.semantic_search;
-        return createSemanticEnhancedAdapter(baseAdapter, {
-          enableSemanticSearch: true,
-          enableFallback: this.semanticConfig.fallbackToFuzzy,
-          semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
-          semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
-          maxResults: 50,
-        });
-      }
-      return baseAdapter;
-    });
+    // Only register Web adapter factory if there are enabled web sources in configuration
+    const hasEnabledWebSources = this.config?.sources?.some(
+      source => source.type === 'web' && source.enabled !== false
+    );
+    
+    if (hasEnabledWebSources) {
+      logger.info('Registering WebAdapter factory - enabled web sources found in configuration');
+      
+      // Register Web adapter factory with semantic enhancement
+      this.sourceRegistry.registerFactory('web', config => {
+        const baseAdapter = new WebAdapter(config as WebConfig);
+        if (this.semanticConfig.enabled && this.semanticConfig.enhanceExistingAdapters) {
+          logger.info('Creating semantic-enhanced WebAdapter', {
+            name: config.name,
+            fallbackEnabled: this.semanticConfig.fallbackToFuzzy,
+          });
+          const semanticConfig = this.config?.semantic_search;
+          return createSemanticEnhancedAdapter(baseAdapter, {
+            enableSemanticSearch: true,
+            enableFallback: this.semanticConfig.fallbackToFuzzy,
+            semanticThreshold: semanticConfig?.min_similarity_threshold || 0.3,
+            semanticWeight: semanticConfig?.scoring_weights?.semantic || 0.7,
+            maxResults: 50,
+          });
+        }
+        return baseAdapter;
+      });
+    } else {
+      logger.info('WebAdapter factory not registered - no enabled web sources found in configuration');
+    }
 
     // TODO: Re-enable GitHub adapter after fixing TypeScript issues
     /*

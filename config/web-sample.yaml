@@ -10,6 +10,7 @@ sources:
   - name: "api-docs"
     type: "web"
     priority: 1
+    enabled: false                     # Disabled by default - enable only when needed to avoid external HTTP calls during testing
     
     # Web-specific configuration
     sources:
@@ -77,6 +78,7 @@ sources:
   - name: "docs-site"
     type: "web"
     priority: 2
+    enabled: false                     # Disabled by default - enable only when needed to avoid external HTTP calls during testing
     
     # Web scraping configuration
     sources:
@@ -152,6 +154,7 @@ sources:
   - name: "news-feed"
     type: "web"
     priority: 3
+    enabled: false                     # Disabled by default - enable only when needed to avoid external HTTP calls during testing
     
     # RSS feed configuration
     sources:

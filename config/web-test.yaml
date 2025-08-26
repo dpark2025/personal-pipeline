@@ -1,0 +1,81 @@
+# Simple Web Adapter Test Configuration Template
+# This is a minimal configuration template for testing the WebAdapter
+# IMPORTANT: Replace <URLHERE> with actual test URL before enabling
+
+sources:
+  # Simple test web source
+  - name: "test-httpbin"
+    type: "web"
+    priority: 1
+    enabled: false                     # Disabled by default - replace <URLHERE> with test URL and set to true when needed
+    
+    # Web-specific configuration
+    sources:
+      - name: "httpbin-json"
+        type: "api"
+        base_url: "<URLHERE>"
+        
+        endpoints:
+          - name: "json"
+            path: "/json"
+            method: "GET"
+            content_type: "json"
+            cache_ttl: "5m"
+            
+          - name: "uuid"
+            path: "/uuid"
+            method: "GET"
+            content_type: "json"
+            cache_ttl: "1m"
+            
+        health_check:
+          enabled: true
+          endpoint: "/status/200"
+          interval_minutes: 5
+          timeout_ms: 5000
+    
+    # No authentication needed for httpbin
+    auth:
+      type: "none"
+    
+    # Performance settings
+    performance:
+      default_timeout_ms: 10000
+      max_concurrent_requests: 5
+      default_retry_attempts: 2
+      default_cache_ttl: "5m"
+      user_agent: "PersonalPipeline-Test/1.0"
+    
+    # Content processing
+    content_processing:
+      max_content_size_mb: 5
+      follow_redirects: true
+      validate_ssl: true
+      extract_links: false
+      respect_robots: false  # Testing purposes
+
+# Server configuration
+server:
+  port: 3002
+  host: "localhost"
+  cors:
+    enabled: true
+    origins: ["*"]
+
+# Cache configuration
+cache:
+  strategy: "memory"
+  memory:
+    max_size_mb: 50
+    ttl_seconds: 3600
+
+# Disable semantic search for simpler testing
+semantic_search:
+  enabled: false
+  enhance_existing_adapters: false
+  fallback_to_fuzzy: true
+
+# Logging
+logging:
+  level: "info"
+  format: "pretty"

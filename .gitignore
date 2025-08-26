@@ -184,8 +184,10 @@ PROJECT_STATUS.md
 test-runbook.txt
 
 # Configuration files with test data or secrets
-config/*-test.yaml
 config/confluence-test.yaml
+config/github-test.yaml
+config/database-test.yaml
+# Note: web-test.yaml is tracked as it's a safe template (disabled by default)
 config/CONFIG_OVERVIEW.md
 
 # Test data and fixtures

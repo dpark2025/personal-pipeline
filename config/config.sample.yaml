@@ -23,7 +23,7 @@ sources:
       token_env: WIKI_API_TOKEN
     refresh_interval: 30m
     priority: 2
-    enabled: true
+    enabled: false                     # Disabled by default - enable only when needed to avoid external HTTP calls during testing
     timeout_ms: 15000
     max_retries: 2
     # Enhanced FileSystem Adapter features
