@@ -4,7 +4,7 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * 
- * BUILD TRIGGER: Fix curl error handling in Verdaccio startup loop
+ * BUILD TRIGGER: Fix Docker artifact naming and Verdaccio startup
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors
