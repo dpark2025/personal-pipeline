@@ -62,10 +62,10 @@ build/
 coverage/
 
 # ==============================================================================
-# Testing & Development Data
+# Testing & Development Data  
 # ==============================================================================
 tests/
-test-data/
+# test-data/ - REQUIRED for container health check testing (issue #25)
 test-results/
 *.test.ts
 *.test.js
@@ -96,8 +96,8 @@ session-*
 config/sources.yaml
 config/local.yaml
 config/production.yaml
-config/*-test.yaml
 config/confluence-test.yaml
+# config/*-test.yaml - ALLOWING config.test.yaml for container health checks (issue #25)
 config/config.yaml
 .env*
 
