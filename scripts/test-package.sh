@@ -560,10 +560,13 @@ test_package_integrity() {
   
   # Extract tarball
   mkdir -p "$extract_dir"
-  if tar -xzf "$tarball_path" -C "$extract_dir" 2>/dev/null; then
+  log_verbose "Extracting tarball: '$tarball_path' to '$extract_dir'"
+  local tar_output
+  if tar_output=$(tar -xzf "$tarball_path" -C "$extract_dir" 2>&1); then
     record_test "Package Extract" "PASS" "Tarball extracts correctly"
   else
-    record_test "Package Extract" "FAIL" "Failed to extract tarball"
+    record_test "Package Extract" "FAIL" "Failed to extract tarball: $tar_output"
+    log_error "Tar command failed with output: $tar_output"
     return 1
   fi
   
