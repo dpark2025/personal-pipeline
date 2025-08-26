@@ -211,10 +211,10 @@ jobs:
       )
     
     outputs:
-      old-version: ${{ steps.bump.outputs.old-version }}
-      new-version: ${{ steps.bump.outputs.new-version }}
-      version-tag: ${{ steps.bump.outputs.version-tag }}
-      changelog-generated: ${{ steps.bump.outputs.changelog-generated }}
+      old-version: ${{ steps.bump.outputs.old-version || steps.skip.outputs.old-version }}
+      new-version: ${{ steps.bump.outputs.new-version || steps.skip.outputs.new-version }}
+      version-tag: ${{ steps.bump.outputs.version-tag || steps.skip.outputs.version-tag }}
+      changelog-generated: ${{ steps.bump.outputs.changelog-generated || steps.skip.outputs.changelog-generated }}
       
     steps:
       - name: Checkout code
@@ -243,18 +243,31 @@ jobs:
           if [[ -n "${{ github.event.inputs.custom_version }}" ]]; then
             BUMP_TYPE="custom:${{ github.event.inputs.custom_version }}"
             echo "Using custom version: ${{ github.event.inputs.custom_version }}"
-          elif [[ "${{ github.event.inputs.bump_type }}" == "auto" ]]; then
+          elif [[ "${{ github.event.inputs.bump_type }}" == "auto" ]] || [[ -z "${{ github.event.inputs.bump_type }}" ]]; then
             BUMP_TYPE="${{ needs.analyze-version.outputs.suggested-bump }}"
             echo "Using auto-detected bump type: $BUMP_TYPE"
+            # Handle case where suggested-bump is empty or "none"
+            if [[ -z "$BUMP_TYPE" || "$BUMP_TYPE" == "none" ]]; then
+              echo "No version bump needed - exiting gracefully"
+              echo "bump-type=none" >> $GITHUB_OUTPUT
+              exit 0
+            fi
           else
             BUMP_TYPE="${{ github.event.inputs.bump_type }}"
             echo "Using manual bump type: $BUMP_TYPE"
+          fi
+          
+          # Validate bump type
+          if [[ ! "$BUMP_TYPE" =~ ^(patch|minor|major|prerelease|custom:.+)$ ]]; then
+            echo "❌ Invalid bump type: $BUMP_TYPE"
+            exit 1
           fi
           
           echo "bump-type=$BUMP_TYPE" >> $GITHUB_OUTPUT
       
       - name: Execute version bump
         id: bump
+        if: steps.bump-type.outputs.bump-type != 'none'
         run: |
           echo "🚀 Executing version bump..."
           
@@ -266,6 +279,13 @@ jobs:
           
           # Add bump type
           BUMP_TYPE="${{ steps.bump-type.outputs.bump-type }}"
+          
+          # Validate bump type is not empty
+          if [[ -z "$BUMP_TYPE" || "$BUMP_TYPE" == "none" ]]; then
+            echo "❌ No valid bump type provided"
+            exit 1
+          fi
+          
           if [[ "$BUMP_TYPE" == custom:* ]]; then
             CUSTOM_VERSION="${BUMP_TYPE#custom:}"
             VERSION_ARGS+=("custom" "$CUSTOM_VERSION")
@@ -310,6 +330,20 @@ jobs:
             echo "❌ Version bump failed"
             exit 1
           fi
+      
+      - name: Skip version bump
+        id: skip
+        if: steps.bump-type.outputs.bump-type == 'none'
+        run: |
+          echo "ℹ️ No version bump needed - no significant changes detected"
+          OLD_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+          echo "Current version: $OLD_VERSION (unchanged)"
+          
+          # Set outputs for consistency
+          echo "old-version=$OLD_VERSION" >> $GITHUB_OUTPUT
+          echo "new-version=$OLD_VERSION" >> $GITHUB_OUTPUT
+          echo "version-tag=v$OLD_VERSION" >> $GITHUB_OUTPUT
+          echo "changelog-generated=false" >> $GITHUB_OUTPUT
       
       - name: Validate version consistency
         run: |
