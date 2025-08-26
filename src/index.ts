@@ -7,7 +7,7 @@
  * BUILD TRIGGER: Fix registry startup loop exit-on-error behavior
  * decision trees through the Model Context Protocol.
  * 
- * Build trigger: Debug package validation errors - tar extraction failure
+ * Build trigger: Debug package validation errors - tar extraction failure (retry)
  */
 
 import 'dotenv/config';
