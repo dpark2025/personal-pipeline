@@ -20,7 +20,7 @@ import { parseString as parseXML } from 'xml2js';
 import { JSONPath } from 'jsonpath-plus';
 import { Logger } from 'winston';
 import { HttpResponse } from './http-client.js';
-import { WebSource, WebEndpoint, ContentSelectors, ContentFilters, ExtractedWebContent } from './web-adapter.js';
+import { WebSource, WebEndpoint, ContentFilters, ExtractedWebContent } from './web-adapter.js';
 
 export interface ContentExtractorOptions {
   maxContentSizeMb: number;
@@ -295,15 +295,17 @@ export class ContentExtractor {
     for (const line of lines) {
       if (line.startsWith('User-agent:')) {
         const userAgent = line.substring(11).trim();
-        userAgentSection = userAgent === '*' || userAgent.toLowerCase().includes('personalpipeline');
+        if (userAgent === '*' || userAgent.toLowerCase().includes('personalpipeline')) {
+          userAgentSection = true;
+        } else {
+          userAgentSection = false;
+          disallowedPaths = [];
+        }
       } else if (userAgentSection && line.startsWith('Disallow:')) {
         const disallowPath = line.substring(9).trim();
         if (disallowPath) {
           disallowedPaths.push(disallowPath);
         }
-      } else if (line.startsWith('User-agent:')) {
-        userAgentSection = false;
-        disallowedPaths = [];
       }
     }
     
@@ -750,7 +752,7 @@ export class ContentExtractor {
     }
     
     // Look for title in nested objects
-    for (const [key, value] of Object.entries(data)) {
+    for (const [_key, value] of Object.entries(data)) { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       if (typeof value === 'object' && value !== null) {
         for (const field of titleFields) {
           if ((value as any)[field] && typeof (value as any)[field] === 'string') {
@@ -761,7 +763,7 @@ export class ContentExtractor {
     }
     
     // Fallback to first string value
-    for (const [key, value] of Object.entries(data)) {
+    for (const [_key, value] of Object.entries(data)) { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       if (typeof value === 'string' && value.length > 0 && value.length < 100) {
         return value;
       }

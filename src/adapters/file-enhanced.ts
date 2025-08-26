@@ -829,9 +829,9 @@ export class EnhancedFileSystemAdapter extends SourceAdapter {
    * Create synthetic runbook from text content
    */
   private createSyntheticRunbook(
-    _result: SearchResult,
-    _alertType: string,
-    _severity: string
+    _result: SearchResult, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+    _alertType: string, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+    _severity: string // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): Runbook | null {
     // Implementation would create a runbook structure from markdown/text content
     // This is a placeholder that returns null for now

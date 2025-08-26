@@ -18,7 +18,6 @@
 
 import { SourceAdapter } from '../base.js';
 import { 
-  SourceConfig, 
   SearchResult, 
   SearchFilters, 
   HealthCheck, 
@@ -439,9 +438,10 @@ export class WebAdapter extends SourceAdapter {
     const errors: string[] = [];
     
     try {
-      // Test authentication
+      // Test authentication (separate from data source health)
+      let authHealthy = true;
       if (this.authManager) {
-        const authHealthy = await this.authManager.healthCheck();
+        authHealthy = await this.authManager.healthCheck();
         checks['authentication'] = authHealthy;
         
         if (!authHealthy) {
@@ -450,27 +450,32 @@ export class WebAdapter extends SourceAdapter {
       }
       
       // Test each source's health check endpoint
+      const sourceChecks: Record<string, boolean> = {};
       if (this.config.sources) {
         for (const source of this.config.sources.slice(0, 5)) { // Limit health checks
           if (source.health_check.enabled) {
             try {
               const healthy = await this.testSourceHealth(source);
               checks[source.name] = healthy;
+              sourceChecks[source.name] = healthy;
               
               if (!healthy) {
                 errors.push(`${source.name}: Health check failed`);
               }
             } catch (error: any) {
               checks[source.name] = false;
+              sourceChecks[source.name] = false;
               errors.push(`${source.name}: ${error.message}`);
             }
           }
         }
       }
       
-      const healthySources = Object.values(checks).filter(Boolean).length;
-      const totalSources = Object.keys(checks).length;
-      const isHealthy = healthySources > 0; // At least one source working
+      // Health calculation: auth must work AND at least one data source must work
+      const healthyDataSources = Object.values(sourceChecks).filter(Boolean).length;
+      const totalDataSources = Object.keys(sourceChecks).length;
+      const hasHealthySources = totalDataSources === 0 || healthyDataSources > 0; // Healthy if no sources configured or at least one working
+      const isHealthy = authHealthy && hasHealthySources;
       
       const responseTime = Date.now() - startTime;
       this.metrics.lastHealthCheck = new Date().toISOString();
@@ -482,8 +487,9 @@ export class WebAdapter extends SourceAdapter {
         last_check: this.metrics.lastHealthCheck,
         error_message: errors.length > 0 ? errors.join('; ') : undefined,
         metadata: {
-          totalSources,
-          healthySources,
+          totalSources: totalDataSources,
+          healthySources: healthyDataSources,
+          authHealthy,
           authType: this.config.auth?.type || 'none',
           checks,
           metrics: this.getMetricsSummary()
@@ -611,7 +617,7 @@ export class WebAdapter extends SourceAdapter {
     query: string, 
     source: WebSource, 
     endpoint: WebEndpoint, 
-    _filters?: SearchFilters
+    _filters?: SearchFilters // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): Promise<SearchResult[]> {
     if (!this.httpClient || !this.contentExtractor || !this.urlManager) {
       return [];
@@ -818,7 +824,7 @@ export class WebAdapter extends SourceAdapter {
     contents: ExtractedWebContent[], 
     source: WebSource, 
     endpoint: WebEndpoint, 
-    _query: string
+    _query: string // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): SearchResult[] {
     return contents.map(content => ({
       id: content.id,

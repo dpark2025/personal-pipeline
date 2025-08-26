@@ -171,9 +171,9 @@ function handleToolSpecificError(
  * Handle search knowledge base specific errors
  */
 function handleSearchKnowledgeBaseError(
-  _error: any,
+  _error: any, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   errorMessage: string,
-  _context: any
+  _context: any // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
 ): ToolErrorDetails {
   if (errorMessage.includes('Query must be at least')) {
     return {
@@ -316,9 +316,9 @@ function handleSearchRunbooksError(
  * Handle escalation path specific errors - critical for incident management
  */
 function handleEscalationPathError(
-  _error: any,
-  _errorMessage: string,
-  _context: any
+  _error: any, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  _errorMessage: string, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  _context: any // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
 ): ToolErrorDetails {
   return {
     code: 'ESCALATION_PATH_ERROR',
@@ -341,9 +341,9 @@ function handleEscalationPathError(
  * Handle decision tree specific errors
  */
 function handleDecisionTreeError(
-  _error: any,
-  _errorMessage: string,
-  _context: any
+  _error: any, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  _errorMessage: string, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  _context: any // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
 ): ToolErrorDetails {
   return {
     code: 'DECISION_TREE_ERROR',
@@ -362,7 +362,11 @@ function handleDecisionTreeError(
 /**
  * Handle procedure specific errors
  */
-function handleProcedureError(_error: any, errorMessage: string, _context: any): ToolErrorDetails {
+function handleProcedureError(
+  _error: any, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  errorMessage: string, 
+  _context: any // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+): ToolErrorDetails {
   if (errorMessage.includes('not found') || errorMessage.includes('invalid')) {
     return {
       code: 'PROCEDURE_NOT_FOUND',

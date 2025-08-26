@@ -264,7 +264,7 @@ function validateType(
 
         return { valid: true, value };
 
-      case 'number':
+      case 'number': {
         const num = typeof value === 'string' ? parseFloat(value) : value;
         if (typeof num !== 'number' || isNaN(num)) {
           return { valid: false, error: 'Must be a number' };
@@ -279,6 +279,7 @@ function validateType(
         }
 
         return { valid: true, value: num };
+      }
 
       case 'boolean':
         if (typeof value === 'string') {
@@ -897,7 +898,7 @@ function calculateOptimizationScore(performanceData: any): number {
  * Global error handler for unhandled API errors
  */
 export function globalErrorHandler() {
-  return (error: any, req: Request, res: Response, _next: NextFunction): void => {
+  return (error: any, req: Request, res: Response, _next: NextFunction): void => { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     const correlationId = getCorrelationId(req);
 
     logger.error('Unhandled API error', {

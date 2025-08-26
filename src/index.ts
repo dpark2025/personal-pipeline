@@ -66,8 +66,8 @@ function setupGracefulShutdown(): void {
   };
 
   // Handle different termination signals
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM')); // eslint-disable-line @typescript-eslint/no-misused-promises
+  process.on('SIGINT', () => void shutdown('SIGINT')); // eslint-disable-line @typescript-eslint/no-misused-promises
 
   // Handle uncaught exceptions and rejections
   process.on('uncaughtException', error => {

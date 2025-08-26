@@ -52,7 +52,7 @@ export class SearchPerformanceOptimizer {
   private metrics: CacheMetrics;
   private config: OptimizationConfig;
   private readonly LRU_CHECK_INTERVAL = 60000; // 1 minute
-  private cleanupTimer: NodeJS.Timeout | null = null;
+  private cleanupTimer: any | null = null; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   constructor(config?: Partial<OptimizationConfig>) {
     this.config = {

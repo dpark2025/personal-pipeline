@@ -232,7 +232,7 @@ export class AutoCompleter {
   /**
    * Check if input is parameter input
    */
-  private isParameterInput(_line: string): boolean {
+  private isParameterInput(_line: string): boolean { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     // This would be enhanced with proper context tracking
     return this.currentContext.includes(':parameter:');
   }
@@ -311,8 +311,8 @@ export class AutoCompleter {
     if (tool) {
       // Suggest most important parameters first
       const requiredParams = Object.entries(tool.parameters)
-        .filter(([_, param]) => param.required)
-        .map(([name, _]) => name);
+        .filter(([, param]) => param.required) // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+        .map(([name]) => name); // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       
       suggestions.push(...requiredParams);
     }
@@ -340,7 +340,7 @@ export class AutoCompleter {
     // Return parameters sorted by frequency
     return Object.entries(paramCounts)
       .sort(([, a], [, b]) => b - a)
-      .map(([param, _]) => param)
+      .map(([param]) => param) // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       .slice(0, 5); // Top 5 most used
   }
 
@@ -356,12 +356,12 @@ export class AutoCompleter {
   /**
    * Format completion suggestions with colors and descriptions
    */
-  formatSuggestions(suggestions: string[], _context: string = ''): string {
+  formatSuggestions(suggestions: string[], _context: string = ''): string { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     if (suggestions.length === 0) {
       return chalk.gray('No suggestions available');
     }
     
-    const formatted = suggestions.map((suggestion, _index) => {
+    const formatted = suggestions.map((suggestion, _index) => { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       const tool = this.tools[suggestion];
       if (tool) {
         return `${chalk.cyan(suggestion)} ${chalk.gray(`- ${  tool.description}`)}`;

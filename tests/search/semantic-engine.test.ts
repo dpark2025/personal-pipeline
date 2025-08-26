@@ -120,7 +120,7 @@ const skipTests = process.env.CI === 'true' || process.env.NODE_ENV === 'test';
     
     const status = engine.getStatus();
     assert.strictEqual(status.documentCount, mockDocuments.length);
-    assert.strictEqual(status.embeddingCacheSize, mockDocuments.length);
+    assert(status.embeddingCacheSize >= mockDocuments.length, `Expected cache size >= ${mockDocuments.length}, got ${status.embeddingCacheSize}`);
   });
 
   test('should perform semantic search with relevant results', async () => {

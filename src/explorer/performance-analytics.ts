@@ -278,7 +278,7 @@ export class PerformanceAnalytics {
     const toolEntries = Object.entries(toolStats);
     
     const topPerformers = toolEntries
-      .filter(([_, stats]) => stats.calls >= 5)
+      .filter(([, stats]) => stats.calls >= 5) // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       .sort((a, b) => a[1].avgTime - b[1].avgTime)
       .slice(0, 3)
       .map(([tool, stats]) => ({

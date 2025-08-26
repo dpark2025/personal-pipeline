@@ -48,7 +48,7 @@ export class AuthManager {
   
   // Credential caching
   private cachedCredentials: Map<string, AuthCredentials> = new Map();
-  private refreshTimers: Map<string, NodeJS.Timeout> = new Map();
+  private refreshTimers: Map<string, any> = new Map(); // eslint-disable-line @typescript-eslint/no-explicit-any
   
   // OAuth 2.0 state
   private oauthTokens: Map<string, OAuth2TokenResponse> = new Map();

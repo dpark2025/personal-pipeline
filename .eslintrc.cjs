@@ -17,6 +17,12 @@ module.exports = {
     es2022: true
   },
   rules: {
+    // Disable base ESLint rules that are handled by TypeScript equivalents
+    'no-redeclare': 'off', // TypeScript handles this better
+    '@typescript-eslint/no-redeclare': ['error', {
+      'ignoreDeclarationMerge': true
+    }],
+    
     // TypeScript specific rules
     '@typescript-eslint/no-unused-vars': ['error', { 
       argsIgnorePattern: '^_',
@@ -60,7 +66,12 @@ module.exports = {
       files: ['src/api/**/*.ts', 'src/core/**/*.ts', 'src/tools/**/*.ts'],
       rules: {
         '@typescript-eslint/no-floating-promises': 'error',
-        '@typescript-eslint/no-misused-promises': 'error',
+        '@typescript-eslint/no-misused-promises': ['error', {
+          'checksVoidReturn': {
+            'arguments': false, // Allow async Express route handlers
+            'attributes': false
+          }
+        }],
         '@typescript-eslint/await-thenable': 'error',
         '@typescript-eslint/no-unsafe-assignment': 'warn',
         '@typescript-eslint/no-unsafe-call': 'warn', 
@@ -123,7 +134,7 @@ module.exports = {
     },
     // Integration test files - relaxed for realistic test scenarios
     {
-      files: ['tests/integration/**/*.ts', 'tests/middleware.test.ts', 'tests/node-test-runner/**/*.ts'],
+      files: ['tests/integration/**/*.ts', 'tests/search/integration.test.ts', 'tests/middleware.test.ts', 'tests/node-test-runner/**/*.ts'],
       rules: {
         '@typescript-eslint/no-unused-vars': 'warn',
         'no-unused-vars': 'warn',
@@ -150,6 +161,13 @@ module.exports = {
         'no-undef': 'off',
         'no-duplicate-imports': 'warn',
         'no-case-declarations': 'warn'
+      }
+    },
+    // TypeScript type definition files - allow const/type pattern
+    {
+      files: ['src/types/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-redeclare': 'off'
       }
     },
     // JavaScript files

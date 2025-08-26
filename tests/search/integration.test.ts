@@ -97,7 +97,7 @@ class MockSourceAdapter extends SourceAdapter {
     this.isInitialized = true;
   }
 
-  async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
+  async search(query: string, _filters?: SearchFilters): Promise<SearchResult[]> {
     // Simple fuzzy search simulation
     const queryLower = query.toLowerCase();
     return this.documents.filter(doc => 
@@ -111,10 +111,10 @@ class MockSourceAdapter extends SourceAdapter {
   }
 
   async searchRunbooks(
-    alertType: string,
-    severity: string,
-    affectedSystems: string[],
-    context?: Record<string, any>
+    _alertType: string,
+    _severity: string,
+    _affectedSystems: string[],
+    _context?: Record<string, any>
   ): Promise<Runbook[]> {
     const runbookDocs = this.documents.filter(doc => doc.category === 'runbook');
     return runbookDocs
@@ -131,7 +131,7 @@ class MockSourceAdapter extends SourceAdapter {
     };
   }
 
-  async refreshIndex(force?: boolean): Promise<boolean> {
+  async refreshIndex(_force?: boolean): Promise<boolean> {
     return true;
   }
 
@@ -430,7 +430,7 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
 
     // Test single search performance
     const singleSearchStart = performance.now();
-    const singleResult = await enhancedAdapter.search('disk space management');
+    const _singleResult = await enhancedAdapter.search('disk space management');
     const singleSearchTime = performance.now() - singleSearchStart;
 
     assert(singleSearchTime < performanceTargets.searchResponseTime, 

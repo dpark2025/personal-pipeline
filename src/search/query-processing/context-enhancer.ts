@@ -578,7 +578,7 @@ export class ContextEnhancer {
     originalQuery: string,
     expansions: string[],
     contextTerms: string[],
-    _operationalKeywords: string[]
+    _operationalKeywords: string[] // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): string {
     const queryParts = [originalQuery];
     

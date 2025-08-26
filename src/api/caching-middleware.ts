@@ -634,7 +634,7 @@ function identifyPeakUsageHours(stats: any): number[] {
     Object.values(hourlyUsage).reduce((sum: number, usage: any) => sum + usage, 0) / 24;
 
   return Object.entries(hourlyUsage)
-    .filter(([_, usage]: [string, any]) => usage > avgUsage * 1.5)
-    .map(([hour, _]) => parseInt(hour))
+    .filter(([, usage]: [string, any]) => usage > avgUsage * 1.5) // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+    .map(([hour]) => parseInt(hour)) // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     .sort((a, b) => a - b);
 }

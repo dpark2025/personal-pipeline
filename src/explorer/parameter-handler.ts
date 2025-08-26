@@ -39,6 +39,7 @@ interface ValidationResult {
 export class ParameterHandler {
   private parameterHistory: Record<string, string[]> = {};
 
+  // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
   constructor(_tools: Record<string, MCPToolSchema>) {
     // Tools are passed for potential future use
   }
@@ -61,10 +62,10 @@ export class ParameterHandler {
     
     // Collect required parameters first
     const requiredParams = Object.entries(schema.parameters)
-      .filter(([_, param]) => param.required);
+      .filter(([, param]) => param.required);
     
     const optionalParams = Object.entries(schema.parameters)
-      .filter(([_, param]) => !param.required);
+      .filter(([, param]) => !param.required);
 
     // Process required parameters
     if (requiredParams.length > 0) {
@@ -312,7 +313,7 @@ export class ParameterHandler {
           }
           break;
           
-        case 'boolean':
+        case 'boolean': {
           const lowerInput = input.toLowerCase();
           if (['true', 'yes', 'y', '1'].includes(lowerInput)) {
             transformedValue = true;
@@ -326,6 +327,7 @@ export class ParameterHandler {
             };
           }
           break;
+        }
           
         case 'number':
           transformedValue = parseInt(input);
@@ -358,7 +360,7 @@ export class ParameterHandler {
             return { 
               isValid: false, 
               error: 'Invalid array format',
-              suggestion: 'Use JSON format [\"item1\",\"item2\"] or comma-separated: item1, item2'
+              suggestion: 'Use JSON format ["item1","item2"] or comma-separated: item1, item2'
             };
           }
           break;
@@ -377,7 +379,7 @@ export class ParameterHandler {
             return { 
               isValid: false, 
               error: 'Invalid JSON object format',
-              suggestion: 'Use JSON format: {\"key\":\"value\"} or {} for empty object'
+              suggestion: 'Use JSON format: {"key":"value"} or {} for empty object'
             };
           }
           break;

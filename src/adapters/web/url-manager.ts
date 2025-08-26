@@ -183,7 +183,7 @@ export class UrlManager {
   ): PaginatedUrls {
     try {
       const baseUrl = this.buildEndpointUrl(source, endpoint);
-      const urls: string[] = [];
+      const _urls: string[] = []; // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       
       const stateKey = `${source.name}:${endpoint.name}`;
       const state = this.paginationState.get(stateKey) || {
@@ -462,7 +462,7 @@ export class UrlManager {
     baseUrl: string, 
     pagination: PaginationConfig, 
     state: any, 
-    maxPages: number
+    maxPages: number // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): PaginatedUrls {
     const urls: string[] = [];
     const url = new URL(baseUrl);

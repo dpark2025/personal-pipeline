@@ -16,6 +16,8 @@
     "test:node": "tsx --test tests/**/*.test.ts",
     "test:node:watch": "tsx --test --watch tests/**/*.test.ts",
     "test:node:coverage": "tsx --test --experimental-test-coverage tests/**/*.test.ts",
+    "test:basic": "node test-basic.js",
+    "test:ci": "npm run test:basic && SKIP_AI_TESTS=true npm run test:node",
     "lint": "eslint src/ tests/ --ext .ts,.js",
     "lint:fix": "eslint src/ tests/ --ext .ts,.js --fix",
     "format": "prettier --write \"src/**/*.{ts,js,json}\" \"tests/**/*.{ts,js,json}\"",

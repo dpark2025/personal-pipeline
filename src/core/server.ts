@@ -29,7 +29,7 @@ import { EnhancedFileSystemAdapter } from '../adapters/file-enhanced.js';
 // import { DatabaseAdapter } from '../adapters/database/index.js';
 import { createSemanticEnhancedAdapter, SemanticEnhancedAdapter } from '../search/semantic-integration.js';
 import { CacheService, initializeCacheService } from '../utils/cache.js';
-import { AppConfig, CacheConfig, FileSystemConfig, DatabaseConfig } from '../types/index.js';
+import { AppConfig, CacheConfig, FileSystemConfig } from '../types/index.js';
 import { performance } from 'perf_hooks';
 import { initializePerformanceMonitor, getPerformanceMonitor } from '../utils/performance.js';
 import {
@@ -786,7 +786,7 @@ export class PersonalPipelineServer {
 
     // Error handler
     this.expressApp.use(
-      (error: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      (error: any, req: express.Request, res: express.Response) => {
         logger.error('Express error', {
           error: error.message,
           stack: error.stack,
@@ -1678,8 +1678,8 @@ export class PersonalPipelineServer {
 
     // Database query optimization
     const slowTools = Object.entries(toolMetrics)
-      .filter(([_, data]: [string, any]) => data.avg_time_ms > 500)
-      .map(([name, _]) => name);
+      .filter(([, data]: [string, any]) => data.avg_time_ms > 500)
+      .map(([name]) => name);
 
     if (slowTools.length > 0) {
       opportunities.push({

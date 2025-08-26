@@ -148,7 +148,7 @@ export class VisualInterface {
    */
   private formatTable(headers: string[], rows: string[][]): string {
     // Calculate column widths (accounting for ANSI color codes)
-    const stripAnsi = (str: string) => str.replace(/\u001b\[[0-9;]*m/g, '');
+    const stripAnsi = (str: string) => str.replace(/\u001B\[[0-9;]*m/g, ''); // eslint-disable-line no-control-regex
     const getDisplayWidth = (str: string) => stripAnsi(str).length;
     
     const colWidths = headers.map((header, index) => {
@@ -189,7 +189,7 @@ export class VisualInterface {
   /**
    * Display response with enhanced formatting
    */
-  displayResponse(response: any, _schema: MCPToolSchema): void {
+  displayResponse(response: any, _schema: MCPToolSchema): void { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     const responseTime = response.responseTime;
     const timeColor = responseTime < 100 ? 'green' : responseTime < 500 ? 'yellow' : 'red';
     

@@ -1203,7 +1203,7 @@ function parseContactMethods(contact: string): any {
     methods.email = contact;
   }
 
-  if (contact.match(/\+?[\d\s\-\(\)]+/)) {
+  if (contact.match(/\+?[\d\s\-()]+/)) {
     methods.phone = contact;
   }
 
@@ -1399,7 +1399,7 @@ function categorizeError(
  */
 function getToolErrorCategory(
   toolName: string,
-  _error: any
+  _error: any // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
 ): {
   category: string;
   severity: 'low' | 'medium' | 'high' | 'critical';

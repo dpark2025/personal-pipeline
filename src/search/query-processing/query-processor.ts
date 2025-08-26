@@ -198,7 +198,7 @@ export class QueryProcessor {
           },
         };
         
-        strategy = await this.queryOptimizer.optimizeSearchStrategy(tempProcessedQuery);
+        strategy = this.queryOptimizer.optimizeSearchStrategy(tempProcessedQuery);
       } else {
         // Sequential processing
         intent = await this.classifyIntent(query, enhancedContext);
@@ -230,7 +230,7 @@ export class QueryProcessor {
           },
         };
         
-        strategy = await this.queryOptimizer.optimizeSearchStrategy(tempProcessedQuery2);
+        strategy = this.queryOptimizer.optimizeSearchStrategy(tempProcessedQuery2);
       }
 
       const totalProcessingTime = performance.now() - startTime;
@@ -299,8 +299,8 @@ export class QueryProcessor {
    */
   async enhanceQuery(
     query: string, 
-    intent: IntentClassification, 
-    context?: QueryContext
+    _intent: IntentClassification, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+    _context?: QueryContext // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): Promise<EnhancedQuery> {
     // return await this.contextEnhancer.enhanceQuery(query, context, intent);
     // Temporary fallback: return basic enhanced query structure
