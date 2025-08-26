@@ -231,6 +231,12 @@ describe('WebAdapter (Node.js Test Runner)', () => {
       nock.cleanAll();
       nock('https://example.com').get('/robots.txt').reply(404);
       nock('https://example.com').get('/').reply(404, 'Not Found');
+      
+      // Mock the search endpoint to return 404 as well
+      nock('https://example.com')
+        .get('/')
+        .query({ q: 'test query', query: 'test query', search: 'test query' })
+        .reply(404, 'Not Found');
 
       await adapter.initialize();
       
@@ -284,8 +290,11 @@ describe('WebAdapter (Node.js Test Runner)', () => {
       // Create fresh adapter to avoid cached data from other tests
       const freshAdapter = new WebAdapter(mockConfig);
       
-      // Mock empty response for non-matching query
-      nock('https://example.com').get('/').query(true).reply(200, [], { 'Content-Type': 'application/json' });
+      // Mock empty response for non-matching query with the specific query parameters WebAdapter sends
+      nock('https://example.com')
+        .get('/')
+        .query({ q: 'quantum mechanics', query: 'quantum mechanics', search: 'quantum mechanics' })
+        .reply(200, [], { 'Content-Type': 'application/json' });
       
       await freshAdapter.initialize();
       const results = await freshAdapter.search('quantum mechanics');
