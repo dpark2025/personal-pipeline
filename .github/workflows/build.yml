@@ -163,14 +163,14 @@ jobs:
       - name: Install dependencies
         run: |
           echo "📥 Installing dependencies..."
-          npm ci --verbose
+          npm ci --silent
       
       - name: Pre-build validation
         run: |
           echo "🔍 Pre-build validation..."
-          npm run lint
+          npm run lint -- --quiet
           npm run typecheck
-          npm test
+          npm run test:ci
       
       - name: Build package
         id: build
@@ -330,7 +330,7 @@ jobs:
           # Start container for testing (use memory-only cache for CI)
           docker run --name test-container -d -p 3000:3000 \
             -e NODE_ENV=production \
-            -e LOG_LEVEL=info \
+            -e LOG_LEVEL=warn \
             "$IMAGE_TAG"
           
           # Wait for container to start

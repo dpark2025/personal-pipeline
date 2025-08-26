@@ -26,7 +26,7 @@ COPY package.json package-lock.json ./
 COPY tsconfig.json ./
 
 # Verify package-lock.json exists and install dependencies
-RUN ls -la package* && npm ci --verbose
+RUN ls -la package* && npm ci --silent
 
 # Copy source code
 COPY src/ ./src/
@@ -36,7 +36,7 @@ COPY config/*.sample.yaml ./config/
 RUN npm run build
 
 # Remove devDependencies to reduce size
-RUN npm ci --only=production --verbose
+RUN npm ci --only=production --silent
 
 # ==============================================================================
 # Runtime Stage
