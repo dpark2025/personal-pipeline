@@ -459,7 +459,8 @@ jobs:
           npm run build
           
           # Run tests to ensure functionality is preserved
-          npm test
+          echo "Running tests with silent logging..."
+          npm run test:ci
           
           # Validate package structure
           if [[ -f "scripts/test-package.sh" ]]; then
