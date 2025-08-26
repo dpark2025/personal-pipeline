@@ -377,7 +377,7 @@ EOF
   fi
   
   # Test programmatic import
-  cat > test-import.js << 'EOF'
+  cat > test-import.mjs << 'EOF'
 try {
   const { personalPipelineServer } = await import('@personal-pipeline/mcp-server');
   if (personalPipelineServer) {
@@ -388,12 +388,13 @@ try {
   }
 } catch (error) {
   console.log('FAIL: Import failed:', error.message);
+  console.log('Stack:', error.stack);
   process.exit(1);
 }
 EOF
 
   local import_output
-  if import_output=$(node test-import.js 2>&1); then
+  if import_output=$(node test-import.mjs 2>&1); then
     record_test "Programmatic Import" "PASS" "Main exports work correctly"
   else
     record_test "Programmatic Import" "FAIL" "Import failed: $import_output"
@@ -401,7 +402,7 @@ EOF
   fi
   
   # Test submodule imports
-  cat > test-submodules.js << 'EOF'
+  cat > test-submodules.mjs << 'EOF'
 try {
   const { SourceAdapter } = await import('@personal-pipeline/mcp-server/adapters');
   const { ConfigManager } = await import('@personal-pipeline/mcp-server/utils');
@@ -414,12 +415,13 @@ try {
   }
 } catch (error) {
   console.log('FAIL: Submodule import failed:', error.message);
+  console.log('Stack:', error.stack);
   process.exit(1);
 }
 EOF
 
   local submodule_output
-  if submodule_output=$(node test-submodules.js 2>&1); then
+  if submodule_output=$(node test-submodules.mjs 2>&1); then
     record_test "Submodule Imports" "PASS" "Submodule exports work correctly"
   else
     record_test "Submodule Imports" "FAIL" "Submodule import failed: $submodule_output"
