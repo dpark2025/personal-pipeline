@@ -388,15 +388,27 @@ create_git_tag() {
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
   
-  # Create tag
-  log_info "Creating git tag v$version..."
-  git tag -a "v$version" -m "Release version $version
+  # Create tag (check if it already exists)
+  if git tag -l "v$version" | grep -q "v$version"; then
+    log_warning "Tag v$version already exists - updating tag reference"
+    git tag -d "v$version"
+    git tag -a "v$version" -m "Release version $version
 
 📦 Package release with automated build and testing
 
 🚀 Generated with [Claude Code](https://claude.ai/code)
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
+  else
+    log_info "Creating git tag v$version..."
+    git tag -a "v$version" -m "Release version $version
+
+📦 Package release with automated build and testing
+
+🚀 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+  fi
   
   log_success "Created git commit and tag v$version"
 }
