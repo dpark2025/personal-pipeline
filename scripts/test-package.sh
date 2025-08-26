@@ -211,8 +211,13 @@ EOF
       return 1
     fi
     
-    # Check if the registry is responding
-    if curl -s "http://localhost:$TEMP_REGISTRY_PORT" >/dev/null 2>&1; then
+    # Check if the registry is responding (disable exit on error for this check)
+    set +e
+    curl -s "http://localhost:$TEMP_REGISTRY_PORT" >/dev/null 2>&1
+    local curl_result=$?
+    set -e
+    
+    if [[ $curl_result -eq 0 ]]; then
       log_success "Local registry started on port $TEMP_REGISTRY_PORT (PID: $registry_pid)"
       # Give registry an extra moment to fully initialize
       sleep 2
@@ -225,7 +230,14 @@ EOF
       log_verbose "Still waiting for registry... attempt $attempts/60 (PID: $registry_pid)"
       # Additional debugging - check if port is in use
       if command -v netstat >/dev/null 2>&1; then
-        netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT " || log_verbose "Port $TEMP_REGISTRY_PORT not yet bound"
+        set +e
+        local netstat_result=$(netstat -tlnp 2>/dev/null | grep ":$TEMP_REGISTRY_PORT ")
+        set -e
+        if [[ -z "$netstat_result" ]]; then
+          log_verbose "Port $TEMP_REGISTRY_PORT not yet bound"
+        else
+          log_verbose "Port $TEMP_REGISTRY_PORT is bound: $netstat_result"
+        fi
       fi
     fi
   done
