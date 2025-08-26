@@ -3,6 +3,8 @@
  *
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
+ * 
+ * BUILD TRIGGER: Enable enhanced package validation debugging
  * decision trees through the Model Context Protocol.
  * 
  * Build trigger: Debug package validation errors
