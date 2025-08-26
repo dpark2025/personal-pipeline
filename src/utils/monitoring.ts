@@ -91,8 +91,7 @@ export class MonitoringService extends EventEmitter {
       description: 'Cache service is completely unavailable',
       severity: 'critical',
       condition: metrics =>
-        metrics.cache && 
-        metrics.cache.cache_enabled && 
+        metrics.cache?.cache_enabled && 
         !metrics.cache.memory_healthy && 
         !metrics.cache.redis_healthy,
       cooldownMs: 300000, // 5 minutes
