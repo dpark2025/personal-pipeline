@@ -1,0 +1,58 @@
+# Personal Pipeline MCP Server - Test Configuration
+# This configuration is used for Docker container testing and CI environments
+# It provides minimal functionality without external dependencies
+
+server:
+  port: 3000
+  host: 0.0.0.0  # Allow connections from all interfaces in container
+  log_level: info
+  cache_ttl_seconds: 300  # Shorter TTL for testing
+  max_concurrent_requests: 50
+  request_timeout_ms: 10000  # Shorter timeout for CI
+  health_check_interval_ms: 5000  # More frequent health checks in test
+
+# Minimal sources configuration for testing
+# Uses only local filesystem sources to avoid external dependencies
+sources:
+  - name: test-runbooks
+    type: file
+    base_url: /test-data
+    refresh_interval: 1m
+    priority: 1
+    enabled: true
+    timeout_ms: 2000
+    max_retries: 1
+    watch_changes: false  # Disable file watching in containers
+    
+# Cache configuration - memory only for testing
+cache:
+  enabled: true
+  strategy: memory_only  # No Redis dependency in tests
+  memory:
+    max_keys: 100
+    ttl_seconds: 300
+    check_period_seconds: 60
+
+# Semantic search disabled for simpler testing
+semantic_search:
+  enabled: false
+
+# Performance monitoring with minimal overhead
+performance:
+  enabled: true
+  metrics_retention_hours: 1  # Short retention for tests
+  slow_query_threshold_ms: 1000
+
+# API configuration for testing
+api:
+  enable_cors: true
+  rate_limiting:
+    enabled: false  # Disable rate limiting in tests
+  request_size_limit: "1mb"
+  enable_swagger: true
+  
+# Logging configuration for container environments  
+logging:
+  level: info
+  format: json  # JSON format better for container log aggregation
+  include_stack_traces: true

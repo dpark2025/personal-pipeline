@@ -1257,36 +1257,76 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
       const startTime = performance.now();
 
       try {
-        // Get health from multiple sources
+        // Check if we have any configured sources first
+        const configuredSources = sourceRegistry.getAllAdapters();
+        const hasConfiguredSources = configuredSources.length > 0;
+
+        // Get health from multiple sources with graceful handling
         const [sourcesHealth, cacheHealth, toolsMetrics] = await Promise.allSettled([
-          sourceRegistry.healthCheckAll(),
+          hasConfiguredSources 
+            ? sourceRegistry.healthCheckAll()
+            : Promise.resolve([]), // Return empty array if no sources configured
           cacheService?.healthCheck() || Promise.resolve(null),
           Promise.resolve(mcpTools.getPerformanceMetrics()),
         ]);
 
         const executionTime = performance.now() - startTime;
 
+        // Handle sources health result with better error handling
+        let sourcesHealthData: any[] = [];
+        let sourcesError: string | null = null;
+        
+        if (sourcesHealth.status === 'fulfilled') {
+          sourcesHealthData = sourcesHealth.value;
+        } else {
+          sourcesError = sourcesHealth.reason?.message || 'Source health check failed';
+          logger.warn('Source health check failed during API health check', {
+            error: sourcesHealth.reason,
+            configuredSources: configuredSources.length,
+          });
+        }
+
         const healthStatus = {
-          api_status: 'healthy',
-          sources: sourcesHealth.status === 'fulfilled' ? sourcesHealth.value : [],
+          api_status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
+          sources: sourcesHealthData,
           cache: cacheHealth.status === 'fulfilled' ? cacheHealth.value : null,
           tools: toolsMetrics.status === 'fulfilled' ? toolsMetrics.value : null,
           uptime_seconds: process.uptime(),
           timestamp: new Date().toISOString(),
+          configuration: {
+            sources_configured: configuredSources.length,
+            cache_enabled: !!cacheService,
+            tools_available: toolsMetrics.status === 'fulfilled',
+          },
+          ...(sourcesError && { sources_error: sourcesError }),
+          ...(!hasConfiguredSources && { 
+            configuration_status: 'minimal_mode',
+            message: 'Server running in minimal mode - no sources configured'
+          }),
         };
 
-        // Determine overall health
-        const healthySources = healthStatus.sources.filter((s: any) => s.healthy).length;
-        const totalSources = healthStatus.sources.length;
-        const sourceHealthRatio = totalSources > 0 ? healthySources / totalSources : 1;
-
-        if (sourceHealthRatio < 0.5) {
-          healthStatus.api_status = 'unhealthy';
-        } else if (sourceHealthRatio < 0.8) {
+        // Determine overall health with better logic
+        if (!hasConfiguredSources) {
+          // No sources configured - degraded but functional
           healthStatus.api_status = 'degraded';
+        } else if (sourcesError) {
+          // Sources configured but failing - unhealthy
+          healthStatus.api_status = 'unhealthy';
+        } else {
+          // Normal source health evaluation
+          const healthySources = sourcesHealthData.filter((s: any) => s.healthy).length;
+          const totalSources = sourcesHealthData.length;
+          const sourceHealthRatio = totalSources > 0 ? healthySources / totalSources : 1;
+
+          if (sourceHealthRatio < 0.5) {
+            healthStatus.api_status = 'unhealthy';
+          } else if (sourceHealthRatio < 0.8) {
+            healthStatus.api_status = 'degraded';
+          }
         }
 
-        const statusCode = healthStatus.api_status === 'healthy' ? 200 : 503;
+        // Status code logic: 200 for healthy/degraded, 503 for unhealthy
+        const statusCode = healthStatus.api_status === 'unhealthy' ? 503 : 200;
 
         res.status(statusCode).json(
           createSuccessResponse(healthStatus, {
@@ -1295,14 +1335,63 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
         );
       } catch (error) {
         const executionTime = performance.now() - startTime;
+        
+        // Determine specific error type for better diagnostics
+        let errorCode = 'HEALTH_CHECK_FAILED';
+        let errorMessage = 'API health check failed';
+        let troubleshooting: string[] = [];
+
+        if (error instanceof Error) {
+          if (error.message.includes('Configuration not loaded')) {
+            errorCode = 'CONFIGURATION_ERROR';
+            errorMessage = 'Server configuration not loaded properly';
+            troubleshooting = [
+              'Verify CONFIG_FILE environment variable is set',
+              'Ensure config.yaml exists and is readable',
+              'Check config file format and syntax'
+            ];
+          } else if (error.message.includes('source')) {
+            errorCode = 'SOURCE_INITIALIZATION_ERROR';
+            errorMessage = 'Source adapter initialization failed';
+            troubleshooting = [
+              'Check source configuration in config.yaml',
+              'Verify source paths and permissions',
+              'Review adapter-specific requirements'
+            ];
+          } else {
+            errorMessage = error.message;
+            troubleshooting = [
+              'Check server logs for detailed error information',
+              'Verify all required dependencies are available',
+              'Retry the request after a brief delay'
+            ];
+          }
+        }
+
+        logger.error('Health check failed with unexpected error', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          executionTime,
+        });
+
         res
           .status(getErrorStatusCode(error))
           .json(
             createErrorResponseWithCorrelation(
-              'HEALTH_CHECK_FAILED',
-              'API health check failed',
+              errorCode,
+              errorMessage,
               req,
-              { execution_time_ms: Math.round(executionTime) }
+              { 
+                execution_time_ms: Math.round(executionTime),
+                troubleshooting,
+                server_status: 'error_state',
+                recovery_actions: [
+                  'Check server configuration',
+                  'Verify required files and permissions',
+                  'Review server logs for details',
+                  'Contact support with correlation ID if issue persists'
+                ]
+              }
             )
           );
       }

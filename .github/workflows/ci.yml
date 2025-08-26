@@ -341,6 +341,9 @@ jobs:
           
           echo "🧪 Testing Docker image..."
           docker run --name test-container -d -p 3000:3000 \
+            -e NODE_ENV=production \
+            -e LOG_LEVEL=warn \
+            -e CONFIG_FILE=/app/config/config.test.yaml \
             ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}
           
           # Wait for container to start

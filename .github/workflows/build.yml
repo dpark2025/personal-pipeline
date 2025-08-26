@@ -404,10 +404,12 @@ jobs:
           IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           echo "Testing image: $IMAGE_TAG"
           
-          # Start container for testing (use memory-only cache for CI)
+          # Start container for testing with test configuration
           docker run --name test-container -d -p 3000:3000 \
             -e NODE_ENV=production \
             -e LOG_LEVEL=warn \
+            -e CONFIG_FILE=/app/config/config.test.yaml \
+            --platform linux/${{ matrix.arch }} \
             "$IMAGE_TAG"
           
           # Wait for container to start

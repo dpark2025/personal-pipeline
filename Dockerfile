@@ -63,12 +63,17 @@ COPY package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy configuration samples directly
+# Copy configuration samples and test config
 COPY config/*.sample.yaml /app/config/
+COPY config/config.test.yaml /app/config/
+
+# Copy test data for container testing
+COPY test-data/ /test-data/
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/data /app/cache /app/logs /app/config && \
-    chown -R ppuser:ppuser /app
+    chown -R ppuser:ppuser /app && \
+    chown -R ppuser:ppuser /test-data
 
 # Health check script
 COPY <<EOF /usr/local/bin/healthcheck.sh
