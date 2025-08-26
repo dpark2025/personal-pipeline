@@ -8,14 +8,15 @@
 # ==============================================================================
 # Build Stage
 # ==============================================================================
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
-# Install build dependencies (Alpine is much faster)
-RUN apk add --no-cache \
+# Install only essential build dependencies (optimized for speed)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
-    git
+    git \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Set working directory
 WORKDIR /app
@@ -40,16 +41,17 @@ RUN npm ci --only=production --silent --prefer-offline --no-audit --no-fund
 # ==============================================================================
 # Runtime Stage
 # ==============================================================================
-FROM node:20-alpine AS runtime
+FROM node:20-slim AS runtime
 
-# Install minimal runtime dependencies (Alpine is much faster)
-RUN apk add --no-cache \
+# Install minimal runtime dependencies (optimized)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     dumb-init \
-    curl
+    curl \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Create non-root user for security (Alpine syntax)
-RUN addgroup -g 1001 ppuser && \
-    adduser -D -u 1001 -G ppuser ppuser
+# Create non-root user for security
+RUN groupadd -g 1001 ppuser && \
+    useradd -r -u 1001 -g ppuser ppuser
 
 # Set working directory
 WORKDIR /app
