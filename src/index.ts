@@ -7,7 +7,7 @@
  * BUILD TRIGGER: Fix registry startup loop exit-on-error behavior
  * decision trees through the Model Context Protocol.
  * 
- * Build trigger: Debug package validation errors - import test failure (File API polyfill)
+ * Build trigger: Debug package validation errors - import test failure (adapter list fix)
  */
 
 // Polyfill for Node.js compatibility with undici/web APIs
