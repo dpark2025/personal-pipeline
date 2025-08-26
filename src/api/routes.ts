@@ -1336,6 +1336,15 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
       } catch (error) {
         const executionTime = performance.now() - startTime;
         
+        // Log the actual error for debugging
+        logger.error('API health check failed with unhandled error', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          hasConfiguredSources,
+          cacheServiceAvailable: !!cacheService,
+          configStrategy: cacheService?.config?.strategy || 'unknown'
+        });
+        
         // Determine specific error type for better diagnostics
         let errorCode = 'HEALTH_CHECK_FAILED';
         let errorMessage = 'API health check failed';
