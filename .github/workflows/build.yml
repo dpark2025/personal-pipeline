@@ -7,11 +7,15 @@
 name: Build & Package
 
 on:
-  # Trigger after version management workflow completes (success check in job condition)
-  workflow_run:
-    workflows: ["Version Management"]
-    types:
-      - completed
+  # Trigger on pushes to main branch
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+      - 'LICENSE'
   
   # Allow manual triggering
   workflow_dispatch:
@@ -40,30 +44,6 @@ on:
         required: false
         default: 'false'
         type: boolean
-  
-  # Allow reusable workflow calls (for release workflow)
-  workflow_call:
-    inputs:
-      force_rebuild:
-        description: 'Force rebuild without cache'
-        required: false
-        default: false
-        type: boolean
-      build_target:
-        description: 'Build target'
-        required: false
-        default: 'all'
-        type: string
-      push_artifacts:
-        description: 'Push artifacts to registries'
-        required: false
-        default: false
-        type: boolean
-      verbose:
-        description: 'Enable verbose output'
-        required: false
-        default: false
-        type: boolean
 
 # ==============================================================================
 # Environment Variables
@@ -78,88 +58,18 @@ env:
 # ==============================================================================
 jobs:
   # ==============================================================================
-  # Pre-Build Check - Determine if builds are needed
-  # ==============================================================================
-  pre-check:
-    name: Pre-Build Analysis
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' }}
-    
-    outputs:
-      should-run-builds: ${{ steps.check.outputs.should-run-builds }}
-      has-source-changes: ${{ steps.check.outputs.has-source-changes }}
-      
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Check if builds are needed
-        id: check
-        run: |
-          echo "🔍 Pre-analyzing changes to determine if builds are needed..."
-          
-          # Force builds when called from release workflow or manual dispatch with force_rebuild
-          if [[ "${{ github.event_name }}" == "workflow_call" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "🔄 Called via ${{ github.event_name }} - builds will be executed"
-            echo "has-source-changes=true" >> $GITHUB_OUTPUT
-            echo "should-run-builds=true" >> $GITHUB_OUTPUT
-            echo "✅ Build workflow needed - explicit workflow call"
-            exit 0
-          fi
-          
-          # Get the commits from the version workflow that just completed
-          # Look at changes since the previous version tag
-          LAST_TAG=$(git describe --tags --abbrev=0 --match="v*" HEAD~1 2>/dev/null || echo "")
-          if [[ -n "$LAST_TAG" ]]; then
-            COMMIT_RANGE="$LAST_TAG..HEAD"
-            echo "Analyzing changes since $LAST_TAG"
-          else
-            # If no previous tag, check last few commits
-            COMMIT_RANGE="HEAD~3..HEAD"
-            echo "No previous version tag found, analyzing recent commits"
-          fi
-          
-          # Check if there are any source code changes
-          SOURCE_CHANGES=$(git diff --name-only "$COMMIT_RANGE" | grep -E '^(src/|tests/|Dockerfile|package-lock\.json|tsconfig.*\.json|scripts/(build|test)-.*\.sh|\.eslintrc\.)' || echo "")
-          VERSION_ONLY_CHANGES=$(git diff --name-only "$COMMIT_RANGE" | grep -E '^(package\.json|CHANGELOG\.md)$' || echo "")
-          
-          echo "Source changes detected:"
-          if [[ -n "$SOURCE_CHANGES" ]]; then
-            echo "$SOURCE_CHANGES"
-            echo "has-source-changes=true" >> $GITHUB_OUTPUT
-            echo "should-run-builds=true" >> $GITHUB_OUTPUT
-            echo "✅ Build workflow needed - source code changes detected"
-          else
-            echo "None - only version files changed"
-            echo "has-source-changes=false" >> $GITHUB_OUTPUT
-            echo "should-run-builds=false" >> $GITHUB_OUTPUT  
-            echo "⏭️  Build workflow not needed - only version changes detected"
-          fi
-          
-          if [[ -n "$VERSION_ONLY_CHANGES" ]]; then
-            echo ""
-            echo "Version-only changes:"
-            echo "$VERSION_ONLY_CHANGES"
-          fi
-
-  # ==============================================================================
   # Build Preparation
   # ==============================================================================
   prepare:
     name: Build Preparation
     runs-on: ubuntu-latest
-    needs: pre-check
-    # Only run if builds are actually needed
-    if: ${{ needs.pre-check.outputs.should-run-builds == 'true' }}
     
     outputs:
       version: ${{ steps.version.outputs.version }}
       build-id: ${{ steps.build-id.outputs.build-id }}
       cache-key: ${{ steps.cache-key.outputs.cache-key }}
-      should-build-npm: ${{ steps.build-analysis.outputs.should-build-npm }}
-      should-build-docker: ${{ steps.build-analysis.outputs.should-build-docker }}
+      should-build-npm: ${{ steps.changes.outputs.npm }}
+      should-build-docker: ${{ steps.changes.outputs.docker }}
       
     steps:
       - name: Checkout code
@@ -195,6 +105,7 @@ jobs:
             npm:
               - 'src/**'
               - 'tests/**'
+              - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
               - 'tsconfig.*.json'
@@ -204,50 +115,10 @@ jobs:
             docker:
               - 'src/**'
               - 'Dockerfile'
+              - 'package.json'
               - 'package-lock.json'
               - 'docker/**'
               - 'config/*.sample.yaml'
-            version-only:
-              - 'package.json'
-              - 'CHANGELOG.md'
-      
-      - name: Analyze build requirements
-        id: build-analysis
-        run: |
-          echo "🔍 Analyzing build requirements..."
-          
-          # Check if we have only version-related changes
-          NPM_CHANGES="${{ steps.changes.outputs.npm }}"
-          DOCKER_CHANGES="${{ steps.changes.outputs.docker }}"
-          VERSION_CHANGES="${{ steps.changes.outputs.version-only }}"
-          
-          # Manual overrides always build
-          if [[ "${{ github.event.inputs.build_target }}" == "all" || "${{ github.event.inputs.build_target }}" == "npm-only" ]]; then
-            echo "should-build-npm=true" >> $GITHUB_OUTPUT
-            echo "📦 npm build: Required (manual override)"
-          elif [[ "$NPM_CHANGES" == "true" ]]; then
-            echo "should-build-npm=true" >> $GITHUB_OUTPUT
-            echo "📦 npm build: Required (source changes)"
-          else
-            echo "should-build-npm=false" >> $GITHUB_OUTPUT
-            echo "📦 npm build: Skipped (no source changes)"
-          fi
-          
-          if [[ "${{ github.event.inputs.build_target }}" == "all" || "${{ github.event.inputs.build_target }}" == "docker-only" ]]; then
-            echo "should-build-docker=true" >> $GITHUB_OUTPUT
-            echo "🐳 Docker build: Required (manual override)"
-          elif [[ "$DOCKER_CHANGES" == "true" ]]; then
-            echo "should-build-docker=true" >> $GITHUB_OUTPUT
-            echo "🐳 Docker build: Required (source changes)"
-          else
-            echo "should-build-docker=false" >> $GITHUB_OUTPUT
-            echo "🐳 Docker build: Skipped (no source changes)"
-          fi
-          
-          # Log version-only changes
-          if [[ "$VERSION_CHANGES" == "true" ]]; then
-            echo "📋 Version-only changes detected (package.json, CHANGELOG.md)"
-          fi
       
       - name: Build summary
         run: |
@@ -255,10 +126,9 @@ jobs:
           echo "============================"
           echo "📝 Version: ${{ steps.version.outputs.version }}"
           echo "🆔 Build ID: ${{ steps.build-id.outputs.build-id }}"
-          echo "📦 Build npm: ${{ steps.build-analysis.outputs.should-build-npm }}"
-          echo "🐳 Build Docker: ${{ steps.build-analysis.outputs.should-build-docker }}"
+          echo "📦 Build npm: ${{ steps.changes.outputs.npm || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'npm-only' }}"
+          echo "🐳 Build Docker: ${{ steps.changes.outputs.docker || github.event.inputs.build_target == 'all' || github.event.inputs.build_target == 'docker-only' }}"
           echo "🔄 Force rebuild: ${{ github.event.inputs.force_rebuild }}"
-          echo "📋 Version changes: ${{ steps.changes.outputs.version-only }}"
 
   # ==============================================================================
   # npm Package Build
@@ -713,64 +583,13 @@ jobs:
           retention-days: 90
 
   # ==============================================================================
-  # Build Summary (runs regardless of whether builds were needed)
-  # ==============================================================================
-  build-summary:
-    name: Build Summary
-    runs-on: ubuntu-latest  
-    needs: [pre-check, prepare, npm-build, docker-build, docker-manifest, quality-gates]
-    if: always()
-    
-    steps:
-      - name: Generate build summary
-        run: |
-          echo "📋 Build & Package Workflow Summary"
-          echo "====================================="
-          
-          if [[ "${{ needs.pre-check.outputs.should-run-builds }}" == "false" ]]; then
-            echo "⏭️  **Builds Skipped** - Only version files changed"
-            echo ""
-            echo "📋 Changes detected:"
-            echo "   • Version files only (package.json, CHANGELOG.md)"
-            echo "   • No source code changes requiring rebuilds"
-            echo ""
-            echo "✅ **Workflow completed efficiently** - No builds needed!"
-            echo ""
-            echo "💡 Builds will run automatically when:"
-            echo "   • Source code changes (src/**, tests/**)"  
-            echo "   • Build configuration changes (Dockerfile, tsconfig.json)"
-            echo "   • Manual override with build_target parameter"
-          else
-            echo "🚀 **Build Results Summary**"
-            echo ""
-            echo "📦 npm Build: ${{ needs.npm-build.result || 'skipped' }}"
-            echo "🐳 Docker Build: ${{ needs.docker-build.result || 'skipped' }}"
-            echo "📋 Quality Gates: ${{ needs.quality-gates.result || 'skipped' }}"
-            
-            if [[ "${{ needs.quality-gates.result }}" == "success" ]]; then
-              echo ""
-              echo "✅ **All builds completed successfully!**"
-              echo "🎯 Artifacts are ready for deployment"
-            else  
-              echo ""
-              echo "❌ **Some builds failed** - Check workflow details"
-            fi
-          fi
-          
-          echo ""
-          echo "🔗 **Workflow Details:**"
-          echo "   • Pre-check: ${{ needs.pre-check.result }}"
-          echo "   • Should run builds: ${{ needs.pre-check.outputs.should-run-builds }}"
-          echo "   • Has source changes: ${{ needs.pre-check.outputs.has-source-changes }}"
-
-  # ==============================================================================
-  # Notification (only runs when builds actually executed)
+  # Notification
   # ==============================================================================
   notify:
     name: Build Notification
     runs-on: ubuntu-latest
-    needs: [pre-check, prepare, npm-build, docker-build, docker-manifest, quality-gates]
-    if: ${{ needs.pre-check.outputs.should-run-builds == 'true' && always() }}
+    needs: [prepare, npm-build, docker-build, docker-manifest, quality-gates]
+    if: always()
     
     steps:
       - name: Determine build status
