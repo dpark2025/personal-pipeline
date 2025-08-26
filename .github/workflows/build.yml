@@ -409,7 +409,7 @@ jobs:
             -e NODE_ENV=production \
             -e LOG_LEVEL=warn \
             -e CONFIG_FILE=/app/config/config.test.yaml \
-            --platform linux/${{ matrix.arch }} \
+            --platform ${{ matrix.platform }} \
             "$IMAGE_TAG"
           
           # Wait for container to start
