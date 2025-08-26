@@ -105,17 +105,21 @@ jobs:
           filters: |
             npm:
               - 'src/**'
+              - 'tests/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
-              - 'scripts/build-package.sh'
-              - 'scripts/version.sh'
+              - 'tsconfig.*.json'
+              - 'scripts/**'
+              - '.eslintrc.*'
             docker:
               - 'src/**'
+              - 'tests/**'
               - 'Dockerfile'
               - 'package.json'
               - 'package-lock.json'
               - 'docker/**'
+              - 'scripts/**'
       
       - name: Build summary
         run: |
