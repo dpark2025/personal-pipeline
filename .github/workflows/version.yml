@@ -65,7 +65,6 @@ env:
 # ==============================================================================
 permissions:
   contents: write  # Required for pushing commits and creating tags
-  metadata: read   # Required for reading repository metadata
 
 # ==============================================================================
 # Jobs
