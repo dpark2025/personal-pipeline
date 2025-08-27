@@ -80,8 +80,7 @@ CORE ENGINE:
 
 SOURCE ADAPTERS:
   ├── FileSystem Adapter     ──────► Local Files & Directories
-  ├── Web Adapter            ──────► REST APIs & Website Content
-  └── Database Adapter       ──────► PostgreSQL/MongoDB (Planned)
+  └── Web Adapter            ──────► REST APIs & Website Content
 
 INFRASTRUCTURE:
   ├── Redis Cache            ──────► Improved performance

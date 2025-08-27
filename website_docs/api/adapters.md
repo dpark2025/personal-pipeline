@@ -161,18 +161,6 @@ sources:
 - Concurrent requests: Up to 10 (rate limited)
 - Cache hit rate: ~60-80% for frequently accessed content
 
-## Future Enhancements
-
-### Database Adapter (Planned)
-
-**Status**: 🚧 **Planning Phase**  
-**Type**: `database`
-
-**Planned Features**:
-- PostgreSQL and MongoDB support
-- Query-based document retrieval
-- Schema-aware content extraction
-- Connection pooling and optimization
 
 
 ## Adapter Development
