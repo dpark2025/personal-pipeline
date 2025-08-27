@@ -518,13 +518,17 @@ export const GitHubConfig = SourceConfig.extend({
   api_url: z.string().optional(), // For GitHub Enterprise Server
   graphql_url: z.string().optional(), // For GitHub Enterprise Server
   organization: z.string().optional(), // Organization to sync
-  repositories: z.array(z.union([
-    z.string(), // "owner/repo" format
-    z.object({
-      owner: z.string(),
-      name: z.string(),
-    })
-  ])).optional(), // Specific repositories to sync
+  repositories: z
+    .array(
+      z.union([
+        z.string(), // "owner/repo" format
+        z.object({
+          owner: z.string(),
+          name: z.string(),
+        }),
+      ])
+    )
+    .optional(), // Specific repositories to sync
   scope: GitHubScopeConfig.optional(),
   content_types: GitHubContentConfig.default({}),
   performance: GitHubPerformanceConfig.default({}),
@@ -540,10 +544,12 @@ export const FileSystemConfig = SourceConfig.extend({
   base_paths: z.array(z.string()).optional(), // Multiple root directories
   recursive: z.boolean().default(true), // Enable recursive scanning
   max_depth: z.number().default(10), // Maximum recursion depth
-  file_patterns: z.object({
-    include: z.array(z.string()).optional(), // Glob patterns to include
-    exclude: z.array(z.string()).optional(), // Glob patterns to exclude
-  }).optional(),
+  file_patterns: z
+    .object({
+      include: z.array(z.string()).optional(), // Glob patterns to include
+      exclude: z.array(z.string()).optional(), // Glob patterns to exclude
+    })
+    .optional(),
   supported_extensions: z.array(z.string()).optional(), // File extensions to process
   extract_metadata: z.boolean().default(true), // Enable metadata extraction
   pdf_extraction: z.boolean().default(true), // Enable PDF text extraction
@@ -560,12 +566,12 @@ export type FileSystemConfig = z.infer<typeof FileSystemConfig>;
  */
 export const DatabaseType = z.enum([
   'postgresql',
-  'mongodb', 
+  'mongodb',
   'mysql',
   'mariadb',
   'sqlite',
   'mssql',
-  'oracle'
+  'oracle',
 ]);
 export type DatabaseType = z.infer<typeof DatabaseType>;
 
@@ -596,26 +602,32 @@ export type DatabaseConnectionConfig = z.infer<typeof DatabaseConnectionConfig>;
  * Database schema mapping configuration
  */
 export const DatabaseSchemaMapping = z.object({
-  tables: z.array(z.object({
-    name: z.string(),
-    title_field: z.string(),
-    content_field: z.string(),
-    category_field: z.string().optional(),
-    updated_field: z.string().optional(),
-    author_field: z.string().optional(),
-    tags_field: z.string().optional(),
-    metadata_field: z.string().optional(),
-    type: z.enum(['runbook', 'documentation', 'faq', 'procedure']).optional(),
-    filters: z.record(z.any()).optional(), // Additional WHERE conditions
-  })),
-  collections: z.array(z.object({
-    name: z.string(),
-    title_field: z.string(),
-    content_field: z.string(),
-    category_field: z.string().optional(),
-    updated_field: z.string().optional(),
-    type: z.enum(['runbook', 'documentation', 'faq', 'procedure']).optional(),
-  })).optional(), // For MongoDB
+  tables: z.array(
+    z.object({
+      name: z.string(),
+      title_field: z.string(),
+      content_field: z.string(),
+      category_field: z.string().optional(),
+      updated_field: z.string().optional(),
+      author_field: z.string().optional(),
+      tags_field: z.string().optional(),
+      metadata_field: z.string().optional(),
+      type: z.enum(['runbook', 'documentation', 'faq', 'procedure']).optional(),
+      filters: z.record(z.any()).optional(), // Additional WHERE conditions
+    })
+  ),
+  collections: z
+    .array(
+      z.object({
+        name: z.string(),
+        title_field: z.string(),
+        content_field: z.string(),
+        category_field: z.string().optional(),
+        updated_field: z.string().optional(),
+        type: z.enum(['runbook', 'documentation', 'faq', 'procedure']).optional(),
+      })
+    )
+    .optional(), // For MongoDB
 });
 export type DatabaseSchemaMapping = z.infer<typeof DatabaseSchemaMapping>;
 
@@ -626,12 +638,14 @@ export const DatabaseConfig = SourceConfig.extend({
   type: z.literal('database'),
   connection: DatabaseConnectionConfig,
   schema: DatabaseSchemaMapping,
-  performance: z.object({
-    query_timeout_ms: z.number().default(15000),
-    max_concurrent_queries: z.number().default(25),
-    cache_ttl_seconds: z.number().default(3600),
-    enable_query_optimization: z.boolean().default(true),
-  }).optional(),
+  performance: z
+    .object({
+      query_timeout_ms: z.number().default(15000),
+      max_concurrent_queries: z.number().default(25),
+      cache_ttl_seconds: z.number().default(3600),
+      enable_query_optimization: z.boolean().default(true),
+    })
+    .optional(),
 });
 export type DatabaseConfig = z.infer<typeof DatabaseConfig>;
 
@@ -662,118 +676,150 @@ export type ConfluenceConfig = z.infer<typeof ConfluenceConfig>;
  */
 export const WebConfig = SourceConfig.extend({
   type: z.literal('web'),
-  sources: z.array(z.object({
-    name: z.string(),
-    type: z.enum(['api', 'scraping', 'rss', 'wiki', 'knowledge_base']),
-    base_url: z.string(),
-    endpoints: z.array(z.object({
+  sources: z.array(
+    z.object({
       name: z.string(),
-      path: z.string(),
-      method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).default('GET'),
-      content_type: z.enum(['html', 'json', 'xml', 'text', 'rss', 'auto']).default('auto'),
-      selectors: z.object({
-        title: z.string().optional(),
-        content: z.string().optional(),
-        metadata: z.string().optional(),
-        links: z.string().optional(),
-        date: z.string().optional(),
-        author: z.string().optional(),
-        exclude: z.array(z.string()).optional(),
-      }).optional(),
-      json_paths: z.array(z.string()).optional(),
-      xml_xpaths: z.array(z.string()).optional(),
-      headers: z.record(z.string()).optional(),
-      query_params: z.record(z.string()).optional(),
-      body_template: z.string().optional(),
-      rate_limit: z.number().optional(),
-      timeout_ms: z.number().optional(),
-      retry_attempts: z.number().optional(),
-      cache_ttl: z.string().optional(),
-      filters: z.object({
-        include_patterns: z.array(z.string()).optional(),
-        exclude_patterns: z.array(z.string()).optional(),
-        min_content_length: z.number().optional(),
-        max_content_length: z.number().optional(),
-        required_elements: z.array(z.string()).optional(),
-      }).optional(),
-      pagination: z.object({
-        type: z.enum(['offset', 'cursor', 'page_number']),
-        page_param: z.string(),
-        size_param: z.string().optional(),
-        max_pages: z.number().optional(),
-        next_link_selector: z.string().optional(),
-      }).optional(),
-    })),
-    auth_override: z.object({
-      type: z.enum(['api_key', 'bearer_token', 'basic_auth', 'oauth2']),
-      api_key: z.object({
+      type: z.enum(['api', 'scraping', 'rss', 'wiki', 'knowledge_base']),
+      base_url: z.string(),
+      endpoints: z.array(
+        z.object({
+          name: z.string(),
+          path: z.string(),
+          method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).default('GET'),
+          content_type: z.enum(['html', 'json', 'xml', 'text', 'rss', 'auto']).default('auto'),
+          selectors: z
+            .object({
+              title: z.string().optional(),
+              content: z.string().optional(),
+              metadata: z.string().optional(),
+              links: z.string().optional(),
+              date: z.string().optional(),
+              author: z.string().optional(),
+              exclude: z.array(z.string()).optional(),
+            })
+            .optional(),
+          json_paths: z.array(z.string()).optional(),
+          xml_xpaths: z.array(z.string()).optional(),
+          headers: z.record(z.string()).optional(),
+          query_params: z.record(z.string()).optional(),
+          body_template: z.string().optional(),
+          rate_limit: z.number().optional(),
+          timeout_ms: z.number().optional(),
+          retry_attempts: z.number().optional(),
+          cache_ttl: z.string().optional(),
+          filters: z
+            .object({
+              include_patterns: z.array(z.string()).optional(),
+              exclude_patterns: z.array(z.string()).optional(),
+              min_content_length: z.number().optional(),
+              max_content_length: z.number().optional(),
+              required_elements: z.array(z.string()).optional(),
+            })
+            .optional(),
+          pagination: z
+            .object({
+              type: z.enum(['offset', 'cursor', 'page_number']),
+              page_param: z.string(),
+              size_param: z.string().optional(),
+              max_pages: z.number().optional(),
+              next_link_selector: z.string().optional(),
+            })
+            .optional(),
+        })
+      ),
+      auth_override: z
+        .object({
+          type: z.enum(['api_key', 'bearer_token', 'basic_auth', 'oauth2']),
+          api_key: z
+            .object({
+              location: z.enum(['header', 'query', 'body']),
+              name: z.string(),
+              env_var: z.string(),
+              prefix: z.string().optional(),
+            })
+            .optional(),
+          bearer_token: z
+            .object({
+              env_var: z.string(),
+              refresh_endpoint: z.string().optional(),
+              refresh_interval_minutes: z.number().optional(),
+            })
+            .optional(),
+          basic_auth: z
+            .object({
+              username_env: z.string(),
+              password_env: z.string(),
+            })
+            .optional(),
+          oauth2: z
+            .object({
+              client_id_env: z.string(),
+              client_secret_env: z.string(),
+              token_endpoint: z.string(),
+              scope: z.string().optional(),
+              grant_type: z.enum(['client_credentials', 'authorization_code']),
+            })
+            .optional(),
+        })
+        .optional(),
+      performance_override: z
+        .object({
+          default_timeout_ms: z.number().optional(),
+          max_concurrent_requests: z.number().optional(),
+          default_retry_attempts: z.number().optional(),
+          default_cache_ttl: z.string().optional(),
+          user_agent: z.string().optional(),
+        })
+        .optional(),
+      content_override: z
+        .object({
+          max_content_size_mb: z.number().optional(),
+          follow_redirects: z.boolean().optional(),
+          validate_ssl: z.boolean().optional(),
+          extract_links: z.boolean().optional(),
+          respect_robots: z.boolean().optional(),
+        })
+        .optional(),
+      health_check: z.object({
+        enabled: z.boolean(),
+        endpoint: z.string().optional(),
+        interval_minutes: z.number(),
+        timeout_ms: z.number(),
+      }),
+    })
+  ),
+  auth: z.object({
+    type: z.enum(['api_key', 'bearer_token', 'basic_auth', 'oauth2']),
+    api_key: z
+      .object({
         location: z.enum(['header', 'query', 'body']),
         name: z.string(),
         env_var: z.string(),
         prefix: z.string().optional(),
-      }).optional(),
-      bearer_token: z.object({
+      })
+      .optional(),
+    bearer_token: z
+      .object({
         env_var: z.string(),
         refresh_endpoint: z.string().optional(),
         refresh_interval_minutes: z.number().optional(),
-      }).optional(),
-      basic_auth: z.object({
+      })
+      .optional(),
+    basic_auth: z
+      .object({
         username_env: z.string(),
         password_env: z.string(),
-      }).optional(),
-      oauth2: z.object({
+      })
+      .optional(),
+    oauth2: z
+      .object({
         client_id_env: z.string(),
         client_secret_env: z.string(),
         token_endpoint: z.string(),
         scope: z.string().optional(),
         grant_type: z.enum(['client_credentials', 'authorization_code']),
-      }).optional(),
-    }).optional(),
-    performance_override: z.object({
-      default_timeout_ms: z.number().optional(),
-      max_concurrent_requests: z.number().optional(),
-      default_retry_attempts: z.number().optional(),
-      default_cache_ttl: z.string().optional(),
-      user_agent: z.string().optional(),
-    }).optional(),
-    content_override: z.object({
-      max_content_size_mb: z.number().optional(),
-      follow_redirects: z.boolean().optional(),
-      validate_ssl: z.boolean().optional(),
-      extract_links: z.boolean().optional(),
-      respect_robots: z.boolean().optional(),
-    }).optional(),
-    health_check: z.object({
-      enabled: z.boolean(),
-      endpoint: z.string().optional(),
-      interval_minutes: z.number(),
-      timeout_ms: z.number(),
-    }),
-  })),
-  auth: z.object({
-    type: z.enum(['api_key', 'bearer_token', 'basic_auth', 'oauth2']),
-    api_key: z.object({
-      location: z.enum(['header', 'query', 'body']),
-      name: z.string(),
-      env_var: z.string(),
-      prefix: z.string().optional(),
-    }).optional(),
-    bearer_token: z.object({
-      env_var: z.string(),
-      refresh_endpoint: z.string().optional(),
-      refresh_interval_minutes: z.number().optional(),
-    }).optional(),
-    basic_auth: z.object({
-      username_env: z.string(),
-      password_env: z.string(),
-    }).optional(),
-    oauth2: z.object({
-      client_id_env: z.string(),
-      client_secret_env: z.string(),
-      token_endpoint: z.string(),
-      scope: z.string().optional(),
-      grant_type: z.enum(['client_credentials', 'authorization_code']),
-    }).optional(),
+      })
+      .optional(),
   }),
   performance: z.object({
     default_timeout_ms: z.number().default(30000),

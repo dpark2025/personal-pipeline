@@ -1,9 +1,9 @@
 /**
  * Hybrid Scoring Algorithm - Intelligent combination of semantic + fuzzy + metadata scores
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Advanced scoring algorithm that combines semantic similarity, fuzzy text matching,
  * and metadata relevance to provide optimal search results with confidence scoring.
  */
@@ -99,11 +99,11 @@ export class HybridScoringAlgorithm {
 
       // Score all documents
       const scoredResults: ScoredResult[] = [];
-      
+
       for (const document of documents) {
         const semanticScore = semanticScores.get(document.id) || 0;
         const fuzzyScore = fuzzyScoreMap.get(document.id) || 0;
-        
+
         // Skip documents below minimum thresholds
         if (semanticScore < this.MIN_SEMANTIC_THRESHOLD && fuzzyScore < this.MIN_FUZZY_THRESHOLD) {
           continue;
@@ -149,7 +149,9 @@ export class HybridScoringAlgorithm {
       return scoredResults;
     } catch (error) {
       logger.error('Hybrid scoring failed', { error });
-      throw new Error(`Hybrid scoring failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Hybrid scoring failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -179,11 +181,14 @@ export class HybridScoringAlgorithm {
 
     // Recency boost (more recent documents get higher scores)
     const docAge = this.calculateDocumentAge(document.last_updated);
-    if (docAge <= 7) { // Within a week
+    if (docAge <= 7) {
+      // Within a week
       score += 0.15;
-    } else if (docAge <= 30) { // Within a month
+    } else if (docAge <= 30) {
+      // Within a month
       score += 0.1;
-    } else if (docAge <= 90) { // Within 3 months
+    } else if (docAge <= 90) {
+      // Within 3 months
       score += 0.05;
     }
 
@@ -218,11 +223,10 @@ export class HybridScoringAlgorithm {
     metadataScore: number
   ): { finalScore: number; boostFactors: string[] } {
     // Base weighted score
-    let finalScore = (
+    let finalScore =
       semanticScore * this.weights.semantic +
       fuzzyScore * this.weights.fuzzy +
-      metadataScore * this.weights.metadata
-    );
+      metadataScore * this.weights.metadata;
 
     const boostFactors: string[] = [];
 
@@ -251,7 +255,10 @@ export class HybridScoringAlgorithm {
     }
 
     // Category match boost
-    if (document.category === 'runbook' && (queryLower.includes('runbook') || queryLower.includes('procedure'))) {
+    if (
+      document.category === 'runbook' &&
+      (queryLower.includes('runbook') || queryLower.includes('procedure'))
+    ) {
       finalScore *= this.CATEGORY_MATCH_BOOST;
       boostFactors.push('category_match');
     }
@@ -338,7 +345,7 @@ export class HybridScoringAlgorithm {
 
   private normalizeWeights(weights: ScoringWeights): ScoringWeights {
     const total = weights.semantic + weights.fuzzy + weights.metadata;
-    
+
     if (total === 0) {
       throw new Error('Sum of scoring weights cannot be zero');
     }
@@ -371,13 +378,18 @@ export class HybridScoringAlgorithm {
 
     // Update contribution metrics
     if (results.length > 0) {
-      const avgSemanticScore = results.reduce((sum, r) => sum + r.scoring_details.semantic_score, 0) / results.length;
-      const avgFuzzyScore = results.reduce((sum, r) => sum + r.scoring_details.fuzzy_score, 0) / results.length;
-      const avgMetadataScore = results.reduce((sum, r) => sum + r.scoring_details.metadata_score, 0) / results.length;
+      const avgSemanticScore =
+        results.reduce((sum, r) => sum + r.scoring_details.semantic_score, 0) / results.length;
+      const avgFuzzyScore =
+        results.reduce((sum, r) => sum + r.scoring_details.fuzzy_score, 0) / results.length;
+      const avgMetadataScore =
+        results.reduce((sum, r) => sum + r.scoring_details.metadata_score, 0) / results.length;
 
-      this.metrics.semanticContribution = (this.metrics.semanticContribution + avgSemanticScore) / 2;
+      this.metrics.semanticContribution =
+        (this.metrics.semanticContribution + avgSemanticScore) / 2;
       this.metrics.fuzzyContribution = (this.metrics.fuzzyContribution + avgFuzzyScore) / 2;
-      this.metrics.metadataContribution = (this.metrics.metadataContribution + avgMetadataScore) / 2;
+      this.metrics.metadataContribution =
+        (this.metrics.metadataContribution + avgMetadataScore) / 2;
     }
   }
 }

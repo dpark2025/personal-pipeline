@@ -29,7 +29,10 @@ import { EnhancedFileSystemAdapter } from '../adapters/file-enhanced.js';
 import { WebAdapter } from '../adapters/web/index.js';
 // import { ConfluenceAdapter } from '../adapters/confluence/index.js';
 // import { DatabaseAdapter } from '../adapters/database/index.js';
-import { createSemanticEnhancedAdapter, SemanticEnhancedAdapter } from '../search/semantic-integration.js';
+import {
+  createSemanticEnhancedAdapter,
+  SemanticEnhancedAdapter,
+} from '../search/semantic-integration.js';
 import { CacheService, initializeCacheService } from '../utils/cache.js';
 import { AppConfig, CacheConfig, FileSystemConfig, WebConfig } from '../types/index.js';
 import { performance } from 'perf_hooks';
@@ -71,7 +74,11 @@ export class PersonalPipelineServer {
 
   constructor(
     private configManager = new ConfigManager(),
-    semanticConfig?: Partial<{ enabled: boolean; fallbackToFuzzy: boolean; enhanceExistingAdapters: boolean }>
+    semanticConfig?: Partial<{
+      enabled: boolean;
+      fallbackToFuzzy: boolean;
+      enhanceExistingAdapters: boolean;
+    }>
   ) {
     if (semanticConfig) {
       this.semanticConfig = { ...this.semanticConfig, ...semanticConfig };
@@ -110,7 +117,7 @@ export class PersonalPipelineServer {
     try {
       // Load configuration
       this.config = await this.configManager.loadConfig();
-      
+
       // Update semantic configuration from loaded config
       if (this.config.semantic_search) {
         this.semanticConfig = {
@@ -119,7 +126,7 @@ export class PersonalPipelineServer {
           enhanceExistingAdapters: this.config.semantic_search.enhance_existing_adapters,
         };
       }
-      
+
       logger.info('Configuration loaded', {
         sourceCount: this.config.sources.length,
         serverPort: this.config.server.port,
@@ -960,7 +967,7 @@ export class PersonalPipelineServer {
       // Use environment-aware cache configuration if not provided
       const redisUrl = process.env.REDIS_URL;
       const isRedisConfigured = redisUrl !== undefined;
-      
+
       const cacheConfig: CacheConfig = this.config.cache || {
         enabled: true,
         // Default to memory-only unless Redis is explicitly configured
@@ -1053,10 +1060,10 @@ export class PersonalPipelineServer {
     const hasEnabledWebSources = this.config?.sources?.some(
       source => source.type === 'web' && source.enabled !== false
     );
-    
+
     if (hasEnabledWebSources) {
       logger.info('Registering WebAdapter factory - enabled web sources found in configuration');
-      
+
       // Register Web adapter factory with semantic enhancement
       this.sourceRegistry.registerFactory('web', config => {
         const baseAdapter = new WebAdapter(config as WebConfig);
@@ -1077,7 +1084,9 @@ export class PersonalPipelineServer {
         return baseAdapter;
       });
     } else {
-      logger.info('WebAdapter factory not registered - no enabled web sources found in configuration');
+      logger.info(
+        'WebAdapter factory not registered - no enabled web sources found in configuration'
+      );
     }
 
     // TODO: Re-enable GitHub adapter after fixing TypeScript issues
@@ -1104,7 +1113,7 @@ export class PersonalPipelineServer {
     */
     // TODO: Register other Phase 2 adapters when implemented:
     // - ConfluenceAdapter
-    // - DatabaseAdapter 
+    // - DatabaseAdapter
     // - DiscordAdapter
 
     logger.debug('Source adapter factories registered with semantic enhancement support', {
@@ -1458,7 +1467,7 @@ export class PersonalPipelineServer {
       });
     }
 
-    return `${lines.join('\n')  }\n`;
+    return `${lines.join('\n')}\n`;
   }
 
   // ========================================================================

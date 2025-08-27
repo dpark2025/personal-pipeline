@@ -45,18 +45,22 @@ npm run demo:start
 
 ## 📖 Documentation
 
-### Getting Started
+### 🚀 Getting Started
 - [Installation Guide](./guides/installation.md) - Complete setup instructions  
-- [Configuration Guide](./guides/configuration.md) - Customizing your deployment
-- [Architecture Overview](./guides/architecture.md) - Understanding the system design
-
-### API Reference
-- [MCP Tools](./api/mcp-tools.md) - 7 intelligent tools for documentation retrieval
-- [REST API](./api/rest-api.md) - 11 HTTP endpoints for integration
-
-### Examples & Guides
 - [Quick Start](./examples/quickstart.md) - Get running in 5 minutes
+- [Configuration Guide](./guides/configuration.md) - Customizing your deployment
+- [Server Management](./guides/server-management.md) - **NEW**: Start, stop, and manage servers
+
+### 📚 API Documentation
+- [MCP Tools](./api/mcp-tools.md) - 7 intelligent tools with <200ms response times
+- [REST API](./api/rest-api.md) - 11 HTTP endpoints for external integration
+- [Source Adapters](./api/adapters.md) - Configure documentation sources
+
+### 🔧 Developer Resources
 - [Developer Guide](./guides/development.md) - Contributing and development setup
+- [Architecture Overview](./guides/architecture.md) - System design and components
+- [Testing Guide](./guides/testing.md) - **NEW**: Comprehensive testing strategies
+- [Troubleshooting](./guides/troubleshooting.md) - **NEW**: Common issues and solutions
 
 ## 🏗️ Architecture
 
@@ -94,6 +98,9 @@ INFRASTRUCTURE:
 # Development environment
 npm run dev
 
+# Stop when finished (IMPORTANT!)
+npm run demo:stop
+
 # Performance testing  
 npm run benchmark
 
@@ -113,4 +120,16 @@ npm run health:dashboard
 
 ---
 
-Ready to get started? Check out our [Installation Guide](./guides/installation.md) or try the [Quick Start](./examples/quickstart.md).
+## 🎯 Quick Navigation
+
+**New to Personal Pipeline?** → [Installation Guide](./guides/installation.md) → [Quick Start](./examples/quickstart.md)
+
+**Setting up development?** → [Developer Guide](./guides/development.md) → [Server Management](./guides/server-management.md)
+
+**API Integration?** → [MCP Tools](./api/mcp-tools.md) → [REST API](./api/rest-api.md)
+
+**Having issues?** → [Troubleshooting](./guides/troubleshooting.md) → [Testing Guide](./guides/testing.md)
+
+---
+
+**⚠️ Important**: Always run `npm run demo:stop` when finished working to prevent resource conflicts. See [Server Management](./guides/server-management.md) for details.

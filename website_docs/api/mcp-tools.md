@@ -4,50 +4,55 @@ Personal Pipeline provides 7 intelligent MCP tools for documentation retrieval a
 
 ## Overview
 
-The Model Context Protocol (MCP) tools are designed for seamless integration with LangGraph agents and other MCP-compatible systems. Each tool provides specific functionality for retrieving and managing operational documentation.
+The Model Context Protocol (MCP) tools are designed for seamless integration with LangGraph agents and other MCP-compatible systems. Each tool provides specific functionality for retrieving and managing operational documentation with <200ms response times and confidence scoring.
 
 ### Tool Categories
 
-- **Search Tools**: Find relevant documentation quickly
-- **Operational Tools**: Get procedures and decision trees
-- **Management Tools**: Source configuration and feedback
-- **Knowledge Tools**: Access general documentation
+**Primary Operational Tools:**
+- `search_runbooks()` - Context-aware operational runbook retrieval
+- `get_decision_tree()` - Retrieve decision logic for specific scenarios  
+- `get_procedure()` - Detailed execution steps for procedures
+- `get_escalation_path()` - Determine appropriate escalation procedures
+
+**Supporting Tools:**
+- `list_sources()` - Manage documentation sources
+- `search_knowledge_base()` - General documentation search
+- `record_resolution_feedback()` - Capture outcomes for improvement
 
 ## Core Tools
 
-### 1. search_runbooks
+### 1. search_runbooks(alertType, severity?, systems?, context?)
 
-**Purpose**: Context-aware operational runbook retrieval based on alert characteristics.
+Context-aware operational runbook retrieval for incident response.
 
-**Parameters**:
-```typescript
+**Parameters:**
+- `alertType` (string, required): Type of alert or incident (e.g., "disk_space", "memory_leak")
+- `severity` (string, optional): Severity level ("critical", "high", "medium", "low")
+- `systems` (array, optional): Affected systems or components
+- `context` (object, optional): Additional context for better matching
+
+**Response:**
+```json
 {
-  alert_type: string;           // Type of alert (e.g., "disk_space", "memory_high")
-  severity: "low" | "medium" | "high" | "critical";
-  affected_systems?: string[];  // Systems experiencing issues
-  error_message?: string;      // Specific error message
-  limit?: number;              // Max results (default: 5)
-}
-```
-
-**Response**:
-```typescript
-{
-  runbooks: Array<{
-    id: string;
-    title: string;
-    severity_mapping: object;
-    triggers: string[];
-    procedures: Array<{
-      title: string;
-      steps: string[];
-      estimated_time: string;
-    }>;
-    confidence_score: number;    // 0.0-1.0
-    match_reasons: string[];     // Why this runbook was selected
-  }>;
-  retrieval_time_ms: number;
-  total_found: number;
+  "runbooks": [
+    {
+      "id": "disk-space-critical",
+      "title": "Critical Disk Space Alert Response",
+      "confidence_score": 0.95,
+      "severity_mapping": {
+        "critical": "immediate_response",
+        "high": "rapid_response"
+      },
+      "decision_tree": { /* structured decision logic */ },
+      "procedures": [ /* step-by-step procedures */ ],
+      "metadata": {
+        "success_rate": 0.92,
+        "average_resolution_time": "15 minutes"
+      }
+    }
+  ],
+  "retrieval_time_ms": 150,
+  "match_reasons": ["exact_alert_type_match", "severity_alignment"]
 }
 ```
 

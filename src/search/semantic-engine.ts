@@ -1,12 +1,12 @@
 /**
  * Semantic Search Engine - Production-grade transformer-based search
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Core semantic search engine using @xenova/transformers for embeddings
  * with hybrid scoring combining semantic similarity, fuzzy matching, and metadata.
- * 
+ *
  * Performance targets:
  * - Search response: <200ms (95% of queries)
  * - Embedding generation: <50ms per document
@@ -118,10 +118,10 @@ export class SemanticSearchEngine {
       });
 
       // Initialize embedding pipeline
-      this.embeddingPipeline = await pipeline(
+      this.embeddingPipeline = (await pipeline(
         'feature-extraction',
         this.config.model
-      ) as Pipeline;
+      )) as Pipeline;
 
       // Initialize components
       await this.embeddingManager.initialize(this.embeddingPipeline);
@@ -138,7 +138,9 @@ export class SemanticSearchEngine {
       this.analytics.recordInitialization(initTime);
     } catch (error) {
       logger.error('Failed to initialize Semantic Search Engine', { error });
-      throw new Error(`Semantic Search Engine initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Semantic Search Engine initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -183,7 +185,9 @@ export class SemanticSearchEngine {
       this.analytics.recordIndexing(documents.length, indexTime);
     } catch (error) {
       logger.error('Failed to index documents', { error });
-      throw new Error(`Document indexing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Document indexing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -218,7 +222,7 @@ export class SemanticSearchEngine {
         const fuzzyResults = this.performFuzzySearch(query, filters);
         const filteredResults = this.applyFilters(fuzzyResults, filters);
         const finalResults = filteredResults.slice(0, this.config.maxResults);
-        
+
         const responseTime = performance.now() - startTime;
         this.analytics.recordSearch(searchId, query, finalResults.length, responseTime, false);
         return finalResults;
@@ -282,13 +286,13 @@ export class SemanticSearchEngine {
     context?: Record<string, any>
   ): Promise<Runbook[]> {
     const searchQuery = this.constructRunbookQuery(alertType, severity, affectedSystems, context);
-    
+
     const filters: SearchFilters = {
       categories: ['runbook'],
     };
 
     const results = await this.search(searchQuery, filters);
-    
+
     // Convert SearchResult to Runbook (assumes runbook data is in metadata)
     return results
       .filter(result => result.metadata?.runbook_data)
@@ -315,7 +319,10 @@ export class SemanticSearchEngine {
       documentCount: this.documents.length,
       model: this.config.model,
       cacheEnabled: this.config.performance.enableCaching,
-      embeddingCacheSize: process.env.SKIP_AI_TESTS === 'true' ? this.documents.length : this.embeddingManager.getCacheSize(),
+      embeddingCacheSize:
+        process.env.SKIP_AI_TESTS === 'true'
+          ? this.documents.length
+          : this.embeddingManager.getCacheSize(),
     };
   }
 
@@ -324,10 +331,10 @@ export class SemanticSearchEngine {
    */
   async cleanup(): Promise<void> {
     logger.info('Cleaning up Semantic Search Engine');
-    
+
     await this.embeddingManager.cleanup();
     await this.performanceOptimizer.cleanup();
-    
+
     this.embeddingPipeline = null;
     this.fuseIndex = null;
     this.documents = [];
@@ -355,7 +362,8 @@ export class SemanticSearchEngine {
     }
   }
 
-  private performFuzzySearch(query: string, _filters?: SearchFilters): SearchResult[] { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  private performFuzzySearch(query: string, _filters?: SearchFilters): SearchResult[] {
+    // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     if (!this.fuseIndex) {
       return [];
     }
@@ -413,11 +421,7 @@ export class SemanticSearchEngine {
     affectedSystems: string[],
     context?: Record<string, any>
   ): string {
-    const queryParts = [
-      alertType,
-      severity,
-      ...affectedSystems,
-    ];
+    const queryParts = [alertType, severity, ...affectedSystems];
 
     if (context) {
       queryParts.push(...Object.values(context).map(v => String(v)));

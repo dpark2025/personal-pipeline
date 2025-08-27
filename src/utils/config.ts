@@ -18,7 +18,7 @@ export class ConfigManager {
   constructor(configPath?: string) {
     // Priority: 1) explicit parameter, 2) CONFIG_FILE env var, 3) default
     this.configPath = configPath ?? process.env.CONFIG_FILE ?? './config/config.yaml';
-    
+
     // Log config path for debugging
     if (process.env.NODE_ENV !== 'test') {
       console.log(`ConfigManager using config path: ${this.configPath}`);
@@ -181,18 +181,18 @@ export class ConfigManager {
 
     const configDir = path.dirname(path.resolve(this.configPath));
     const configDirParent = path.dirname(configDir); // Usually the project root for config/config.yaml
-    
+
     // Create a deep copy to avoid mutating the original config
     const resolvedConfig = JSON.parse(JSON.stringify(config));
-    
+
     // Helper function to resolve a single path with smart fallback logic
     const resolvePath = (originalPath: string, sourceName: string): string => {
       // Strategy 1: Try resolving relative to config file directory
       const configDirPath = path.resolve(configDir, originalPath);
-      
+
       // Strategy 2: Try resolving relative to config file's parent directory (usually project root)
       const configParentPath = path.resolve(configDirParent, originalPath);
-      
+
       // Use sync fs.access to check which path exists
       try {
         require('fs').accessSync(configDirPath);
@@ -226,7 +226,7 @@ export class ConfigManager {
         }
       }
     };
-    
+
     // Resolve base_url for each source
     for (const source of resolvedConfig.sources) {
       if (source.base_url && typeof source.base_url === 'string') {
@@ -235,11 +235,14 @@ export class ConfigManager {
           source.base_url = resolvePath(source.base_url, source.name);
         }
       }
-      
+
       // Also resolve base_paths if present
       if (source.base_paths && Array.isArray(source.base_paths)) {
         source.base_paths = source.base_paths.map((basePath: string) => {
-          if (typeof basePath === 'string' && (basePath.startsWith('./') || basePath.startsWith('../'))) {
+          if (
+            typeof basePath === 'string' &&
+            (basePath.startsWith('./') || basePath.startsWith('../'))
+          ) {
             return resolvePath(basePath, source.name);
           }
           return basePath;
@@ -279,7 +282,8 @@ export class ConfigManager {
       cache: {
         enabled: process.env.CACHE_ENABLED !== 'false',
         // Default to memory-only unless Redis is explicitly configured
-        strategy: (process.env.CACHE_STRATEGY as any) || (process.env.REDIS_URL ? 'hybrid' : 'memory_only'),
+        strategy:
+          (process.env.CACHE_STRATEGY as any) || (process.env.REDIS_URL ? 'hybrid' : 'memory_only'),
         memory: {
           max_keys: parseInt(process.env.CACHE_MEMORY_MAX_KEYS || '1000'),
           ttl_seconds: parseInt(process.env.CACHE_MEMORY_TTL_SECONDS || '3600'),
@@ -287,7 +291,7 @@ export class ConfigManager {
         },
         redis: {
           // Only enable Redis if REDIS_URL is provided or explicitly enabled
-          enabled: process.env.REDIS_URL ? true : (process.env.REDIS_ENABLED === 'true'),
+          enabled: process.env.REDIS_URL ? true : process.env.REDIS_ENABLED === 'true',
           url: process.env.REDIS_URL || 'redis://localhost:6379',
           ttl_seconds: parseInt(process.env.CACHE_REDIS_TTL_SECONDS || '7200'),
           key_prefix: process.env.CACHE_REDIS_KEY_PREFIX || 'pp:cache:',

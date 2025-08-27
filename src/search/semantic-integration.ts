@@ -1,9 +1,9 @@
 /**
  * Semantic Search Integration Layer - PersonalPipelineServer compatibility
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Integration layer that seamlessly enhances existing source adapters
  * with semantic search capabilities while maintaining full backward compatibility.
  */
@@ -78,7 +78,9 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
 
         logger.info('Semantic search enhancement initialized successfully');
       } catch (error) {
-        logger.error('Failed to initialize semantic search, falling back to base adapter', { error });
+        logger.error('Failed to initialize semantic search, falling back to base adapter', {
+          error,
+        });
         this.semanticEngine = null;
       }
     }
@@ -94,7 +96,7 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
       // If semantic search is available and enabled, use it
       if (this.semanticEngine && this.documentsIndexed) {
         logger.debug('Using semantic search for query', { query: query.substring(0, 50) });
-        
+
         const semanticResults = await this.semanticEngine.search(query, filters);
         const responseTime = performance.now() - startTime;
 
@@ -118,7 +120,7 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
     // Fallback to base adapter search
     if (this.semanticAdapterConfig.enableFallback) {
       logger.debug('Using fallback search for query', { query: query.substring(0, 50) });
-      
+
       const fallbackResults = await this.baseAdapter.search(query, filters);
       const responseTime = performance.now() - startTime;
 
@@ -145,7 +147,12 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
     try {
       // Try semantic runbook search first
       if (this.semanticEngine && this.documentsIndexed) {
-        return await this.semanticEngine.searchRunbooks(alertType, severity, affectedSystems, context);
+        return await this.semanticEngine.searchRunbooks(
+          alertType,
+          severity,
+          affectedSystems,
+          context
+        );
       }
     } catch (error) {
       logger.warn('Semantic runbook search failed, falling back to base adapter', { error });
@@ -171,16 +178,18 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
    */
   async healthCheck(): Promise<any> {
     const baseHealth = await this.baseAdapter.healthCheck();
-    
-    const semanticHealth = this.semanticEngine ? {
-      semantic_search_enabled: true,
-      semantic_status: this.semanticEngine.getStatus(),
-      documents_indexed: this.documentsIndexed,
-      performance_metrics: this.semanticEngine.getPerformanceMetrics(),
-    } : {
-      semantic_search_enabled: false,
-      reason: 'Semantic search not initialized',
-    };
+
+    const semanticHealth = this.semanticEngine
+      ? {
+          semantic_search_enabled: true,
+          semantic_status: this.semanticEngine.getStatus(),
+          documents_indexed: this.documentsIndexed,
+          performance_metrics: this.semanticEngine.getPerformanceMetrics(),
+        }
+      : {
+          semantic_search_enabled: false,
+          reason: 'Semantic search not initialized',
+        };
 
     return {
       ...baseHealth,
@@ -193,7 +202,7 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
    */
   async refreshIndex(force?: boolean): Promise<boolean> {
     const baseRefreshSuccess = await this.baseAdapter.refreshIndex(force);
-    
+
     if (baseRefreshSuccess && this.semanticEngine) {
       try {
         await this.indexDocumentsForSemantic();
@@ -212,15 +221,17 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
    */
   async getMetadata(): Promise<any> {
     const baseMetadata = await this.baseAdapter.getMetadata();
-    
-    const semanticMetadata = this.semanticEngine ? {
-      semantic_search_enabled: true,
-      semantic_cache_size: this.semanticEngine.getStatus().embeddingCacheSize,
-      semantic_model: this.semanticEngine.getStatus().model,
-      performance_metrics: this.semanticEngine.getPerformanceMetrics(),
-    } : {
-      semantic_search_enabled: false,
-    };
+
+    const semanticMetadata = this.semanticEngine
+      ? {
+          semantic_search_enabled: true,
+          semantic_cache_size: this.semanticEngine.getStatus().embeddingCacheSize,
+          semantic_model: this.semanticEngine.getStatus().model,
+          performance_metrics: this.semanticEngine.getPerformanceMetrics(),
+        }
+      : {
+          semantic_search_enabled: false,
+        };
 
     return {
       ...baseMetadata,
@@ -233,7 +244,7 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
    */
   override configure(config: any): void {
     this.baseAdapter.configure(config);
-    
+
     if (config.semantic_config) {
       this.semanticAdapterConfig = { ...this.semanticAdapterConfig, ...config.semantic_config };
       logger.info('Semantic configuration updated', { config: this.semanticAdapterConfig });
@@ -286,12 +297,12 @@ export class SemanticEnhancedAdapter extends SourceAdapter {
 
     try {
       logger.info('Starting semantic indexing of documents');
-      
+
       // Get all documents from base adapter
       // Note: This is a simplified approach. In production, you might want to implement
       // a more efficient way to get all documents from the base adapter
       const allDocuments = await this.getAllDocumentsFromBase();
-      
+
       if (allDocuments.length === 0) {
         logger.warn('No documents found in base adapter for semantic indexing');
         this.documentsIndexed = false;

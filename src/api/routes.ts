@@ -364,7 +364,7 @@ function handleDecisionTreeError(
  */
 function handleProcedureError(
   _error: any, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
-  errorMessage: string, 
+  errorMessage: string,
   _context: any // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
 ): ToolErrorDetails {
   if (errorMessage.includes('not found') || errorMessage.includes('invalid')) {
@@ -1263,9 +1263,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
 
         // Get health from multiple sources with graceful handling
         const [sourcesHealth, cacheHealth, toolsMetrics] = await Promise.allSettled([
-          hasConfiguredSources 
-            ? sourceRegistry.healthCheckAll()
-            : Promise.resolve([]), // Return empty array if no sources configured
+          hasConfiguredSources ? sourceRegistry.healthCheckAll() : Promise.resolve([]), // Return empty array if no sources configured
           cacheService?.healthCheck() || Promise.resolve(null),
           Promise.resolve(mcpTools.getPerformanceMetrics()),
         ]);
@@ -1275,7 +1273,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
         // Handle sources health result with better error handling
         let sourcesHealthData: any[] = [];
         let sourcesError: string | null = null;
-        
+
         if (sourcesHealth.status === 'fulfilled') {
           sourcesHealthData = sourcesHealth.value;
         } else {
@@ -1299,9 +1297,9 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
             tools_available: toolsMetrics.status === 'fulfilled',
           },
           ...(sourcesError && { sources_error: sourcesError }),
-          ...(!hasConfiguredSources && { 
+          ...(!hasConfiguredSources && {
             configuration_status: 'minimal_mode',
-            message: 'Server running in minimal mode - no sources configured'
+            message: 'Server running in minimal mode - no sources configured',
           }),
         };
 
@@ -1335,20 +1333,20 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
         );
       } catch (error) {
         const executionTime = performance.now() - startTime;
-        
+
         // Re-check configured sources for debugging (since it's in catch block scope)
         const configuredSources = sourceRegistry.getAllAdapters();
         const hasConfiguredSources = configuredSources.length > 0;
-        
+
         // Log the actual error for debugging
         logger.error('API health check failed with unhandled error', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
           hasConfiguredSources,
           cacheServiceAvailable: !!cacheService,
-          configStrategy: cacheService?.getStrategy() || 'unknown'
+          configStrategy: cacheService?.getStrategy() || 'unknown',
         });
-        
+
         // Determine specific error type for better diagnostics
         let errorCode = 'HEALTH_CHECK_FAILED';
         let errorMessage = 'API health check failed';
@@ -1361,7 +1359,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
             troubleshooting = [
               'Verify CONFIG_FILE environment variable is set',
               'Ensure config.yaml exists and is readable',
-              'Check config file format and syntax'
+              'Check config file format and syntax',
             ];
           } else if (error.message.includes('source')) {
             errorCode = 'SOURCE_INITIALIZATION_ERROR';
@@ -1369,14 +1367,14 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
             troubleshooting = [
               'Check source configuration in config.yaml',
               'Verify source paths and permissions',
-              'Review adapter-specific requirements'
+              'Review adapter-specific requirements',
             ];
           } else {
             errorMessage = error.message;
             troubleshooting = [
               'Check server logs for detailed error information',
               'Verify all required dependencies are available',
-              'Retry the request after a brief delay'
+              'Retry the request after a brief delay',
             ];
           }
         }
@@ -1387,26 +1385,19 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
           executionTime,
         });
 
-        res
-          .status(getErrorStatusCode(error))
-          .json(
-            createErrorResponseWithCorrelation(
-              errorCode,
-              errorMessage,
-              req,
-              { 
-                execution_time_ms: Math.round(executionTime),
-                troubleshooting,
-                server_status: 'error_state',
-                recovery_actions: [
-                  'Check server configuration',
-                  'Verify required files and permissions',
-                  'Review server logs for details',
-                  'Contact support with correlation ID if issue persists'
-                ]
-              }
-            )
-          );
+        res.status(getErrorStatusCode(error)).json(
+          createErrorResponseWithCorrelation(errorCode, errorMessage, req, {
+            execution_time_ms: Math.round(executionTime),
+            troubleshooting,
+            server_status: 'error_state',
+            recovery_actions: [
+              'Check server configuration',
+              'Verify required files and permissions',
+              'Review server logs for details',
+              'Contact support with correlation ID if issue persists',
+            ],
+          })
+        );
       }
     })
   );

@@ -1,9 +1,9 @@
 /**
  * Search Analytics - Comprehensive metrics and monitoring
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Advanced analytics system for search performance monitoring,
  * user behavior analysis, and continuous optimization insights.
  */
@@ -171,7 +171,7 @@ export class SearchAnalytics {
    */
   recordSearchError(searchId: string, query: string, error: any, responseTime: number): void {
     this.errorCount++;
-    
+
     logger.error('Search error recorded', {
       searchId,
       query: query.substring(0, 50),
@@ -186,7 +186,8 @@ export class SearchAnalytics {
   getPerformanceStats(): PerformanceStats {
     const recentSearches = this.getRecentSearches(300000); // Last 5 minutes
     const totalResponseTime = recentSearches.reduce((sum, s) => sum + s.responseTime, 0);
-    const avgResponseTime = recentSearches.length > 0 ? totalResponseTime / recentSearches.length : 0;
+    const avgResponseTime =
+      recentSearches.length > 0 ? totalResponseTime / recentSearches.length : 0;
 
     return {
       totalSearches: this.searchCount,
@@ -213,7 +214,7 @@ export class SearchAnalytics {
    */
   getAccuracyMetrics(): AccuracyMetrics {
     const searchesWithAccuracy = this.searchHistory.filter(s => s.accuracy !== undefined);
-    
+
     if (searchesWithAccuracy.length === 0) {
       return {
         avgAccuracy: 0,
@@ -350,18 +351,25 @@ PERFORMANCE METRICS:
 - Throughput: ${stats.throughputPerMinute.toFixed(2)} searches/minute
 
 SYSTEM HEALTH: ${health.status.toUpperCase()}
-${health.alerts.length > 0 ? `ALERTS:\n${  health.alerts.map(alert => `- ${alert}`).join('\n')}` : 'No alerts'}
+${health.alerts.length > 0 ? `ALERTS:\n${health.alerts.map(alert => `- ${alert}`).join('\n')}` : 'No alerts'}
 
 TOP QUERIES:
-${topQueries.map((q, i) => 
-  `${i + 1}. "${q.query}" (${q.frequency} times, ${q.avgResponseTime.toFixed(2)}ms avg)`
-).join('\n')}
+${topQueries
+  .map(
+    (q, i) => `${i + 1}. "${q.query}" (${q.frequency} times, ${q.avgResponseTime.toFixed(2)}ms avg)`
+  )
+  .join('\n')}
 
 PERIOD ACTIVITY:
 - Searches in period: ${periodSearches.length}
 - Unique queries: ${new Set(periodSearches.map(s => s.query)).size}
-- Average results per search: ${periodSearches.length > 0 ? 
-    (periodSearches.reduce((sum, s) => sum + s.resultCount, 0) / periodSearches.length).toFixed(2) : 0}
+- Average results per search: ${
+      periodSearches.length > 0
+        ? (
+            periodSearches.reduce((sum, s) => sum + s.resultCount, 0) / periodSearches.length
+          ).toFixed(2)
+        : 0
+    }
 `;
 
     return report.trim();
@@ -384,14 +392,14 @@ PERIOD ACTIVITY:
 
   private updateQueryAnalytics(searchMetric: SearchMetrics): void {
     const existing = this.queryAnalytics.get(searchMetric.query);
-    
+
     if (existing) {
       existing.frequency++;
       existing.avgResponseTime = (existing.avgResponseTime + searchMetric.responseTime) / 2;
       existing.avgResultCount = (existing.avgResultCount + searchMetric.resultCount) / 2;
-      existing.cacheHitRate = searchMetric.cached ? 
-        (existing.cacheHitRate * (existing.frequency - 1) + 1) / existing.frequency :
-        (existing.cacheHitRate * (existing.frequency - 1)) / existing.frequency;
+      existing.cacheHitRate = searchMetric.cached
+        ? (existing.cacheHitRate * (existing.frequency - 1) + 1) / existing.frequency
+        : (existing.cacheHitRate * (existing.frequency - 1)) / existing.frequency;
       existing.lastSeen = searchMetric.timestamp;
     } else {
       this.queryAnalytics.set(searchMetric.query, {
@@ -412,7 +420,7 @@ PERIOD ACTIVITY:
 
   private calculatePercentile(percentile: number): number {
     if (this.responseTimes.length === 0) return 0;
-    
+
     const sorted = [...this.responseTimes].sort((a, b) => a - b);
     const index = Math.ceil((percentile / 100) * sorted.length) - 1;
     return sorted[Math.max(0, index)] ?? 0;

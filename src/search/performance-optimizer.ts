@@ -1,9 +1,9 @@
 /**
  * Search Performance Optimizer - Intelligent caching and query optimization
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Advanced performance optimization system with multi-level caching,
  * query preprocessing, and intelligent cache warming for sub-200ms response times.
  */
@@ -108,7 +108,7 @@ export class SearchPerformanceOptimizer {
    */
   async getCachedResults(query: string, filters?: SearchFilters): Promise<SearchResult[] | null> {
     const startTime = performance.now();
-    
+
     try {
       const cacheKey = this.generateCacheKey(query, filters);
       const cachedEntry = this.cache.get(cacheKey);
@@ -159,7 +159,7 @@ export class SearchPerformanceOptimizer {
   ): Promise<void> {
     try {
       const cacheKey = this.generateCacheKey(query, filters);
-      
+
       // Don't cache empty results or very large result sets
       if (results.length === 0 || results.length > 100) {
         return;
@@ -219,7 +219,9 @@ export class SearchPerformanceOptimizer {
   /**
    * Prefetch results for common queries
    */
-  async prefetchCommonQueries(searchFunction: (query: string) => Promise<SearchResult[]>): Promise<void> {
+  async prefetchCommonQueries(
+    searchFunction: (query: string) => Promise<SearchResult[]>
+  ): Promise<void> {
     if (!this.config.enablePrefetching) {
       return;
     }
@@ -228,7 +230,7 @@ export class SearchPerformanceOptimizer {
       queryCount: this.config.warmupQueries.length,
     });
 
-    const prefetchPromises = this.config.warmupQueries.map(async (query) => {
+    const prefetchPromises = this.config.warmupQueries.map(async query => {
       try {
         if (!this.cache.has(this.generateCacheKey(query))) {
           const results = await searchFunction(query);
@@ -282,12 +284,16 @@ export class SearchPerformanceOptimizer {
       maxSize: this.config.maxCacheSize,
       utilizationPercent: (this.cache.size / this.config.maxCacheSize) * 100,
       topQueries: sortedByFrequency.map(([query, frequency]) => ({ query, frequency })),
-      oldestEntry: entries.length > 0 ? 
-        entries.reduce((oldest, entry) => entry.timestamp < oldest.timestamp ? entry : oldest).query : 
-        null,
-      newestEntry: entries.length > 0 ? 
-        entries.reduce((newest, entry) => entry.timestamp > newest.timestamp ? entry : newest).query : 
-        null,
+      oldestEntry:
+        entries.length > 0
+          ? entries.reduce((oldest, entry) => (entry.timestamp < oldest.timestamp ? entry : oldest))
+              .query
+          : null,
+      newestEntry:
+        entries.length > 0
+          ? entries.reduce((newest, entry) => (entry.timestamp > newest.timestamp ? entry : newest))
+              .query
+          : null,
     };
   }
 
@@ -299,7 +305,7 @@ export class SearchPerformanceOptimizer {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
     }
-    
+
     this.clearCache();
     logger.info('SearchPerformanceOptimizer cleaned up');
   }
@@ -318,7 +324,7 @@ export class SearchPerformanceOptimizer {
     let hash = 0;
     for (let i = 0; i < filterString.length; i++) {
       const char = filterString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return hash.toString(36);
@@ -394,8 +400,8 @@ export class SearchPerformanceOptimizer {
 
   private updateMetrics(): void {
     this.metrics.totalQueries = this.metrics.cacheHits + this.metrics.cacheMisses;
-    this.metrics.hitRate = this.metrics.totalQueries > 0 ? 
-      this.metrics.cacheHits / this.metrics.totalQueries : 0;
+    this.metrics.hitRate =
+      this.metrics.totalQueries > 0 ? this.metrics.cacheHits / this.metrics.totalQueries : 0;
     this.metrics.cacheSize = this.cache.size;
 
     // Estimate memory usage

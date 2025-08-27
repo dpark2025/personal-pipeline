@@ -60,9 +60,11 @@ Get started quickly with the demo environment:
 # Start demo with sample data and monitoring
 npm run demo:start
 
-# Stop demo environment
+# Stop demo environment (⚠️ IMPORTANT: Always run when finished!)
 npm run demo:stop
 ```
+
+⚠️ **Important**: Always run `npm run demo:stop` when finished to properly clean up processes and prevent resource conflicts.
 
 ### Production Setup
 
@@ -233,15 +235,48 @@ Personal Pipeline is committed to remaining open source. We believe in:
 - **Accessibility**: Easy to use, contribute to, and understand
 - **Sustainability**: Long-term support and maintenance
 
+## Documentation
+
+Comprehensive documentation is available in the [docs/](docs/) directory:
+
+### 📚 Core Documentation
+- **[API Documentation](docs/API.md)** - Complete MCP tools and REST API reference
+  - 7 MCP tools with examples and response formats
+  - 11 REST endpoints with request/response schemas
+  - Error handling and performance characteristics
+  - Client libraries and integration examples
+
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and components
+  - High-level system architecture with diagrams
+  - Component descriptions and data flow
+  - Performance optimization strategies
+  - Security architecture and deployment patterns
+
+- **[Development Guide](docs/DEVELOPMENT.md)** - Complete development setup and workflows
+  - Quick start and environment setup
+  - Development tools and utilities
+  - Code style and best practices
+  - Server lifecycle management and debugging
+
+- **[Server Management](docs/SERVER-MANAGEMENT.md)** - Complete server operations guide
+  - Starting and stopping procedures
+  - Process management and monitoring
+  - Production deployment strategies
+  - Troubleshooting and emergency recovery
+
+- **[Testing Guide](docs/TESTING.md)** - Comprehensive testing strategies
+  - Unit, integration, and performance testing
+  - Test utilities and helpers
+  - CI/CD integration and quality gates
+  - Security testing and validation
+
+### 🔧 Configuration & Setup
+- **[Configuration Overview](config/CONFIG_OVERVIEW.md)** - Configuration files and options
+- **Website Documentation**: See [website_docs/](website_docs/) for VitePress documentation site
+
 ## Support
 
-- **Documentation**: See the [docs/](docs/) directory for detailed guides
-  - [Development Guide](docs/DEVELOPMENT.md) - Complete development setup and workflows
-  - [Redis Setup Guide](docs/REDIS-SETUP.md) - Comprehensive Redis installation and configuration
-  - [Caching Strategies](docs/CACHING-STRATEGIES.md) - Caching configuration and performance optimization
-  - [Development Tools Guide](docs/DEVELOPMENT-TOOLS-GUIDE.md) - Using the development utilities
-  - [API Documentation](docs/API.md) - MCP tools and HTTP endpoints
-  - [Architecture](docs/ARCHITECTURE.md) - System design and components
+- **Documentation**: Explore the comprehensive guides in [docs/](docs/)
 - **Issues**: Report bugs and feature requests via GitHub Issues
 - **Discussions**: Join the community discussions for questions and ideas
 

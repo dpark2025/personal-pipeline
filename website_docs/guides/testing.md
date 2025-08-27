@@ -1,16 +1,16 @@
 # Testing Guide
 
-This comprehensive testing guide covers all aspects of testing in Personal Pipeline, including unit tests, integration tests, performance testing, and quality assurance practices.
+Comprehensive testing strategies and practices for Personal Pipeline, covering unit tests, integration tests, performance testing, and quality assurance.
 
 ## Testing Overview
 
 Personal Pipeline uses a multi-layered testing strategy to ensure reliability, performance, and maintainability:
 
 - **Unit Tests**: Test individual components in isolation
-- **Integration Tests**: Test component interactions and API endpoints
+- **Integration Tests**: Test component interactions and API endpoints  
 - **Performance Tests**: Validate response times and throughput
+- **Security Tests**: Validate security measures and input handling
 - **End-to-End Tests**: Test complete user workflows
-- **Security Tests**: Validate security measures and vulnerability protection
 
 ## Test Framework and Tools
 
@@ -43,8 +43,7 @@ export default {
       lines: 80,
       statements: 80
     }
-  },
-  setupFilesAfterEnv: ['<rootDir>/tests/utils/test-setup.ts']
+  }
 };
 ```
 
@@ -101,7 +100,7 @@ npm run build            # Build verification
 
 ## Unit Testing
 
-### Test Structure and Organization
+### Test Structure
 
 ```
 tests/
@@ -116,13 +115,10 @@ tests/
 │   │   ├── search-runbooks.test.ts
 │   │   ├── decision-tree.test.ts
 │   │   └── procedures.test.ts
-│   ├── utils/               # Utility tests
-│   │   ├── cache.test.ts
-│   │   ├── config.test.ts
-│   │   └── performance.test.ts
-│   └── api/                 # API layer tests
-│       ├── routes.test.ts
-│       └── transforms.test.ts
+│   └── utils/               # Utility tests
+│       ├── cache.test.ts
+│       ├── config.test.ts
+│       └── performance.test.ts
 ```
 
 ### Unit Test Examples
@@ -168,43 +164,20 @@ describe('PPMCPTools - search_runbooks', () => {
       expect(result.retrieval_time_ms).toBeGreaterThan(0);
     });
 
-    it('should include confidence scoring', async () => {
+    it('should meet performance requirements', async () => {
       // Arrange
       mockAdapter.setSearchRunbooksResponse([
-        { id: 'runbook-1', confidence_score: 0.95 },
-        { id: 'runbook-2', confidence_score: 0.80 },
-        { id: 'runbook-3', confidence_score: 0.65 }
+        { id: 'test-runbook', confidence_score: 0.9 }
       ]);
 
       // Act
-      const result = await tools.search_runbooks('memory_leak');
+      const startTime = Date.now();
+      const result = await tools.search_runbooks('disk_space');
+      const endTime = Date.now();
 
       // Assert
-      expect(result.runbooks).toHaveLength(3);
-      expect(result.runbooks[0].confidence_score).toBe(0.95);
-      expect(result.runbooks).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ confidence_score: expect.any(Number) })
-        ])
-      );
-    });
-
-    it('should filter by severity when provided', async () => {
-      // Arrange
-      mockAdapter.setSearchRunbooksResponse([
-        { id: 'critical-runbook', severity: 'critical' }
-      ]);
-
-      // Act
-      const result = await tools.search_runbooks('disk_space', 'critical');
-
-      // Assert
-      expect(mockAdapter.searchRunbooks).toHaveBeenCalledWith(
-        'disk_space',
-        'critical',
-        undefined,
-        undefined
-      );
+      expect(endTime - startTime).toBeLessThan(200);
+      expect(result.retrieval_time_ms).toBeLessThan(200);
     });
   });
 
@@ -224,28 +197,6 @@ describe('PPMCPTools - search_runbooks', () => {
       await expect(
         tools.search_runbooks('')
       ).rejects.toThrow('Alert type is required');
-
-      await expect(
-        tools.search_runbooks('disk_space', 'invalid_severity')
-      ).rejects.toThrow('Invalid severity level');
-    });
-  });
-
-  describe('performance requirements', () => {
-    it('should complete search within 200ms', async () => {
-      // Arrange
-      mockAdapter.setSearchRunbooksResponse([
-        { id: 'test-runbook', confidence_score: 0.9 }
-      ]);
-
-      // Act
-      const startTime = Date.now();
-      const result = await tools.search_runbooks('disk_space');
-      const endTime = Date.now();
-
-      // Assert
-      expect(endTime - startTime).toBeLessThan(200);
-      expect(result.retrieval_time_ms).toBeLessThan(200);
     });
   });
 });
@@ -268,8 +219,7 @@ describe('FileSystemAdapter', () => {
       'runbooks/memory-leak.json': JSON.stringify({
         id: 'memory-leak',
         title: 'Memory Leak Investigation'
-      }),
-      'procedures/cleanup.md': '# Emergency Cleanup\n\nSteps to free disk space...'
+      })
     });
 
     adapter = new FileSystemAdapter({
@@ -294,9 +244,9 @@ describe('FileSystemAdapter', () => {
       const results = await adapter.search('disk space');
 
       // Assert
-      expect(results).toHaveLength(2); // runbook + procedure
+      expect(results).toHaveLength(1);
       expect(results[0].confidence_score).toBeGreaterThan(0.7);
-      expect(results.some(r => r.id.includes('disk-space'))).toBe(true);
+      expect(results[0].id).toContain('disk-space');
     });
 
     it('should support fuzzy matching', async () => {
@@ -306,18 +256,6 @@ describe('FileSystemAdapter', () => {
       // Assert
       expect(results).toHaveLength(1);
       expect(results[0].id).toContain('memory-leak');
-    });
-  });
-
-  describe('runbook search', () => {
-    it('should search runbooks by alert type', async () => {
-      // Act
-      const results = await adapter.searchRunbooks('disk_space', 'critical');
-
-      // Assert
-      expect(results).toHaveLength(1);
-      expect(results[0].id).toContain('disk-space');
-      expect(results[0].confidence_score).toBeGreaterThan(0.8);
     });
   });
 
@@ -331,116 +269,6 @@ describe('FileSystemAdapter', () => {
       expect(health.response_time_ms).toBeGreaterThan(0);
       expect(health.document_count).toBeGreaterThan(0);
     });
-
-    it('should detect unhealthy status', async () => {
-      // Arrange
-      testFS.makeDirectoryUnreadable();
-
-      // Act
-      const health = await adapter.healthCheck();
-
-      // Assert
-      expect(health.status).toBe('unhealthy');
-      expect(health.errors).toBeDefined();
-    });
-  });
-});
-```
-
-#### Testing Utilities
-
-```typescript
-// tests/unit/utils/cache.test.ts
-import { HybridCache } from '../../../src/utils/cache.js';
-import { createMockRedisClient } from '../../utils/redis-mock.js';
-
-describe('HybridCache', () => {
-  let cache: HybridCache;
-  let mockRedis: MockRedisClient;
-
-  beforeEach(() => {
-    mockRedis = createMockRedisClient();
-    cache = new HybridCache({
-      strategy: 'hybrid',
-      ttl: 300,
-      maxMemoryItems: 100,
-      redisClient: mockRedis
-    });
-  });
-
-  afterEach(async () => {
-    await cache.cleanup();
-  });
-
-  describe('memory caching', () => {
-    it('should store and retrieve from memory cache', async () => {
-      // Act
-      await cache.set('test-key', { data: 'test-value' });
-      const result = await cache.get('test-key');
-
-      // Assert
-      expect(result).toEqual({ data: 'test-value' });
-      expect(mockRedis.set).not.toHaveBeenCalled(); // Should use memory first
-    });
-
-    it('should handle cache eviction', async () => {
-      // Arrange - Fill cache beyond capacity
-      for (let i = 0; i < 150; i++) {
-        await cache.set(`key-${i}`, { data: `value-${i}` });
-      }
-
-      // Assert - Should evict oldest entries
-      const oldEntry = await cache.get('key-0');
-      const newEntry = await cache.get('key-149');
-      
-      expect(oldEntry).toBeNull();
-      expect(newEntry).toBeDefined();
-    });
-  });
-
-  describe('Redis integration', () => {
-    it('should fall back to Redis for cache misses', async () => {
-      // Arrange
-      mockRedis.get.mockResolvedValue(JSON.stringify({ data: 'redis-value' }));
-
-      // Act
-      const result = await cache.get('redis-key');
-
-      // Assert
-      expect(result).toEqual({ data: 'redis-value' });
-      expect(mockRedis.get).toHaveBeenCalledWith('redis-key');
-    });
-
-    it('should sync to Redis for persistence', async () => {
-      // Arrange
-      cache = new HybridCache({
-        strategy: 'hybrid',
-        syncToRedis: true,
-        redisClient: mockRedis
-      });
-
-      // Act
-      await cache.set('sync-key', { data: 'sync-value' });
-
-      // Assert
-      expect(mockRedis.set).toHaveBeenCalledWith(
-        'sync-key',
-        JSON.stringify({ data: 'sync-value' }),
-        'EX',
-        300
-      );
-    });
-  });
-
-  describe('error handling', () => {
-    it('should handle Redis connection failures', async () => {
-      // Arrange
-      mockRedis.get.mockRejectedValue(new Error('Connection failed'));
-
-      // Act & Assert - Should not throw, should gracefully degrade
-      const result = await cache.get('failing-key');
-      expect(result).toBeNull();
-    });
   });
 });
 ```
@@ -452,22 +280,15 @@ describe('HybridCache', () => {
 ```typescript
 // tests/integration/api/runbooks.test.ts
 import request from 'supertest';
-import { createTestApp, setupTestDatabase } from '../../utils/test-helpers.js';
+import { createTestApp } from '../../utils/test-helpers.js';
 
 describe('Runbook API Integration', () => {
   let app: Express;
-  let testDB: TestDatabase;
 
   beforeAll(async () => {
-    testDB = await setupTestDatabase();
     app = await createTestApp({
-      databaseUrl: testDB.url,
       cacheStrategy: 'memory'
     });
-  });
-
-  afterAll(async () => {
-    await testDB.cleanup();
   });
 
   describe('POST /api/runbooks/search', () => {
@@ -486,11 +307,9 @@ describe('Runbook API Integration', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.runbooks).toBeInstanceOf(Array);
       expect(response.body.data.runbooks.length).toBeGreaterThan(0);
-      expect(response.body.data.retrieval_time_ms).toBeGreaterThan(0);
       
       const runbook = response.body.data.runbooks[0];
       expect(runbook).toHaveProperty('id');
-      expect(runbook).toHaveProperty('title');
       expect(runbook).toHaveProperty('confidence_score');
     });
 
@@ -506,26 +325,7 @@ describe('Runbook API Integration', () => {
 
       // Assert
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBeDefined();
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
-    });
-
-    it('should handle pagination', async () => {
-      // Act
-      const response = await request(app)
-        .post('/api/runbooks/search')
-        .send({
-          alert_type: 'general',
-          pagination: {
-            page: 1,
-            limit: 5
-          }
-        })
-        .expect(200);
-
-      // Assert
-      expect(response.body.data.runbooks.length).toBeLessThanOrEqual(5);
-      expect(response.body.data.pagination).toBeDefined();
     });
 
     it('should meet performance requirements', async () => {
@@ -543,7 +343,6 @@ describe('Runbook API Integration', () => {
       // Assert
       const responseTime = endTime - startTime;
       expect(responseTime).toBeLessThan(200); // < 200ms requirement
-      expect(response.body.data.retrieval_time_ms).toBeLessThan(200);
     });
   });
 
@@ -557,8 +356,6 @@ describe('Runbook API Integration', () => {
       // Assert
       expect(response.body.success).toBe(true);
       expect(response.body.status).toBe('healthy');
-      expect(response.body.timestamp).toBeDefined();
-      expect(response.body.metrics).toBeDefined();
       expect(response.body.components).toBeDefined();
     });
 
@@ -579,24 +376,18 @@ describe('Runbook API Integration', () => {
 
 ```typescript
 // tests/integration/cache-service.test.ts
-import { createTestRedisClient } from '../utils/redis-mock.js';
 import { HybridCache } from '../../src/utils/cache.js';
+import { createTestRedisClient } from '../utils/redis-mock.js';
 
 describe('Cache Service Integration', () => {
   let cache: HybridCache;
-  let redisClient: TestRedisClient;
 
   beforeAll(async () => {
-    redisClient = await createTestRedisClient();
+    const redisClient = await createTestRedisClient();
     cache = new HybridCache({
       strategy: 'hybrid',
       redisClient: redisClient
     });
-  });
-
-  afterAll(async () => {
-    await cache.cleanup();
-    await redisClient.disconnect();
   });
 
   describe('cache consistency', () => {
@@ -615,25 +406,6 @@ describe('Cache Service Integration', () => {
       expect(fromRedis).toEqual(testData);
     });
 
-    it('should handle Redis failover gracefully', async () => {
-      // Arrange
-      await cache.set('failover-key', { data: 'test' });
-      
-      // Simulate Redis failure
-      redisClient.simulateFailure();
-
-      // Act & Assert - Should still work with memory cache
-      const result = await cache.get('failover-key');
-      expect(result).toEqual({ data: 'test' });
-
-      // Setting new data should work (memory only)
-      await cache.set('new-key', { data: 'new-test' });
-      const newResult = await cache.get('new-key');
-      expect(newResult).toEqual({ data: 'new-test' });
-    });
-  });
-
-  describe('performance under load', () => {
     it('should handle concurrent cache operations', async () => {
       // Arrange
       const operations = Array.from({ length: 100 }, (_, i) => ({
@@ -647,7 +419,7 @@ describe('Cache Service Integration', () => {
       await Promise.all([
         // Concurrent writes
         ...operations.map(op => cache.set(op.key, op.value)),
-        // Concurrent reads (mix of hits and misses)
+        // Concurrent reads
         ...operations.map(op => cache.get(op.key))
       ]);
 
@@ -655,12 +427,6 @@ describe('Cache Service Integration', () => {
 
       // Assert
       expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
-      
-      // Verify data integrity
-      for (const op of operations.slice(0, 10)) { // Sample check
-        const result = await cache.get(op.key);
-        expect(result).toEqual(op.value);
-      }
     });
   });
 });
@@ -677,10 +443,9 @@ import { createPerformanceTestAdapter } from '../utils/test-helpers.js';
 
 describe('Performance Tests', () => {
   let tools: PPMCPTools;
-  let perfAdapter: PerformanceTestAdapter;
 
   beforeAll(async () => {
-    perfAdapter = await createPerformanceTestAdapter({
+    const perfAdapter = await createPerformanceTestAdapter({
       documentCount: 1000,
       runbookCount: 100
     });
@@ -727,40 +492,11 @@ describe('Performance Tests', () => {
       const averagePerRequest = totalTime / concurrentRequests;
 
       expect(averagePerRequest).toBeLessThan(500); // 500ms per request under load
-      expect(results).toHaveLength(concurrentRequests);
       expect(results.every(r => r.success)).toBe(true);
     });
   });
 
-  describe('throughput testing', () => {
-    it('should maintain throughput under sustained load', async () => {
-      // Arrange
-      const duration = 10000; // 10 seconds
-      const startTime = Date.now();
-      let requestCount = 0;
-      const errors: Error[] = [];
-
-      // Act
-      while (Date.now() - startTime < duration) {
-        try {
-          await tools.search_runbooks('sustained_load_test');
-          requestCount++;
-        } catch (error) {
-          errors.push(error as Error);
-        }
-      }
-
-      // Assert
-      const actualDuration = Date.now() - startTime;
-      const requestsPerSecond = (requestCount * 1000) / actualDuration;
-      const errorRate = errors.length / requestCount;
-
-      expect(requestsPerSecond).toBeGreaterThan(10); // At least 10 RPS
-      expect(errorRate).toBeLessThan(0.01);          // Less than 1% error rate
-    });
-  });
-
-  describe('memory usage', () => {
+  describe('memory management', () => {
     it('should not leak memory during extended operation', async () => {
       // Arrange
       const initialMemory = process.memoryUsage();
@@ -794,63 +530,30 @@ describe('Performance Tests', () => {
 
 ```typescript
 // tests/performance/load-test.test.ts
-import { createLoadTestScenario } from '../utils/load-test-helpers.js';
-
 describe('Load Testing', () => {
-  describe('API endpoint load testing', () => {
-    it('should handle peak load conditions', async () => {
-      // Arrange
-      const loadTest = createLoadTestScenario({
-        baseUrl: 'http://localhost:3000',
-        endpoints: [
-          { path: '/api/runbooks/search', weight: 40 },
-          { path: '/api/procedures/:id', weight: 30 },
-          { path: '/api/health', weight: 20 },
-          { path: '/api/sources', weight: 10 }
-        ],
-        loadPattern: {
-          rampUp: { duration: 30, targetRPS: 50 },
-          sustain: { duration: 120, RPS: 50 },
-          rampDown: { duration: 30, targetRPS: 0 }
-        }
-      });
-
-      // Act
-      const results = await loadTest.execute();
-
-      // Assert
-      expect(results.summary.totalRequests).toBeGreaterThan(8000);
-      expect(results.summary.successRate).toBeGreaterThan(0.99);
-      expect(results.summary.averageResponseTime).toBeLessThan(300);
-      expect(results.summary.p95ResponseTime).toBeLessThan(500);
-      expect(results.summary.errorRate).toBeLessThan(0.01);
-
-      // Check for no memory leaks
-      expect(results.resourceUsage.memoryGrowth).toBeLessThan(100); // < 100MB
+  it('should handle peak load conditions', async () => {
+    // Arrange
+    const loadTest = createLoadTestScenario({
+      baseUrl: 'http://localhost:3000',
+      endpoints: [
+        { path: '/api/runbooks/search', weight: 40 },
+        { path: '/api/health', weight: 20 }
+      ],
+      loadPattern: {
+        rampUp: { duration: 30, targetRPS: 50 },
+        sustain: { duration: 120, RPS: 50 },
+        rampDown: { duration: 30, targetRPS: 0 }
+      }
     });
-  });
 
-  describe('cache performance under load', () => {
-    it('should maintain cache efficiency under high load', async () => {
-      // Arrange
-      const cacheLoadTest = createLoadTestScenario({
-        scenario: 'cache-heavy',
-        operations: [
-          { type: 'read', weight: 80 },
-          { type: 'write', weight: 20 }
-        ],
-        concurrency: 100,
-        duration: 60000
-      });
+    // Act
+    const results = await loadTest.execute();
 
-      // Act
-      const results = await cacheLoadTest.execute();
-
-      // Assert
-      expect(results.cache.hitRate).toBeGreaterThan(0.7); // > 70% hit rate
-      expect(results.cache.averageLatency).toBeLessThan(5); // < 5ms average
-      expect(results.cache.p99Latency).toBeLessThan(20);    // < 20ms p99
-    });
+    // Assert
+    expect(results.summary.successRate).toBeGreaterThan(0.99);
+    expect(results.summary.averageResponseTime).toBeLessThan(300);
+    expect(results.summary.p95ResponseTime).toBeLessThan(500);
+    expect(results.summary.errorRate).toBeLessThan(0.01);
   });
 });
 ```
@@ -921,24 +624,18 @@ describe('Security - Input Validation', () => {
   describe('rate limiting', () => {
     it('should enforce rate limits', async () => {
       // Arrange
-      const endpoint = '/api/health';
-      const rateLimit = 100; // requests per minute
-      const requests = Array.from({ length: rateLimit + 10 }, () => 
-        request(app).get(endpoint)
+      const requests = Array.from({ length: 110 }, () => 
+        request(app).get('/api/health')
       );
 
       // Act
       const responses = await Promise.allSettled(requests);
 
       // Assert
-      const successfulResponses = responses.filter(r => 
-        r.status === 'fulfilled' && r.value.status === 200
-      );
       const rateLimitedResponses = responses.filter(r => 
         r.status === 'fulfilled' && r.value.status === 429
       );
 
-      expect(successfulResponses.length).toBeLessThanOrEqual(rateLimit);
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
     });
   });
@@ -953,7 +650,6 @@ describe('Security - Input Validation', () => {
 // tests/utils/test-helpers.ts
 export class MockAdapter extends SourceAdapter {
   private searchRunbooksResponse: RunbookResult[] = [];
-  private searchResponse: SearchResult[] = [];
   private errors: { [key: string]: Error } = {};
 
   setSearchRunbooksResponse(results: RunbookResult[]): void {
@@ -966,8 +662,7 @@ export class MockAdapter extends SourceAdapter {
 
   async searchRunbooks(
     alertType: string,
-    severity?: string,
-    systems?: string[]
+    severity?: string
   ): Promise<RunbookResult[]> {
     if (this.errors.searchRunbooks) {
       throw this.errors.searchRunbooks;
@@ -975,26 +670,15 @@ export class MockAdapter extends SourceAdapter {
     
     return this.searchRunbooksResponse.filter(runbook => {
       if (severity && runbook.severity !== severity) return false;
-      if (systems && !systems.some(s => runbook.systems?.includes(s))) return false;
       return true;
     });
-  }
-
-  async search(query: string): Promise<SearchResult[]> {
-    if (this.errors.search) {
-      throw this.errors.search;
-    }
-    
-    return this.searchResponse.filter(result => 
-      result.title.toLowerCase().includes(query.toLowerCase())
-    );
   }
 
   async healthCheck(): Promise<HealthStatus> {
     return {
       status: 'healthy',
       response_time_ms: 10,
-      document_count: this.searchResponse.length
+      document_count: this.searchRunbooksResponse.length
     };
   }
 }
@@ -1018,12 +702,7 @@ export function generateRunbook(overrides: Partial<Runbook> = {}): Runbook {
     ],
     severity_mapping: {
       critical: 'immediate_response',
-      high: 'rapid_response',
-      medium: 'standard_response'
-    },
-    decision_tree: {
-      root_condition: 'disk_usage > 90%',
-      branches: []
+      high: 'rapid_response'
     },
     procedures: [
       {
@@ -1040,75 +719,14 @@ export function generateRunbook(overrides: Partial<Runbook> = {}): Runbook {
     ],
     metadata: {
       confidence_score: 0.85,
-      success_rate: 0.92,
-      average_resolution_time: 900
+      success_rate: 0.92
     },
     ...overrides
   };
 }
-
-export function generateTestDataset(size: number): {
-  runbooks: Runbook[];
-  procedures: Procedure[];
-  knowledgeBase: Document[];
-} {
-  const runbooks = Array.from({ length: Math.ceil(size / 3) }, (_, i) =>
-    generateRunbook({
-      id: `test-runbook-${i}`,
-      triggers: [{
-        alert_type: ['disk_space', 'memory_leak', 'cpu_high'][i % 3],
-        conditions: [`metric > ${70 + i * 5}%`],
-        systems: ['web-server', 'database', 'cache'][i % 3]
-      }]
-    })
-  );
-
-  // Generate procedures and knowledge base similarly...
-  return { runbooks, procedures: [], knowledgeBase: [] };
-}
 ```
 
-### Test Environment Setup
-
-```typescript
-// tests/utils/test-setup.ts
-import { jest } from '@jest/globals';
-
-// Global test configuration
-beforeAll(() => {
-  // Set test environment variables
-  process.env.NODE_ENV = 'test';
-  process.env.LOG_LEVEL = 'warn';
-  
-  // Mock external services
-  jest.setTimeout(10000);
-});
-
-beforeEach(() => {
-  // Clear all mocks before each test
-  jest.clearAllMocks();
-});
-
-afterEach(async () => {
-  // Cleanup after each test
-  await cleanupTestResources();
-});
-
-afterAll(async () => {
-  // Global cleanup
-  await shutdownTestServices();
-});
-
-async function cleanupTestResources(): Promise<void> {
-  // Cleanup test data, connections, etc.
-}
-
-async function shutdownTestServices(): Promise<void> {
-  // Shutdown test databases, Redis, etc.
-}
-```
-
-## CI/CD Testing Integration
+## CI/CD Integration
 
 ### GitHub Actions Workflow
 
@@ -1131,23 +749,14 @@ jobs:
         image: redis:7-alpine
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
 
     steps:
     - uses: actions/checkout@v3
     
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '20'
         cache: 'npm'
     
     - name: Install dependencies
@@ -1174,38 +783,19 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         file: ./coverage/lcov.info
-        
-  security:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Run security audit
-      run: npm audit
-    - name: Run dependency check
-      run: npm run test:security
 ```
 
 ### Quality Gates
 
 ```bash
-# scripts/quality-gate.sh
 #!/bin/bash
+# scripts/quality-gate.sh
 
 echo "Running quality gate checks..."
 
 # Code quality
 npm run lint
-if [ $? -ne 0 ]; then
-  echo "❌ Linting failed"
-  exit 1
-fi
-
-# Type checking
 npm run typecheck
-if [ $? -ne 0 ]; then
-  echo "❌ Type checking failed"
-  exit 1
-fi
 
 # Test coverage
 npm run test:coverage
@@ -1217,17 +807,13 @@ fi
 
 # Performance benchmarks
 npm run benchmark:quick
-if [ $? -ne 0 ]; then
-  echo "❌ Performance benchmarks failed"
-  exit 1
-fi
 
 echo "✅ All quality gates passed"
 ```
 
 ## Troubleshooting Tests
 
-### Common Test Issues
+### Common Issues
 
 #### Redis Test Issues
 
@@ -1238,7 +824,7 @@ docker run -d --name test-redis -p 6379:6379 redis:7-alpine
 # Run Redis-specific tests
 npm run test:redis
 
-# Clean up after tests
+# Clean up
 docker stop test-redis && docker rm test-redis
 ```
 
@@ -1246,13 +832,6 @@ docker stop test-redis && docker rm test-redis
 
 ```javascript
 // Enable garbage collection in test environment
-// jest.config.js
-export default {
-  // ... other config
-  setupFilesAfterEnv: ['<rootDir>/tests/utils/memory-test-setup.ts']
-};
-
-// tests/utils/memory-test-setup.ts
 if (typeof global.gc === 'function') {
   afterEach(() => {
     global.gc();
@@ -1266,18 +845,12 @@ if (typeof global.gc === 'function') {
 // Use proper async handling
 describe('flaky test prevention', () => {
   it('should wait for async operations', async () => {
-    // ❌ Bad: Not awaiting promise
-    // const result = someAsyncFunction();
-    
     // ✅ Good: Properly awaiting
     const result = await someAsyncFunction();
     expect(result).toBeDefined();
   });
 
   it('should handle timing-sensitive operations', async () => {
-    // ❌ Bad: Fixed timeout
-    // setTimeout(() => { /* test */ }, 100);
-    
     // ✅ Good: Poll until condition met
     await waitForCondition(
       () => cache.get('key') !== null,
@@ -1287,18 +860,33 @@ describe('flaky test prevention', () => {
 });
 ```
 
-### Test Debugging
+## Test Development Guidelines
 
-```bash
-# Run tests with debugging
-node --inspect-brk node_modules/.bin/jest --runInBand
+### Writing Good Tests
 
-# Run specific test file
-npm test -- tests/unit/tools/search-runbooks.test.ts
+1. **Use descriptive test names** that explain the scenario
+2. **Follow AAA pattern**: Arrange, Act, Assert
+3. **Test one thing at a time** in each test case
+4. **Use meaningful assertions** with clear error messages
+5. **Clean up resources** in teardown methods
+6. **Mock external dependencies** appropriately
+7. **Test both success and error cases**
+8. **Include performance tests** for critical paths
 
-# Run tests with verbose output
-npm test -- --verbose
+### Test Performance
 
-# Update snapshots
-npm test -- --updateSnapshot
-```
+- Keep unit tests fast (< 100ms each)
+- Use appropriate timeouts for async operations
+- Parallel test execution where possible
+- Mock expensive operations in unit tests
+- Use integration tests sparingly for critical paths
+
+### Continuous Improvement
+
+- Regularly review and update test coverage
+- Add tests for reported bugs before fixing
+- Refactor tests when code changes
+- Monitor test performance and reliability
+- Share testing best practices with the team
+
+The comprehensive testing strategy ensures Personal Pipeline maintains high quality, performance, and reliability across all components and use cases.

@@ -13,11 +13,14 @@ import { CacheConfig } from '../../src/types/index.js';
 
 describe('Redis Cache Integration Tests', () => {
   // Only run Redis integration tests when explicitly enabled
-  const shouldRunRedisTests = process.env.TEST_REDIS === 'true' || process.env.REDIS_URL !== undefined;
-  
+  const shouldRunRedisTests =
+    process.env.TEST_REDIS === 'true' || process.env.REDIS_URL !== undefined;
+
   if (!shouldRunRedisTests) {
     it('should skip Redis integration tests unless TEST_REDIS=true or REDIS_URL is set', () => {
-      console.log('Skipping Redis integration tests - Use TEST_REDIS=true or set REDIS_URL to enable');
+      console.log(
+        'Skipping Redis integration tests - Use TEST_REDIS=true or set REDIS_URL to enable'
+      );
     });
     return;
   }

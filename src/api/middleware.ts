@@ -898,7 +898,8 @@ function calculateOptimizationScore(performanceData: any): number {
  * Global error handler for unhandled API errors
  */
 export function globalErrorHandler() {
-  return (error: any, req: Request, res: Response, _next: NextFunction): void => { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  return (error: any, req: Request, res: Response, _next: NextFunction): void => {
+    // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     const correlationId = getCorrelationId(req);
 
     logger.error('Unhandled API error', {

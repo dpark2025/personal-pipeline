@@ -25,8 +25,29 @@ npm install
 cp config/config.sample.yaml config/config.yaml
 # Edit config.yaml with your sources
 
-# 4. Start development server
+# 4. Set up git hooks (optional but recommended)
+./scripts/setup-hooks.sh
+
+# 5. Start development server
 npm run dev
+```
+
+### 5. Stop Development Server
+
+⚠️ **IMPORTANT**: Always stop services when finished to prevent resource leaks and port conflicts.
+
+```bash
+# Stop demo environment (recommended - includes full cleanup)
+npm run demo:stop
+
+# Or if running individual components:
+# 1. Press Ctrl+C in terminal where server is running
+# 2. Kill any remaining processes:
+pkill -f "node.*personal-pipeline"
+pkill -f "redis-server.*6379"
+
+# Verify all processes stopped
+npm run health  # Should fail if properly stopped
 ```
 
 ### Development Commands
