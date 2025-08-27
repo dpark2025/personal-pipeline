@@ -985,7 +985,7 @@ All endpoints return standardized error responses with:
           data: {
             type: 'object',
             properties: {
-              api_status: {
+              status: {
                 type: 'string',
                 enum: ['healthy', 'degraded', 'unhealthy'],
               },

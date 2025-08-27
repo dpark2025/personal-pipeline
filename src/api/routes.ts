@@ -1287,7 +1287,7 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
         }
 
         const healthStatus = {
-          api_status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
+          status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
           sources: sourcesHealthData,
           cache: cacheHealth.status === 'fulfilled' ? cacheHealth.value : null,
           tools: toolsMetrics.status === 'fulfilled' ? toolsMetrics.value : null,
@@ -1308,10 +1308,10 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
         // Determine overall health with better logic
         if (!hasConfiguredSources) {
           // No sources configured - degraded but functional
-          healthStatus.api_status = 'degraded';
+          healthStatus.status = 'degraded';
         } else if (sourcesError) {
           // Sources configured but failing - unhealthy
-          healthStatus.api_status = 'unhealthy';
+          healthStatus.status = 'unhealthy';
         } else {
           // Normal source health evaluation
           const healthySources = sourcesHealthData.filter((s: any) => s.healthy).length;
@@ -1319,14 +1319,14 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
           const sourceHealthRatio = totalSources > 0 ? healthySources / totalSources : 1;
 
           if (sourceHealthRatio < 0.5) {
-            healthStatus.api_status = 'unhealthy';
+            healthStatus.status = 'unhealthy';
           } else if (sourceHealthRatio < 0.8) {
-            healthStatus.api_status = 'degraded';
+            healthStatus.status = 'degraded';
           }
         }
 
         // Status code logic: 200 for healthy/degraded, 503 for unhealthy
-        const statusCode = healthStatus.api_status === 'unhealthy' ? 503 : 200;
+        const statusCode = healthStatus.status === 'unhealthy' ? 503 : 200;
 
         res.status(statusCode).json(
           createSuccessResponse(healthStatus, {
