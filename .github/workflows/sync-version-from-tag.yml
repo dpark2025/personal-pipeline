@@ -1,0 +1,166 @@
+# ==============================================================================
+# Personal Pipeline MCP Server - Version Sync from Tag Workflow
+# ==============================================================================
+# Automatically updates package.json when manual tags are created
+# Ensures version consistency between git tags and package.json
+
+name: Sync Version from Tag
+
+on:
+  # Trigger when tags are pushed (manual tagging)
+  push:
+    tags:
+      - 'v*'
+
+# ==============================================================================
+# Permissions
+# ==============================================================================
+permissions:
+  contents: write  # Required for updating package.json and pushing changes
+  actions: read    # Required for workflow coordination
+
+# ==============================================================================
+# Environment Variables
+# ==============================================================================
+env:
+  NODE_VERSION: '20'
+
+# ==============================================================================
+# Jobs
+# ==============================================================================
+jobs:
+  # ==============================================================================
+  # Sync Package Version
+  # ==============================================================================
+  sync-version:
+    name: Sync package.json from Tag
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history to ensure we have the tag
+          fetch-depth: 0
+          # Use token that can push back to the repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Extract version from tag
+        id: tag-version
+        run: |
+          # Extract version from the tag (remove 'v' prefix)
+          TAG_NAME="${{ github.ref_name }}"
+          VERSION="${TAG_NAME#v}"
+          
+          echo "tag-name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📏 Tag: $TAG_NAME"
+          echo "📦 Version: $VERSION"
+      
+      - name: Get current package version
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+          echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "📋 Current package.json version: $CURRENT_VERSION"
+      
+      - name: Check if version sync needed
+        id: check-sync
+        run: |
+          TAG_VERSION="${{ steps.tag-version.outputs.version }}"
+          CURRENT_VERSION="${{ steps.current-version.outputs.current-version }}"
+          
+          if [[ "$TAG_VERSION" == "$CURRENT_VERSION" ]]; then
+            echo "sync-needed=false" >> $GITHUB_OUTPUT
+            echo "✅ Version already in sync: $CURRENT_VERSION"
+          else
+            echo "sync-needed=true" >> $GITHUB_OUTPUT
+            echo "🔄 Version sync needed: $CURRENT_VERSION → $TAG_VERSION"
+          fi
+      
+      - name: Update package.json version
+        if: steps.check-sync.outputs.sync-needed == 'true'
+        run: |
+          NEW_VERSION="${{ steps.tag-version.outputs.version }}"
+          echo "📝 Updating package.json version to: $NEW_VERSION"
+          
+          # Update package.json version
+          npm version --no-git-tag-version "$NEW_VERSION"
+          
+          # Verify the update
+          UPDATED_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")
+          echo "✅ Updated package.json version: $UPDATED_VERSION"
+      
+      - name: Commit version sync
+        if: steps.check-sync.outputs.sync-needed == 'true'
+        run: |
+          TAG_NAME="${{ steps.tag-version.outputs.tag-name }}"
+          VERSION="${{ steps.tag-version.outputs.version }}"
+          
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Add and commit the change
+          git add package.json
+          git commit -m "$(cat <<EOF
+chore: sync package.json version with tag $TAG_NAME
+
+Automatically updated package.json version to $VERSION to match git tag.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+          
+          echo "📤 Committed version sync"
+      
+      - name: Push version sync
+        if: steps.check-sync.outputs.sync-needed == 'true'
+        run: |
+          # Push the commit back to main branch
+          git push origin HEAD:main
+          echo "✅ Pushed version sync to main branch"
+      
+      - name: Summary
+        run: |
+          TAG_NAME="${{ steps.tag-version.outputs.tag-name }}"
+          VERSION="${{ steps.tag-version.outputs.version }}"
+          SYNC_NEEDED="${{ steps.check-sync.outputs.sync-needed }}"
+          
+          echo "🏷️ Version Sync Summary"
+          echo "======================"
+          echo "Git tag: $TAG_NAME"
+          echo "Version: $VERSION"
+          echo "Sync needed: $SYNC_NEEDED"
+          
+          if [[ "$SYNC_NEEDED" == "true" ]]; then
+            echo "✅ package.json updated and committed to main branch"
+            echo "🚀 Enhanced Release workflow will continue normally"
+          else
+            echo "ℹ️ No sync needed - versions already match"
+          fi
+          
+          echo ""
+          echo "🔄 Workflow Sequence:"
+          echo "1. Manual tag created → This workflow triggered"
+          if [[ "$SYNC_NEEDED" == "true" ]]; then
+            echo "2. package.json updated → Committed to main"
+            echo "3. Enhanced Release workflow → Continues with updated version"
+          else
+            echo "2. Enhanced Release workflow → Continues with current version"
+          fi
+
+# ==============================================================================
+# Workflow Coordination Notes
+# ==============================================================================
+# This workflow runs BEFORE the Enhanced Release workflow when tags are created.
+# It ensures package.json is in sync before releases are built.
+# The Enhanced Release workflow will pick up any changes made here.

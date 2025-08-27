@@ -7,7 +7,13 @@
 name: Enhanced Release
 
 on:
-  # Trigger on release tags (automated releases)
+  # Trigger after version sync workflow completes for tags
+  workflow_run:
+    workflows: ["Sync Version from Tag"]
+    types: [completed]
+    branches: [main]
+  
+  # Direct trigger on release tags (fallback for manual workflow dispatch)
   push:
     tags:
       - 'v*'
@@ -83,6 +89,8 @@ jobs:
   validate-release:
     name: Release Validation
     runs-on: ubuntu-latest
+    # Only run if version sync workflow succeeded or if manual dispatch
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
     
     outputs:
       should-proceed: ${{ steps.validation.outputs.should-proceed }}
