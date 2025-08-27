@@ -160,7 +160,6 @@ jobs:
               - 'Dockerfile'
               - 'package.json'
               - 'package-lock.json'
-              - 'docker/**'
               - 'config/*.sample.yaml'
       
       - name: Build summary
