@@ -1336,13 +1336,17 @@ export function createAPIRoutes(options: APIRouteOptions): express.Router {
       } catch (error) {
         const executionTime = performance.now() - startTime;
         
+        // Re-check configured sources for debugging (since it's in catch block scope)
+        const configuredSources = sourceRegistry.getAllAdapters();
+        const hasConfiguredSources = configuredSources.length > 0;
+        
         // Log the actual error for debugging
         logger.error('API health check failed with unhandled error', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
           hasConfiguredSources,
           cacheServiceAvailable: !!cacheService,
-          configStrategy: cacheService?.config?.strategy || 'unknown'
+          configStrategy: cacheService?.getStrategy() || 'unknown'
         });
         
         // Determine specific error type for better diagnostics

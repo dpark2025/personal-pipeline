@@ -791,7 +791,7 @@ export class PersonalPipelineServer {
 
     // Error handler
     this.expressApp.use(
-      (error: any, req: express.Request, res: express.Response) => {
+      (error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
         logger.error('Express error', {
           error: error.message,
           stack: error.stack,

@@ -66,9 +66,9 @@ export function intelligentCaching(cacheService?: any) {
         res.setHeader('X-Cache', 'MISS');
         res.setHeader('X-Cache-Strategy', cacheStrategy);
 
-        // Override res.json to cache successful responses
-        const originalJson = res.json;
-        res.json = function (body: any) {
+        // Override res.json to cache successful responses  
+        const originalJson = res.json.bind(res);
+        res.json = function (this: Response, body: any) {
           // Cache successful responses
           if (body && body.success !== false && res.statusCode < 400) {
             const ttl = getCacheTTL(req.path, cacheStrategy, body);

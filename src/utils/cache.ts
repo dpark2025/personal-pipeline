@@ -553,6 +553,13 @@ export class CacheService {
       by_content_type: {},
     };
   }
+
+  /**
+   * Get cache strategy for debugging purposes
+   */
+  getStrategy(): string {
+    return this.config.strategy;
+  }
 }
 
 // Cache service singleton
