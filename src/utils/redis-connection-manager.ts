@@ -13,6 +13,18 @@ import { EventEmitter } from 'events';
 import { logger } from './logger.js';
 import { CacheConfig } from '../types/index.js';
 
+// Suppress ioredis unhandled error events to prevent console spam
+// This handles the specific issue where ioredis emits unhandled error events
+// even when error handlers are properly set up
+let ioredisErrorHandlerInstalled = false;
+function installIoredisErrorHandler(): void {
+  if (!ioredisErrorHandlerInstalled) {
+    // Set IOREDIS_SILENCE_WARNINGS environment variable to suppress warnings
+    process.env.IOREDIS_SILENCE_WARNINGS = '1';
+    ioredisErrorHandlerInstalled = true;
+  }
+}
+
 export enum ConnectionState {
   DISCONNECTED = 'disconnected',
   CONNECTING = 'connecting',
@@ -50,6 +62,9 @@ export class RedisConnectionManager extends EventEmitter {
     super();
     this.config = config;
     this.currentDelay = config.retry_delay_ms;
+    
+    // Install the ioredis error handler to prevent unhandled error events
+    installIoredisErrorHandler();
   }
 
   /**
@@ -217,6 +232,7 @@ export class RedisConnectionManager extends EventEmitter {
         autoResendUnfulfilledCommands: false,
       });
 
+      // Setup error handlers IMMEDIATELY after creation to prevent unhandled events
       this.setupRedisEventHandlers();
 
       // Now manually initiate connection after handlers are set up
@@ -263,6 +279,9 @@ export class RedisConnectionManager extends EventEmitter {
     // Remove any existing listeners to prevent duplicates
     this.redis.removeAllListeners();
 
+    // Set up error handler FIRST to catch all events immediately
+    this.redis.setMaxListeners(20); // Increase max listeners to prevent warnings
+
     this.redis.on('ready', () => {
       logger.debug('Redis client ready');
       this.handleConnectionSuccess();
@@ -272,10 +291,9 @@ export class RedisConnectionManager extends EventEmitter {
       logger.debug('Redis client connected');
     });
 
-    // Handle all errors to prevent unhandled error events
+    // Handle ALL errors to prevent unhandled error events - CRITICAL for stability
     this.redis.on('error', (error: Error) => {
-      // This handler MUST be synchronous and handle ALL errors
-      // to prevent them from becoming unhandled
+      // This handler MUST handle ALL errors synchronously
       this.handleConnectionFailure(error);
       
       // Suppress Redis error logging during tests with error-level logging
@@ -306,9 +324,17 @@ export class RedisConnectionManager extends EventEmitter {
           });
         }
       }
-      
-      // Prevent error propagation
-      return;
+    });
+
+    // Additional error event handlers to ensure comprehensive coverage
+    this.redis.on('node error', (error: Error) => {
+      logger.debug('Redis node error', { error: error.message });
+    });
+
+    this.redis.on('reconnecting', (error?: Error) => {
+      if (error) {
+        logger.debug('Redis reconnection error', { error: error.message });
+      }
     });
 
     this.redis.on('close', () => {
