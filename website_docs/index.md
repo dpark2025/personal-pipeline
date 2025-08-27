@@ -33,13 +33,13 @@ npm run demo:start
 
 ### Intelligence Layer
 - **7 MCP Tools** for context-aware documentation retrieval
-- **Sub-150ms response times** for critical runbook retrieval
+- **<200ms response times** for most operations
 - **Confidence scoring** for all recommendations
 - **Decision trees** for progressive incident resolution
 
 ### Enterprise Performance
-- **99.9% uptime** with circuit breaker resilience
-- **75% cache hit rate** with hybrid Redis + memory caching
+- **Stable operation** with circuit breaker resilience
+- **Improved cache performance** with hybrid Redis + memory caching
 - **50+ concurrent operations** supported
 - **Performance monitoring** with real-time dashboards
 
@@ -85,8 +85,8 @@ SOURCE ADAPTERS:
   └── Database Adapter       ──────► PostgreSQL/MongoDB (Planned)
 
 INFRASTRUCTURE:
-  ├── Redis Cache            ──────► 60-80% MTTR reduction
-  ├── Circuit Breakers       ──────► 99.9% uptime
+  ├── Redis Cache            ──────► Improved performance
+  ├── Circuit Breakers       ──────► Stable operation
   └── Health Monitoring      ──────► Real-time metrics
 ```
 
@@ -108,10 +108,10 @@ npm run health:dashboard
 
 ## 🚀 Performance Metrics
 
-- **Sub-2ms response time** for critical runbook retrieval
-- **7/7 performance targets met** in benchmark testing  
+- **<200ms response time** for typical operations
+- **Performance targets met** in benchmark testing  
 - **11 REST API endpoints** with dual MCP/REST access
-- **99.9% uptime** with circuit breaker resilience
+- **Stable operation** with error handling and resilience
 
 ---
 

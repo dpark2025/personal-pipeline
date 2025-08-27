@@ -1,0 +1,55 @@
+server:
+  port: 3000
+  host: localhost
+  log_level: info
+  cache_ttl_seconds: 3600
+  max_concurrent_requests: 100
+  request_timeout_ms: 30000
+  health_check_interval_ms: 60000
+sources:
+  - name: local-docs
+    type: file
+    base_url: ./docs
+    refresh_interval: 1h
+    priority: 1
+    enabled: true
+    timeout_ms: 5000
+    max_retries: 2
+cache:
+  enabled: true
+  strategy: memory_only
+  memory:
+    max_keys: 1000
+    ttl_seconds: 3600
+    check_period_seconds: 600
+  redis:
+    enabled: false
+    url: redis://localhost:6379
+    ttl_seconds: 7200
+    key_prefix: "pp:cache:"
+    connection_timeout_ms: 5000
+    retry_attempts: 3
+    retry_delay_ms: 1000
+    max_retry_delay_ms: 30000
+    backoff_multiplier: 2
+    connection_retry_limit: 5
+  content_types:
+    runbooks:
+      ttl_seconds: 3600
+      warmup: true
+    procedures:
+      ttl_seconds: 1800
+      warmup: false
+    decision_trees:
+      ttl_seconds: 2400
+      warmup: true
+    knowledge_base:
+      ttl_seconds: 900
+      warmup: false
+    web_response:
+      ttl_seconds: 1800
+      warmup: false
+embedding:
+  enabled: true
+  model: sentence-transformers/all-MiniLM-L6-v2
+  cache_size: 1000

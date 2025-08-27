@@ -69,10 +69,10 @@ npm run generate-sample-data  # Generate realistic test data and runbooks
 npm run validate-config       # Validate YAML config with schema checking
 npm run test-mcp             # Interactive MCP client testing tool
 
-# Enhanced MCP Tool Explorer (NEW - Milestone 2.1) ⭐ 100% OPERATIONAL
-npm run mcp-explorer                    # Enhanced interactive CLI with auto-completion
+# Enhanced MCP Tool Explorer (Development Tools)
+npm run mcp-explorer                    # Interactive CLI with auto-completion
 npm run mcp-explorer:analytics          # Performance analytics dashboard
-npm run mcp-explorer:test-suite         # Enhanced automated test suite (24/24 scenarios passing)
+npm run mcp-explorer:test-suite         # Automated test suite
 npm run mcp-explorer:clear-session      # Clear session data and history
 
 # Performance & Monitoring (Milestone 1.3-1.4)
@@ -205,9 +205,9 @@ LangGraph Agent → MCP Protocol → Core Engine → Source Adapters
 - `GET /api/performance` - API performance metrics and statistics
 
 **Features:**
-- **Enterprise-grade caching** with 7 intelligent strategies and cache warming
-- **Advanced error handling** with business impact assessment and recovery guidance
-- **Performance optimization** with sub-150ms response times for critical operations
+- **Intelligent caching** with hybrid Redis + memory strategies
+- **Error handling** with business impact assessment and recovery guidance
+- **Performance optimization** with <200ms response times for most operations
 - **Security hardening** with XSS protection, input sanitization, and validation
 
 #### Source Adapter Framework (Implemented)
@@ -223,13 +223,13 @@ All adapters implement the `SourceAdapter` abstract class with methods:
 - **FileSystemAdapter**: Local file and directory indexing with Markdown/JSON support
 - **Planned Phase 2**: WebAdapter for REST APIs and website content
 
-#### Performance Requirements (Achieved/Enhanced - Milestone 1.4)
-- **Critical runbooks**: < 150ms response time (achieved with intelligent caching)
-- **Standard procedures**: < 200ms response time (exceeded original 500ms target)
-- **REST API endpoints**: Sub-150ms for critical operations, sub-10ms for health checks
+#### Performance Requirements (Current Implementation)
+- **Critical runbooks**: <200ms response time (with intelligent caching)
+- **Standard procedures**: <200ms response time (meets <500ms target)
+- **REST API endpoints**: <200ms for most operations, <50ms for health checks
 - **Concurrent queries**: 50+ simultaneous operations with dual MCP/REST access
-- **Cache performance**: 60-80% MTTR reduction with hybrid Redis + memory caching
-- **Service availability**: Stable operation with circuit breaker resilience patterns
+- **Cache performance**: Improved MTTR with hybrid Redis + memory caching
+- **Service availability**: Stable operation with error handling and resilience patterns
 
 ## Configuration
 

@@ -118,6 +118,7 @@ graph TD
 - GitHub release creation with automated changelogs
 - Optional npm and Docker registry publishing
 - Security validation and quality gates
+- Internal Verdaccio registry for testing npm publish/install before real release
 ```
 
 **Testing Strategy**: Quick integration tests (`npm run test:integration:quick`) - validates end-to-end functionality.
