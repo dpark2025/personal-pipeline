@@ -428,7 +428,7 @@ jobs:
           
           # Test API endpoints (allow for Redis connection failures in CI)
           API_RESPONSE=$(curl -s --max-time 10 http://localhost:3000/api/health || echo "")
-          if echo "$API_RESPONSE" | grep -q '"status"'; then
+          if echo "$API_RESPONSE" | grep -q '"api_status"'; then
             echo "✅ API health check passed"
           else
             echo "⚠️ API health check failed (expected without Redis): $API_RESPONSE"
