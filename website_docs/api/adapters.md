@@ -161,54 +161,19 @@ sources:
 - Concurrent requests: Up to 10 (rate limited)
 - Cache hit rate: ~60-80% for frequently accessed content
 
-## Planned Adapters 🚧
+## Future Enhancements
 
-### GitHub Adapter 🚧
-
-**Status**: 🚧 **Partially Implemented** (TypeScript compilation issues)  
-**Type**: `github`
-
-**Current Issues**: 
-- Implementation exists but has TypeScript compilation errors
-- Needs debugging and integration testing
-- Octokit integration partially complete
-
-**Planned Features**:
-- Repository documentation indexing
-- Wiki content extraction
-- Issue and PR documentation
-- Multi-repository support
-- Branch-specific content indexing
-
-### Confluence Adapter 🚧
+### Database Adapter (Planned)
 
 **Status**: 🚧 **Planning Phase**  
-**Type**: `confluence`
-
-**Current Status**:
-- Stub implementation exists
-- Requires Confluence API integration
-- Authentication and space filtering design needed
-
-**Planned Features**:
-- Space and page filtering
-- Label and tag extraction  
-- Attachment handling
-- Version history access
-- Real-time change notifications
-
-### Database Adapter 📋
-
-**Status**: 📋 **Planned**  
 **Type**: `database`
 
-Support for SQL and NoSQL databases containing structured documentation.
+**Planned Features**:
+- PostgreSQL and MongoDB support
+- Query-based document retrieval
+- Schema-aware content extraction
+- Connection pooling and optimization
 
-**Planned Support**:
-- PostgreSQL, MySQL, SQLite
-- MongoDB, Redis
-- Custom query mapping
-- Connection pooling
 
 ## Adapter Development
 

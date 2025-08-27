@@ -110,31 +110,6 @@ sources:
       rate_limit_per_minute: 60
 ```
 
-### GitHub Adapter 🚧 (Planned - Phase 2)
-
-```yaml
-# NOT YET IMPLEMENTED - Planned for Phase 2
-sources:
-  - name: "github-docs"
-    type: "github"  # This adapter has compilation issues
-    base_url: "https://api.github.com/repos/company/docs"
-    auth:
-      type: "bearer_token"
-      token_env: "GITHUB_TOKEN"
-```
-
-### Confluence Adapter 🚧 (Planned - Phase 2)
-
-```yaml
-# NOT YET IMPLEMENTED - Planned for Phase 2
-sources:
-  - name: "confluence-ops"
-    type: "confluence"  # Only stub implementation exists
-    base_url: "https://company.atlassian.net/wiki"
-    auth:
-      type: "bearer_token"
-      token_env: "CONFLUENCE_TOKEN"
-```
 
 ## Server Configuration
 
@@ -209,54 +184,6 @@ sources:
     max_file_size: "10mb"            # Maximum file size
 ```
 
-### Confluence Adapter
-
-```yaml
-sources:
-  - name: "company-confluence"
-    type: "confluence"
-    base_url: "https://company.atlassian.net/wiki"
-    auth:
-      type: "bearer_token"            # or "basic_auth"
-      token_env: "CONFLUENCE_TOKEN"   # Environment variable
-      # For basic auth:
-      # username_env: "CONFLUENCE_USER"
-      # password_env: "CONFLUENCE_PASS"
-    spaces:                           # Specific spaces to index
-      - "OPS"
-      - "RUNBOOKS"
-    page_filters:
-      labels: ["runbook", "procedure"] # Only pages with these labels
-      status: "current"               # Only current versions
-    refresh_interval: "1h"
-    priority: 2
-    rate_limit:
-      requests_per_minute: 60
-      burst_size: 10
-```
-
-### GitHub Adapter
-
-```yaml
-sources:
-  - name: "github-docs"
-    type: "github"
-    repository: "company/documentation"
-    auth:
-      type: "token"
-      token_env: "GITHUB_TOKEN"
-    paths:                            # Paths to include
-      - "runbooks/"
-      - "procedures/"
-    file_patterns:
-      - "*.md"
-      - "*.json"
-    branch: "main"                    # Default branch
-    include_releases: false           # Include release notes
-    refresh_interval: "30m"
-    priority: 3
-    api_version: "2022-11-28"        # GitHub API version
-```
 
 ### Database Adapter
 
@@ -543,9 +470,7 @@ security:
 ### Required Variables
 
 ```bash
-# Source authentication
-export CONFLUENCE_TOKEN="your_confluence_token"
-export GITHUB_TOKEN="your_github_token"
+# External integrations (example)
 
 # Database connection
 export DATABASE_URL="postgresql://user:pass@localhost:5432/db"
@@ -648,13 +573,10 @@ server:
     enabled: true
     
 sources:
-  - name: "confluence"
-    type: "confluence"
-    base_url: "https://company.atlassian.net/wiki"
-    auth:
-      type: "bearer_token"
-      token_env: "CONFLUENCE_TOKEN"
-    refresh_interval: "1h"
+  - name: "local-docs"
+    type: "file"
+    base_url: "./docs"
+    recursive: true
     
 cache:
   type: "redis"
@@ -695,17 +617,16 @@ cat config/config.yaml | python -c "import yaml; yaml.safe_load(input())"
 **Environment variables not found:**
 ```bash
 # Check if variables are set
-env | grep -E "(CONFLUENCE|GITHUB|REDIS)"
+env | grep -E "(REDIS|DATABASE)"
 
 # Test variable substitution
-node -e "console.log(process.env.CONFLUENCE_TOKEN || 'NOT_SET')"
+node -e "console.log(process.env.DATABASE_URL || 'NOT_SET')"
 ```
 
 **Source connection failures:**
 ```bash
-# Test source connectivity
-curl -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
-  "https://company.atlassian.net/wiki/rest/api/space"
+# Test local file access
+ls -la ./docs
 
 # Check Redis connection
 redis-cli -u $REDIS_URL ping

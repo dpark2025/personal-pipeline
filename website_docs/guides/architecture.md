@@ -49,27 +49,27 @@ ADAPTER FRAMEWORK:
   ┌─────────────────────────────────────────────────────────────────────────────┐
   │                          Source Adapters                                    │
   │                                                                             │
-  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐ │
-  │  │ FileSystem   │ │   Web API    │ │   GitHub     │ │     Confluence      │ │
-  │  │   Adapter    │ │   Adapter    │ │   Adapter    │ │     Adapter         │ │
-  │  │      ✅       │ │      ✅       │ │  🚧(Planned) │ │   🚧(Planned)       │ │
-  │  │ • Local MD   │ │ • REST APIs  │ │ • Repos      │ │ • Spaces            │ │
-  │  │ • JSON Data  │ │ • Websites   │ │ • Issues     │ │ • Pages             │ │
-  │  │ • Search     │ │ • Content    │ │ • Wiki       │ │ • Search            │ │
-  │  │ • Indexing   │ │ • Auth       │ │ • API        │ │ • Auth              │ │
-  │  └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────────┘ │
-  │        ▲               ▲               ▲(Planned)         ▲(Planned)        │
-  └────────┼───────────────┼───────────────┼────────────────────┼─────────────────┘
-           │               │               │                    │
-           ▼               ▼               ▼                    ▼
+  │          ┌──────────────┐         ┌──────────────┐                          │
+  │          │ FileSystem   │         │   Web API    │                          │
+  │          │   Adapter    │         │   Adapter    │                          │
+  │          │      ✅       │         │      ✅       │                          │
+  │          │ • Local MD   │         │ • REST APIs  │                          │
+  │          │ • JSON Data  │         │ • Websites   │                          │
+  │          │ • Search     │         │ • Content    │                          │
+  │          │ • Indexing   │         │ • Auth       │                          │
+  │          └──────────────┘         └──────────────┘                          │
+  │                ▲                         ▲                                  │
+  └────────────────┼─────────────────────────┼───────────────────────────────────┘
+                   │                         │
+                   ▼                         ▼
 EXTERNAL SOURCES:
-  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐
-  │ Local Files  │ │   Web APIs   │ │ GitHub Repos │ │     Confluence      │
-  │              │ │              │ │              │ │     Spaces          │
-  │ • Markdown   │ │ • REST APIs  │ │ • Code Docs  │ │ • Knowledge Base    │
-  │ • JSON       │ │ • Websites   │ │ • Runbooks   │ │ • Runbooks          │
-  │ • Config     │ │ • Content    │ │ • Issues     │ │ • Procedures        │
-  └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────────┘
+        ┌──────────────┐         ┌──────────────┐
+        │ Local Files  │         │   Web APIs   │
+        │              │         │              │
+        │ • Markdown   │         │ • REST APIs  │
+        │ • JSON       │         │ • Websites   │
+        │ • Config     │         │ • Content    │
+        └──────────────┘         └──────────────┘
 ```
 
 ## Core Components

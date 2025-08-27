@@ -497,13 +497,13 @@ function handleError(error: Error, req: Request, res: Response) {
 ```typescript
 // ✅ Good: Environment variables
 const config = {
-  githubToken: process.env.GITHUB_TOKEN,
-  confluenceToken: process.env.CONFLUENCE_TOKEN
+  databaseUrl: process.env.DATABASE_URL,
+  redisUrl: process.env.REDIS_URL
 };
 
 // ❌ Bad: Hardcoded secrets
 const config = {
-  githubToken: 'ghp_secret123' // Never do this
+  apiKey: 'hardcoded_key_123' // Never do this
 };
 ```
 
@@ -521,7 +521,7 @@ const config = {
 git checkout -b feature/new-adapter
 
 # 2. Make changes with proper commits
-git commit -m "feat(adapters): add GitHub adapter support"
+git commit -m "feat(adapters): add web adapter support"
 
 # 3. Run tests and linting
 npm test

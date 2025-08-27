@@ -80,8 +80,7 @@ CORE ENGINE:
 
 SOURCE ADAPTERS:
   ├── FileSystem Adapter     ──────► Local Files & Directories
-  ├── Confluence Adapter     ──────► Confluence Spaces (Planned)
-  ├── GitHub Adapter         ──────► GitHub Repositories (Planned)
+  ├── Web Adapter            ──────► REST APIs & Website Content
   └── Database Adapter       ──────► PostgreSQL/MongoDB (Planned)
 
 INFRASTRUCTURE:
