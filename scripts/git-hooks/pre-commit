@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Pre-commit hook for Personal Pipeline MCP Server
-# Runs TypeScript compiler checks, ESLint, and tests before allowing commit
+# Comprehensive quality checks: security audit, formatting, linting, types, and tests
 #
 # This hook was automatically generated to ensure code quality.
 # To bypass this hook temporarily, use: git commit --no-verify
@@ -36,7 +36,56 @@ print_error() {
   echo "❌ $1"
 }
 
-# Step 1: TypeScript compiler checks
+print_warning() {
+  echo "⚠️  $1"
+}
+
+# Step 1: Security audit with auto-fix
+print_step "Running npm security audit"
+AUDIT_OUTPUT=$(npm audit --audit-level=moderate 2>&1 || true)
+if echo "$AUDIT_OUTPUT" | grep -q "found 0 vulnerabilities"; then
+  print_success "No security vulnerabilities found"
+elif echo "$AUDIT_OUTPUT" | grep -q "vulnerabilities"; then
+  print_warning "Security vulnerabilities found, attempting auto-fix..."
+  
+  # Try non-breaking fixes first
+  if npm audit fix >/dev/null 2>&1; then
+    print_success "Security vulnerabilities auto-fixed (non-breaking)"
+  else
+    print_warning "Non-breaking fixes failed, trying force fix..."
+    if npm audit fix --force >/dev/null 2>&1; then
+      print_success "Security vulnerabilities auto-fixed (with force)"
+      print_warning "Note: Force fixes may include breaking changes - please test thoroughly"
+    else
+      print_error "Failed to auto-fix security vulnerabilities"
+      echo "Please review and fix manually:"
+      npm audit --audit-level=moderate
+      exit 1
+    fi
+  fi
+else
+  print_success "Security audit completed"
+fi
+
+# Step 2: Code formatting check and auto-fix
+print_step "Running Prettier formatting check"
+if npm run format:check >/dev/null 2>&1; then
+  print_success "Code formatting is correct"
+else
+  print_warning "Code formatting issues found, auto-fixing..."
+  if npm run format >/dev/null 2>&1; then
+    print_success "Code formatting auto-fixed"
+    # Add formatted files to staging area
+    git add -u >/dev/null 2>&1 || true
+  else
+    print_error "Failed to auto-fix formatting"
+    echo "Please fix formatting manually:"
+    npm run format:check
+    exit 1
+  fi
+fi
+
+# Step 3: TypeScript compiler checks
 print_step "Running TypeScript compiler checks"
 if npm run typecheck >/dev/null 2>&1; then
   print_success "TypeScript checks passed"
@@ -44,23 +93,38 @@ else
   print_error "TypeScript checks failed"
   echo "Please fix TypeScript errors before committing."
   echo "Run: npm run typecheck"
-  npm run typecheck
+  npm run typecheck 2>&1 | head -20
   exit 1
 fi
 
-# Step 2: ESLint checks
+# Step 4: ESLint checks with auto-fix attempt
 print_step "Running ESLint"
 if npm run lint >/dev/null 2>&1; then
   print_success "ESLint checks passed"
 else
-  print_error "ESLint checks failed"
-  echo "Please fix linting errors before committing."
-  echo "Run: npm run lint:fix"
-  npm run lint
-  exit 1
+  print_warning "ESLint issues found, attempting auto-fix..."
+  if npm run lint:fix >/dev/null 2>&1; then
+    print_success "ESLint issues auto-fixed"
+    # Add fixed files to staging area
+    git add -u >/dev/null 2>&1 || true
+    # Check if there are still unfixable issues
+    if npm run lint >/dev/null 2>&1; then
+      print_success "All ESLint issues resolved"
+    else
+      print_error "Some ESLint issues could not be auto-fixed"
+      echo "Please fix remaining linting errors:"
+      npm run lint 2>&1 | head -20
+      exit 1
+    fi
+  else
+    print_error "ESLint auto-fix failed"
+    echo "Please fix linting errors manually:"
+    npm run lint 2>&1 | head -20
+    exit 1
+  fi
 fi
 
-# Step 3: Run tests
+# Step 5: Run tests
 print_step "Running tests"
 if npm test >/dev/null 2>&1; then
   print_success "All tests passed"
@@ -68,7 +132,7 @@ else
   print_error "Tests failed"
   echo "Please fix failing tests before committing."
   echo "Run: npm test"
-  npm test
+  npm test 2>&1 | head -20
   exit 1
 fi
 
