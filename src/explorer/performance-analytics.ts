@@ -1,9 +1,9 @@
 /**
  * Performance Analytics Module for Enhanced MCP Tool Explorer
- * 
+ *
  * Authored by: Backend Technical Lead Agent
  * Date: 2025-08-15
- * 
+ *
  * Provides comprehensive performance tracking, metrics collection,
  * and analytics for MCP tool usage with intelligent insights.
  */
@@ -34,10 +34,10 @@ interface ToolMetrics {
 }
 
 interface PerformanceThresholds {
-  excellent: number;  // < 100ms
-  good: number;      // < 300ms
-  warning: number;   // < 500ms
-  critical: number;  // >= 500ms
+  excellent: number; // < 100ms
+  good: number; // < 300ms
+  warning: number; // < 500ms
+  critical: number; // >= 500ms
 }
 
 interface PerformanceTrend {
@@ -57,7 +57,7 @@ export class PerformanceAnalytics {
     excellent: 100,
     good: 300,
     warning: 500,
-    critical: 500
+    critical: 500,
   };
 
   constructor() {
@@ -67,7 +67,13 @@ export class PerformanceAnalytics {
   /**
    * Record a request for analytics
    */
-  recordRequest(tool: string, responseTime: number, success: boolean, error?: string, parameters?: any): void {
+  recordRequest(
+    tool: string,
+    responseTime: number,
+    success: boolean,
+    error?: string,
+    parameters?: any
+  ): void {
     const record: RequestRecord = {
       id: this.generateId(),
       tool,
@@ -75,7 +81,7 @@ export class PerformanceAnalytics {
       responseTime,
       success,
       ...(error && { error }),
-      ...(parameters && { parameters })
+      ...(parameters && { parameters }),
     };
 
     this.requests.push(record);
@@ -98,7 +104,7 @@ export class PerformanceAnalytics {
    */
   getAverageResponseTime(): number {
     if (this.requests.length === 0) return 0;
-    
+
     const total = this.requests.reduce((sum, req) => sum + req.responseTime, 0);
     return total / this.requests.length;
   }
@@ -108,7 +114,7 @@ export class PerformanceAnalytics {
    */
   getSuccessRate(): number {
     if (this.requests.length === 0) return 1;
-    
+
     const successful = this.requests.filter(req => req.success).length;
     return successful / this.requests.length;
   }
@@ -131,14 +137,14 @@ export class PerformanceAnalytics {
           maxTime: 0,
           successRate: 0,
           lastUsed: new Date(0),
-          errors: []
+          errors: [],
         };
       }
 
       const toolStats = stats[req.tool]!;
       toolStats.calls++;
       toolStats.totalResponseTime += req.responseTime;
-      
+
       if (req.success) {
         toolStats.successfulCalls++;
       } else {
@@ -150,7 +156,7 @@ export class PerformanceAnalytics {
 
       toolStats.minTime = Math.min(toolStats.minTime, req.responseTime);
       toolStats.maxTime = Math.max(toolStats.maxTime, req.responseTime);
-      
+
       if (req.timestamp > toolStats.lastUsed) {
         toolStats.lastUsed = req.timestamp;
       }
@@ -184,12 +190,13 @@ export class PerformanceAnalytics {
     const periods = this.getPeriods(periodType, now);
 
     periods.forEach(period => {
-      const periodRequests = this.requests.filter(req => 
-        req.timestamp >= period.start && req.timestamp < period.end
+      const periodRequests = this.requests.filter(
+        req => req.timestamp >= period.start && req.timestamp < period.end
       );
 
       if (periodRequests.length > 0) {
-        const avgResponseTime = periodRequests.reduce((sum, req) => sum + req.responseTime, 0) / periodRequests.length;
+        const avgResponseTime =
+          periodRequests.reduce((sum, req) => sum + req.responseTime, 0) / periodRequests.length;
         const successCount = periodRequests.filter(req => req.success).length;
         const successRate = successCount / periodRequests.length;
 
@@ -197,7 +204,7 @@ export class PerformanceAnalytics {
           period: period.label,
           avgResponseTime,
           successRate,
-          requestCount: periodRequests.length
+          requestCount: periodRequests.length,
         });
       }
     });
@@ -218,7 +225,9 @@ export class PerformanceAnalytics {
     const successRate = this.getSuccessRate();
 
     if (avgResponseTime > this.thresholds.warning) {
-      insights.push(`⚠️  Average response time (${avgResponseTime.toFixed(1)}ms) exceeds warning threshold`);
+      insights.push(
+        `⚠️  Average response time (${avgResponseTime.toFixed(1)}ms) exceeds warning threshold`
+      );
     } else if (avgResponseTime < this.thresholds.excellent) {
       insights.push(`✅ Excellent average response time (${avgResponseTime.toFixed(1)}ms)`);
     }
@@ -247,14 +256,18 @@ export class PerformanceAnalytics {
     // Recent trends
     const recentFailures = recentRequests.filter(req => !req.success);
     if (recentFailures.length > recentRequests.length * 0.2) {
-      insights.push(`📈 Recent failure rate is elevated (${recentFailures.length}/${recentRequests.length})`);
+      insights.push(
+        `📈 Recent failure rate is elevated (${recentFailures.length}/${recentRequests.length})`
+      );
     }
 
     // Performance variance insights
     Object.entries(toolStats).forEach(([tool, stats]) => {
       const variance = stats.maxTime - stats.minTime;
       if (variance > 1000) {
-        insights.push(`📊 ${tool} shows high response time variance (${stats.minTime}ms - ${stats.maxTime}ms)`);
+        insights.push(
+          `📊 ${tool} shows high response time variance (${stats.minTime}ms - ${stats.maxTime}ms)`
+        );
       }
     });
 
@@ -276,7 +289,7 @@ export class PerformanceAnalytics {
 
     // Sort tools by different criteria
     const toolEntries = Object.entries(toolStats);
-    
+
     const topPerformers = toolEntries
       .filter(([, stats]) => stats.calls >= 5) // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       .sort((a, b) => a[1].avgTime - b[1].avgTime)
@@ -285,7 +298,7 @@ export class PerformanceAnalytics {
         tool,
         avgTime: stats.avgTime,
         successRate: stats.successRate,
-        calls: stats.calls
+        calls: stats.calls,
       }));
 
     const slowest = toolEntries
@@ -295,7 +308,7 @@ export class PerformanceAnalytics {
         tool,
         avgTime: stats.avgTime,
         maxTime: stats.maxTime,
-        calls: stats.calls
+        calls: stats.calls,
       }));
 
     const mostUsed = toolEntries
@@ -305,7 +318,7 @@ export class PerformanceAnalytics {
         tool,
         calls: stats.calls,
         avgTime: stats.avgTime,
-        successRate: stats.successRate
+        successRate: stats.successRate,
       }));
 
     const recentFailures = recentActivity
@@ -315,7 +328,7 @@ export class PerformanceAnalytics {
         tool: req.tool,
         error: req.error,
         timestamp: req.timestamp,
-        responseTime: req.responseTime
+        responseTime: req.responseTime,
       }));
 
     return {
@@ -323,12 +336,12 @@ export class PerformanceAnalytics {
         totalRequests: this.getTotalRequests(),
         avgResponseTime: this.getAverageResponseTime(),
         successRate: this.getSuccessRate(),
-        uniqueTools: Object.keys(toolStats).length
+        uniqueTools: Object.keys(toolStats).length,
       },
       topPerformers,
       slowest,
       mostUsed,
-      recentFailures
+      recentFailures,
     };
   }
 
@@ -343,7 +356,7 @@ export class PerformanceAnalytics {
       trends: this.getPerformanceTrends(),
       insights: this.getPerformanceInsights(),
       thresholds: this.thresholds,
-      exportedAt: new Date()
+      exportedAt: new Date(),
     };
   }
 
@@ -419,7 +432,10 @@ export class PerformanceAnalytics {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  private getPeriods(periodType: 'hour' | 'day' | 'week', now: Date): Array<{
+  private getPeriods(
+    periodType: 'hour' | 'day' | 'week',
+    now: Date
+  ): Array<{
     start: Date;
     end: Date;
     label: string;
@@ -448,13 +464,13 @@ export class PerformanceAnalytics {
     }
 
     for (let i = maxPeriods - 1; i >= 0; i--) {
-      const end = new Date(now.getTime() - (i * duration));
+      const end = new Date(now.getTime() - i * duration);
       const start = new Date(end.getTime() - duration);
-      
+
       periods.push({
         start,
         end,
-        label: this.formatPeriodLabel(start, labelFormat) || 'Unknown'
+        label: this.formatPeriodLabel(start, labelFormat) || 'Unknown',
       });
     }
 
@@ -463,9 +479,21 @@ export class PerformanceAnalytics {
 
   private formatPeriodLabel(date: Date, format: string): string {
     // Simple date formatting - in production, use a proper date library
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
     switch (format) {
       case 'HH:00':
         return `${date.getHours().toString().padStart(2, '0')}:00`;

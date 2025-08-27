@@ -1,491 +1,726 @@
-# Personal Pipeline Architecture Documentation
+# Architecture Documentation
+
+This document provides a comprehensive overview of Personal Pipeline's system architecture, components, and design decisions.
 
 ## System Overview
 
-The Personal Pipeline MCP server implements a modular, event-driven architecture designed for high-performance document retrieval and incident response support. The system follows the Model Context Protocol (MCP) specification and provides intelligent documentation retrieval capabilities.
+Personal Pipeline is an intelligent Model Context Protocol (MCP) server designed for automated retrieval of internal documentation to support AI-driven monitoring alert response and incident management.
 
-## High-Level Architecture
+### High-Level Architecture
 
 ```mermaid
 graph TB
-    subgraph "LangGraph Agent"
-        A[AI Agent] --> B[MCP Client]
+    subgraph "External Clients"
+        LA[LangGraph Agent]
+        EI[External Integrations]
+        DS[Demo Scripts]
+        WUI[Web UI]
     end
     
     subgraph "Personal Pipeline Server"
-        B --> C[MCP Protocol Handler]
-        C --> D[PPMCPTools]
-        D --> E[Source Registry]
-        E --> F[Source Adapters]
-        
-        subgraph "Source Adapters"
-            F1[FileSystem Adapter]
-            F2[Confluence Adapter]
-            F3[GitHub Adapter]
-            F4[Database Adapter]
+        subgraph "API Layer"
+            MCP[MCP Protocol Handler]
+            REST[REST API Handler]
+            MW[Middleware Layer]
         end
         
-        F --> F1
-        F --> F2
-        F --> F3
-        F --> F4
+        subgraph "Core Engine"
+            CE[Core Engine]
+            TM[Tool Manager]
+            SM[Search Manager]
+        end
+        
+        subgraph "Caching Layer"
+            HC[Hybrid Cache]
+            MC[Memory Cache]
+            RC[Redis Cache]
+        end
+        
+        subgraph "Adapter Framework"
+            AR[Adapter Registry]
+            FA[File Adapter]
+            WA[Web Adapter]
+            GA[GitHub Adapter]
+            CA[Confluence Adapter]
+        end
     end
     
-    subgraph "External Sources"
-        G[Local Files]
-        H[Confluence]
-        I[GitHub Repos]
-        J[Databases]
+    subgraph "Data Sources"
+        LF[Local Files]
+        WS[Web Services]
+        GR[GitHub Repos]
+        CF[Confluence]
     end
     
-    F1 --> G
-    F2 --> H
-    F3 --> I
-    F4 --> J
+    LA --> MCP
+    EI --> REST
+    DS --> REST
+    WUI --> REST
     
-    subgraph "Monitoring & Health"
-        K[Health Endpoints]
-        L[Metrics Collection]
-        M[Logging]
-    end
+    MCP --> CE
+    REST --> MW
+    MW --> CE
     
-    C --> K
-    D --> L
-    E --> M
+    CE --> TM
+    CE --> SM
+    CE --> HC
+    
+    HC --> MC
+    HC --> RC
+    
+    SM --> AR
+    AR --> FA
+    AR --> WA
+    AR --> GA
+    AR --> CA
+    
+    FA --> LF
+    WA --> WS
+    GA --> GR
+    CA --> CF
 ```
 
 ## Core Components
 
-### 1. MCP Protocol Layer
+### 1. API Layer
 
-**Location**: `src/core/server.ts`
+The API layer provides dual access patterns to accommodate different integration needs:
 
-The `PersonalPipelineServer` class implements the MCP specification:
+#### MCP Protocol Handler
+- **Purpose**: Native MCP protocol support for LangGraph agents
+- **Implementation**: `src/core/server.ts`
+- **Features**:
+  - 7 core MCP tools
+  - Real-time tool execution
+  - Structured response formats
+  - Error handling and logging
 
-- **Transport**: stdio-based communication with LangGraph agents
-- **Protocol Handlers**: `ListToolsRequest` and `CallToolRequest` handlers
-- **Error Management**: Structured error responses with proper formatting
-- **Connection Management**: Graceful startup and shutdown procedures
+#### REST API Handler
+- **Purpose**: HTTP endpoint access for web integrations
+- **Implementation**: `src/api/routes.ts`
+- **Features**:
+  - 11 REST endpoints
+  - OpenAPI/Swagger documentation
+  - Request validation and transformation
+  - Performance monitoring
 
-```typescript
-// MCP server setup with stdio transport
-const server = new Server({
-  name: 'personal-pipeline-mcp',
-  version: '0.1.0'
-}, {
-  capabilities: { tools: {} }
-});
+#### Middleware Layer
+- **Purpose**: Cross-cutting concerns for API requests
+- **Implementation**: `src/api/middleware.ts`
+- **Components**:
+  - Request validation
+  - Performance monitoring
+  - Error handling
+  - Security headers
+  - CORS support
 
-// Tool request handling
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  return await mcpTools.handleToolCall(request);
-});
+```mermaid
+graph LR
+    subgraph "API Layer Architecture"
+        subgraph "Request Processing"
+            RV[Request Validation]
+            RT[Rate Limiting]
+            AU[Authentication]
+            CO[CORS Handler]
+        end
+        
+        subgraph "Core Processing"
+            TT[Tool Transform]
+            CE[Core Engine]
+            RM[Response Mapping]
+        end
+        
+        subgraph "Response Processing"
+            CH[Caching Headers]
+            PM[Performance Metrics]
+            EH[Error Handling]
+            LG[Logging]
+        end
+    end
+    
+    RV --> TT
+    RT --> TT
+    AU --> TT
+    CO --> TT
+    
+    TT --> CE
+    CE --> RM
+    
+    RM --> CH
+    RM --> PM
+    RM --> EH
+    RM --> LG
 ```
 
-### 2. Tool Implementation Layer
+### 2. Core Engine
 
-**Location**: `src/tools/index.ts`
+The core engine coordinates tool execution, search operations, and response generation.
 
-The `PPMCPTools` class provides 7 core MCP tools:
+#### Core Server (PersonalPipelineServer)
+- **Location**: `src/core/server.ts`
+- **Responsibilities**:
+  - MCP tool registration and execution
+  - Request routing and coordination
+  - Error handling and recovery
+  - Performance monitoring
 
-#### Tool Categories:
-- **Primary Tools**: `search_runbooks`, `get_decision_tree`, `get_procedure`, `get_escalation_path`
-- **Support Tools**: `list_sources`, `search_knowledge_base`, `record_resolution_feedback`
+#### Tool Manager (PPMCPTools)
+- **Location**: `src/tools/index.ts`
+- **Features**:
+  - 7 core MCP tools implementation
+  - Tool validation and execution
+  - Response formatting and confidence scoring
+  - Caching integration
 
-#### Tool Architecture:
 ```typescript
 class PPMCPTools {
-  async handleToolCall(request: CallToolRequest): Promise<CallToolResult> {
-    // 1. Input validation and logging
-    // 2. Tool dispatch based on request.params.name
-    // 3. Error handling and response formatting
-    // 4. Performance monitoring and metrics
-  }
+  // Primary operational tools
+  search_runbooks(alertType, severity?, systems?, context?)
+  get_decision_tree(scenario, context?)
+  get_procedure(procedureId, step?)
+  get_escalation_path(severity, context?, businessHours?)
+  
+  // Supporting tools
+  list_sources(includeHealth?)
+  search_knowledge_base(query, filters?)
+  record_resolution_feedback(incidentId, outcome, feedback?)
 }
 ```
 
-### 3. Source Adapter Framework
+### 3. Search and Intelligence Layer
 
-**Location**: `src/adapters/base.ts`, `src/adapters/file.ts`
+#### Intelligent Search Engine
+- **Location**: `src/search/intelligent-search-engine.ts`
+- **Features**:
+  - Multi-adapter search coordination
+  - Confidence scoring algorithms
+  - Result ranking and filtering
+  - Performance optimization
 
-#### Abstract Base Class Pattern:
+#### Query Processing Pipeline
+- **Location**: `src/search/query-processing/`
+- **Components**:
+  - Intent classification
+  - Context enhancement
+  - Query optimization
+  - Operational intelligence
+
+```mermaid
+graph LR
+    subgraph "Search Pipeline"
+        QI[Query Input]
+        IC[Intent Classifier]
+        CE[Context Enhancer]
+        QO[Query Optimizer]
+        
+        subgraph "Search Execution"
+            MS[Multi-Source Search]
+            CS[Confidence Scoring]
+            RR[Result Ranking]
+        end
+        
+        RF[Formatted Response]
+    end
+    
+    QI --> IC
+    IC --> CE
+    CE --> QO
+    QO --> MS
+    MS --> CS
+    CS --> RR
+    RR --> RF
+```
+
+### 4. Caching System
+
+#### Hybrid Caching Architecture
+- **Implementation**: `src/utils/cache.ts`
+- **Strategy**: Multi-tier caching with intelligent fallback
+- **Performance**: <50ms cache hits, graceful degradation
+
+```mermaid
+graph TB
+    subgraph "Caching Architecture"
+        subgraph "Memory Tier"
+            L1[L1 Cache - Hot Data]
+            L2[L2 Cache - Warm Data]
+        end
+        
+        subgraph "Persistence Tier"
+            RC[Redis Cache]
+            RCF[Redis Fallback]
+        end
+        
+        subgraph "Cache Management"
+            CM[Cache Manager]
+            CW[Cache Warmer]
+            CI[Cache Invalidation]
+        end
+    end
+    
+    CM --> L1
+    CM --> L2
+    CM --> RC
+    
+    CW --> L1
+    CI --> L1
+    CI --> L2
+    CI --> RC
+    
+    RC -.fallback.-> RCF
+```
+
+#### Cache Strategies
+1. **Hot Path Caching**: Critical runbooks cached in memory
+2. **Warm Cache**: Frequently accessed content in Redis
+3. **Cold Storage**: Full search index with lazy loading
+4. **Cache Warming**: Proactive loading of high-priority content
+
+### 5. Adapter Framework
+
+#### Base Architecture
 ```typescript
 abstract class SourceAdapter {
-  // Core search functionality
-  abstract search(query: string, filters?: SearchFilters): Promise<SearchResult[]>;
-  abstract getDocument(id: string): Promise<SearchResult | null>;
-  
-  // Specialized runbook search
-  abstract searchRunbooks(
-    alertType: string, 
-    severity: AlertSeverity, 
-    affectedSystems: string[]
-  ): Promise<Runbook[]>;
-  
-  // Health and lifecycle management  
-  abstract healthCheck(): Promise<HealthCheck>;
-  abstract getMetadata(): Promise<any>;
-  abstract cleanup(): Promise<void>;
+  abstract search(query: string, filters?: any): Promise<SearchResult[]>
+  abstract getDocument(id: string): Promise<Document>
+  abstract searchRunbooks(alertType: string, severity?: string, systems?: string[]): Promise<RunbookResult[]>
+  abstract healthCheck(): Promise<HealthStatus>
+  abstract getMetadata(): Promise<AdapterMetadata>
+  abstract cleanup(): Promise<void>
 }
 ```
 
-#### Registry Pattern:
-```typescript
-class SourceAdapterRegistry {
-  private adapters: Map<string, SourceAdapter> = new Map();
-  private factories: Map<string, AdapterFactory> = new Map();
+#### File System Adapter
+- **Location**: `src/adapters/file-enhanced.ts`
+- **Features**:
+  - Recursive directory scanning
+  - Multiple format support (MD, JSON, YAML, TXT)
+  - Intelligent content indexing
+  - Real-time file watching
+  - Metadata extraction
+
+```mermaid
+graph TB
+    subgraph "FileSystem Adapter"
+        subgraph "Indexing"
+            FS[File Scanner]
+            CI[Content Indexer]
+            MI[Metadata Indexer]
+            FW[File Watcher]
+        end
+        
+        subgraph "Search"
+            FTS[Full-Text Search]
+            MS[Metadata Search]
+            FS2[Fuzzy Search]
+        end
+        
+        subgraph "Caching"
+            FC[File Cache]
+            IC[Index Cache]
+            SC[Search Cache]
+        end
+    end
+    
+    FS --> CI
+    CI --> MI
+    FW --> CI
+    
+    CI --> FTS
+    MI --> MS
+    FTS --> FS2
+    
+    FTS --> FC
+    MS --> IC
+    FS2 --> SC
+```
+
+#### Web Adapter
+- **Location**: `src/adapters/web/`
+- **Components**:
+  - HTTP client with retry logic
+  - Content extraction and cleaning
+  - Authentication management
+  - Rate limiting and circuit breaker
+  - URL management and validation
+
+### 6. Configuration System
+
+#### Configuration Manager
+- **Location**: `src/utils/config.ts`
+- **Features**:
+  - YAML configuration parsing
+  - Environment variable support
+  - Runtime configuration validation
+  - Hot configuration reloading
+
+```yaml
+# Configuration Structure
+server:
+  port: 3000
+  host: '0.0.0.0'
   
-  // Factory registration for different source types
-  registerFactory(type: string, factory: AdapterFactory): void;
+cache:
+  strategy: hybrid  # memory | redis | hybrid
+  ttl: 300
   
-  // Dynamic adapter creation from configuration
-  async createAdapter(config: SourceConfig): Promise<void>;
-  
-  // Adapter lifecycle management
-  async cleanup(): Promise<void>;
-  async healthCheckAll(): Promise<HealthCheck[]>;
-}
+sources:
+  - name: "local-runbooks"
+    type: "file"
+    config: { /* adapter-specific config */ }
+    
+performance:
+  concurrent_searches: 10
+  timeout_ms: 5000
 ```
 
-### 4. Type System and Validation
+## Data Flow
 
-**Location**: `src/types/index.ts`
-
-#### Zod-Based Runtime Validation:
-- **Schema Definition**: All data structures defined with Zod schemas
-- **Runtime Validation**: Input/output validation at API boundaries
-- **Type Safety**: TypeScript types inferred from Zod schemas
-- **Error Messages**: Structured validation error reporting
-
-```typescript
-// Example: Runbook schema with runtime validation
-export const Runbook = z.object({
-  id: z.string(),
-  title: z.string(),
-  version: z.string(),
-  decision_tree: DecisionTree,
-  procedures: z.array(ProcedureStep),
-  metadata: z.object({
-    confidence_score: ConfidenceScore,
-    success_rate: z.number().min(0).max(1)
-  })
-});
-```
-
-### 5. Configuration Management
-
-**Location**: `src/utils/config.ts`
-
-#### Features:
-- **YAML Configuration**: Human-readable configuration files
-- **Environment Variables**: Sensitive data via environment variables
-- **Schema Validation**: Configuration validated against Zod schemas
-- **Hot Reloading**: Configuration updates without restart (planned)
-
-```typescript
-class ConfigManager {
-  async loadConfig(): Promise<AppConfig> {
-    // 1. Load YAML configuration file
-    // 2. Apply environment variable overrides
-    // 3. Validate against schema
-    // 4. Return typed configuration object
-  }
-}
-```
-
-### 6. Logging and Observability
-
-**Location**: `src/utils/logger.ts`
-
-#### Structured Logging with Winston:
-- **Log Levels**: debug, info, warn, error
-- **Structured Format**: JSON-based log entries
-- **Context Enrichment**: Request IDs, user context, performance metrics
-- **Multiple Transports**: Console, file, external logging systems
-
-```typescript
-// Example structured log entry
-logger.info('Tool call completed', {
-  tool: 'search_runbooks',
-  executionTimeMs: 45,
-  resultCount: 3,
-  confidenceScore: 0.92,
-  requestId: 'req_123'
-});
-```
-
-## Data Flow Patterns
-
-### 1. MCP Tool Request Flow
+### MCP Tool Execution Flow
 
 ```mermaid
 sequenceDiagram
-    participant Agent as LangGraph Agent
-    participant Server as MCP Server
-    participant Tools as PPMCPTools
-    participant Registry as Source Registry
+    participant Client as LangGraph Agent
+    participant MCP as MCP Handler
+    participant Engine as Core Engine
+    participant Cache as Cache Layer
     participant Adapter as Source Adapter
     participant Source as Data Source
     
-    Agent->>Server: CallToolRequest
-    Server->>Tools: handleToolCall()
-    Tools->>Registry: getAllAdapters()
-    Registry->>Adapter: search()
-    Adapter->>Source: Query data
-    Source-->>Adapter: Raw results
-    Adapter-->>Registry: SearchResults[]
-    Registry-->>Tools: Aggregated results
-    Tools-->>Server: CallToolResult
-    Server-->>Agent: JSON response
-```
-
-### 2. Source Adapter Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> Registered: registerFactory()
-    Registered --> Creating: createAdapter()
-    Creating --> Active: initialize()
-    Active --> Healthy: healthCheck() = OK
-    Active --> Unhealthy: healthCheck() = FAIL
-    Healthy --> Active: continue operations
-    Unhealthy --> Active: recovery attempt
-    Active --> Cleanup: cleanup()
-    Cleanup --> [*]
-```
-
-### 3. Error Handling Strategy
-
-```mermaid
-graph TD
-    A[Request] --> B{Input Valid?}
-    B -->|No| C[ValidationError]
-    B -->|Yes| D[Process Request]
-    D --> E{Source Available?}
-    E -->|No| F[SourceError]
-    E -->|Yes| G[Execute Query]
-    G --> H{Timeout?}
-    H -->|Yes| I[TimeoutError]
-    H -->|No| J{Results Found?}
-    J -->|No| K[NotFoundError]
-    J -->|Yes| L[Success Response]
+    Client->>MCP: Tool Call (search_runbooks)
+    MCP->>Engine: Process Request
+    Engine->>Cache: Check Cache
     
-    C --> M[Error Response]
-    F --> M
-    I --> M
-    K --> M
-    L --> N[Success Response]
+    alt Cache Hit
+        Cache-->>Engine: Return Cached Result
+    else Cache Miss
+        Engine->>Adapter: Search Request
+        Adapter->>Source: Query Data
+        Source-->>Adapter: Raw Results
+        Adapter-->>Engine: Processed Results
+        Engine->>Cache: Store Results
+    end
+    
+    Engine-->>MCP: Formatted Response
+    MCP-->>Client: Tool Result
+```
+
+### REST API Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Client as External Client
+    participant REST as REST API
+    participant MW as Middleware
+    participant Transform as Transform Layer
+    participant Engine as Core Engine
+    
+    Client->>REST: HTTP Request
+    REST->>MW: Validate Request
+    MW->>Transform: Transform to Internal Format
+    Transform->>Engine: Execute Operation
+    Engine-->>Transform: Internal Response
+    Transform-->>MW: HTTP Response Format
+    MW-->>REST: Add Headers/Metrics
+    REST-->>Client: HTTP Response
 ```
 
 ## Performance Architecture
 
-### 1. Caching Strategy
+### Response Time Optimization
 
-#### Multi-Level Caching:
-- **L1 Cache**: In-memory query result cache (`node-cache`)
-- **L2 Cache**: Persistent cache for expensive operations (planned: Redis)
-- **L3 Cache**: Source-specific content caching
-
-#### Cache Key Strategy:
-```typescript
-// Cache key generation
-const generateCacheKey = (operation: string, params: any): string => {
-  return `${operation}:${hashObject(params)}`;
-};
-
-// Example cache keys
-"search_runbooks:hash(alert_type=memory_pressure,severity=high)"
-"get_procedure:hash(runbook_id=mem-001,step=restart_service)"
+```mermaid
+graph TB
+    subgraph "Performance Layers"
+        subgraph "Hot Path (< 50ms)"
+            HC[Health Checks]
+            CC[Cache Hits]
+            MD[Metadata Queries]
+        end
+        
+        subgraph "Fast Path (< 200ms)"
+            RB[Runbook Retrieval]
+            DT[Decision Trees]
+            PR[Procedures]
+        end
+        
+        subgraph "Standard Path (< 500ms)"
+            FS[Full Search]
+            CS[Complex Queries]
+            AG[Aggregations]
+        end
+        
+        subgraph "Optimization Techniques"
+            PL[Parallel Loading]
+            CB[Circuit Breaker]
+            RT[Request Throttling]
+            IC[Intelligent Caching]
+        end
+    end
+    
+    PL --> HC
+    PL --> CC
+    PL --> MD
+    
+    CB --> RB
+    CB --> DT
+    CB --> PR
+    
+    RT --> FS
+    RT --> CS
+    RT --> AG
+    
+    IC --> PL
+    IC --> CB
+    IC --> RT
 ```
 
-### 2. Concurrent Request Handling
+### Scalability Patterns
 
-#### Request Processing:
-- **Connection Pooling**: Multiple source connections
-- **Request Queuing**: Prevents source overload
-- **Circuit Breaker**: Protects against cascade failures
-- **Timeout Management**: Per-request and per-source timeouts
-
-```typescript
-// Concurrent source querying
-const searchAllSources = async (query: string): Promise<SearchResult[]> => {
-  const adapters = this.sourceRegistry.getAllAdapters();
-  const promises = adapters.map(adapter => 
-    adapter.search(query).catch(error => {
-      logger.error(`Source ${adapter.name} failed`, { error });
-      return []; // Continue with other sources
-    })
-  );
-  
-  const results = await Promise.allSettled(promises);
-  return results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
-};
-```
-
-### 3. Performance Monitoring
-
-#### Metrics Collection:
-- **Response Times**: P50, P95, P99 percentiles
-- **Cache Hit Rates**: Per-tool and per-source metrics
-- **Error Rates**: Error frequency and categorization
-- **Resource Usage**: Memory, CPU, connection counts
+1. **Horizontal Scaling**: Multiple server instances with shared cache
+2. **Vertical Scaling**: Resource optimization and memory management
+3. **Cache Scaling**: Distributed caching with consistent hashing
+4. **Adapter Scaling**: Independent scaling of adapter instances
 
 ## Security Architecture
 
-### 1. Input Validation
+### Security Layers
 
-#### Multi-Layer Validation:
-- **Schema Validation**: Zod schema validation at API boundaries
-- **Content Sanitization**: HTML/script injection prevention
-- **Size Limits**: Request and response size constraints
-- **Rate Limiting**: Per-client request throttling
+```mermaid
+graph TB
+    subgraph "Security Architecture"
+        subgraph "Network Security"
+            CORS[CORS Policy]
+            RL[Rate Limiting]
+            IP[IP Filtering]
+        end
+        
+        subgraph "Input Security"
+            IV[Input Validation]
+            XSS[XSS Protection]
+            SQLi[Injection Prevention]
+        end
+        
+        subgraph "Authentication"
+            JWT[JWT Tokens]
+            API[API Keys]
+            OAuth[OAuth Integration]
+        end
+        
+        subgraph "Authorization"
+            RBAC[Role-Based Access]
+            ACL[Access Control Lists]
+            PERM[Permission Matrix]
+        end
+        
+        subgraph "Data Security"
+            ENC[Encryption at Rest]
+            TLS[TLS in Transit]
+            LOG[Audit Logging]
+        end
+    end
+```
 
-### 2. Authentication and Authorization
+### Security Features
 
-#### Current Implementation:
-- **Transport Security**: stdio transport inherits agent security
-- **Input Validation**: All inputs validated against schemas
-- **Output Sanitization**: Sensitive data filtering
+1. **Input Sanitization**: All inputs validated and sanitized
+2. **HTTPS Enforcement**: TLS encryption for all communications
+3. **Rate Limiting**: Protection against abuse and DDoS
+4. **Audit Logging**: Comprehensive security event logging
+5. **Secret Management**: Environment variable based credential storage
 
-#### Planned Features:
-- **API Key Authentication**: For HTTP transport mode
-- **Role-Based Access**: Different access levels for different tools
-- **Audit Logging**: All operations logged for security analysis
+## Monitoring and Observability
 
-### 3. Data Protection
+### Monitoring Stack
 
-#### Sensitive Data Handling:
-- **Environment Variables**: Credentials never in configuration files
-- **Log Sanitization**: Sensitive data filtered from logs
-- **Memory Management**: Secure cleanup of sensitive data
-- **Transport Encryption**: TLS for network communication (planned)
+```mermaid
+graph TB
+    subgraph "Observability Stack"
+        subgraph "Metrics Collection"
+            PM[Performance Metrics]
+            UM[Usage Metrics]
+            EM[Error Metrics]
+            BM[Business Metrics]
+        end
+        
+        subgraph "Logging"
+            AL[Application Logs]
+            AUL[Audit Logs]
+            EL[Error Logs]
+            PL[Performance Logs]
+        end
+        
+        subgraph "Health Monitoring"
+            HC[Health Checks]
+            SC[Service Checks]
+            DC[Dependency Checks]
+            AC[Adapter Checks]
+        end
+        
+        subgraph "Alerting"
+            TH[Threshold Alerts]
+            AN[Anomaly Detection]
+            SLA[SLA Monitoring]
+            ES[Escalation System]
+        end
+    end
+```
 
-## Scalability Design
+### Key Metrics
 
-### 1. Horizontal Scaling
+1. **Performance Metrics**:
+   - Response times (P50, P95, P99)
+   - Request throughput
+   - Cache hit rates
+   - Error rates
 
-#### Scale-Out Architecture:
-- **Stateless Design**: No shared state between server instances
-- **External Caching**: Redis for shared cache across instances
-- **Load Balancing**: Multiple server instances behind load balancer
-- **Database Scaling**: Read replicas for source databases
+2. **Business Metrics**:
+   - Runbook retrieval success rate
+   - Average resolution time improvement
+   - User satisfaction scores
+   - Knowledge base coverage
 
-### 2. Vertical Scaling
-
-#### Resource Optimization:
-- **Memory Management**: Efficient object lifecycle management
-- **CPU Optimization**: Asynchronous I/O and event-driven processing
-- **Connection Pooling**: Reuse connections to external sources
-- **Batch Processing**: Aggregate similar queries for efficiency
-
-### 3. Source Scaling
-
-#### Adapter Scaling Strategy:
-- **Connection Limits**: Per-source connection limits
-- **Request Batching**: Combine multiple requests to same source
-- **Circuit Breakers**: Protect sources from overload
-- **Priority Queuing**: Critical requests get priority
+3. **System Metrics**:
+   - CPU and memory usage
+   - Network I/O
+   - Disk usage
+   - Connection pool status
 
 ## Deployment Architecture
 
-### 1. Container Strategy
+### Containerized Deployment
+
+```mermaid
+graph TB
+    subgraph "Deployment Environment"
+        subgraph "Load Balancer"
+            LB[Load Balancer]
+            SSL[SSL Termination]
+        end
+        
+        subgraph "Application Tier"
+            APP1[PP Server 1]
+            APP2[PP Server 2]
+            APP3[PP Server N]
+        end
+        
+        subgraph "Cache Tier"
+            RC[Redis Cluster]
+            RCS[Redis Sentinel]
+        end
+        
+        subgraph "Data Sources"
+            FS[File Systems]
+            WS[Web Services]
+            EXT[External APIs]
+        end
+        
+        subgraph "Monitoring"
+            MON[Monitoring Stack]
+            LOG[Log Aggregation]
+            ALERT[Alerting System]
+        end
+    end
+    
+    LB --> APP1
+    LB --> APP2
+    LB --> APP3
+    
+    APP1 --> RC
+    APP2 --> RC
+    APP3 --> RC
+    
+    RC --> RCS
+    
+    APP1 --> FS
+    APP1 --> WS
+    APP1 --> EXT
+    
+    APP1 --> MON
+    APP2 --> MON
+    APP3 --> MON
+```
+
+### Docker Configuration
 
 ```dockerfile
-# Multi-stage build for production
-FROM node:18-alpine AS builder
+# Multi-stage build for optimization
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-FROM node:18-alpine AS runtime
+FROM node:20-alpine AS runtime
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
-COPY dist ./dist
-COPY config/config.sample.yaml ./config/
+COPY . .
+RUN npm run build
+
 EXPOSE 3000
-CMD ["node", "dist/index.js"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+CMD ["npm", "start"]
 ```
 
-### 2. Health Check Strategy
+## Development Architecture
 
-#### Multi-Level Health Checks:
-- **Liveness Probe**: `/ready` - Server is running
-- **Readiness Probe**: `/health` - Server can handle requests
-- **Deep Health Check**: All source adapters are healthy
+### Development Environment
 
-### 3. Configuration Management
-
-#### Environment-Specific Configuration:
-```yaml
-# Production configuration
-server:
-  port: 3000
-  host: 0.0.0.0
-  log_level: info
-  cache_ttl_seconds: 3600
-
-sources:
-  - name: "production-confluence"
-    type: "confluence"
-    base_url: "${CONFLUENCE_URL}"
-    auth:
-      type: "bearer_token"
-      token_env: "CONFLUENCE_TOKEN"
-    refresh_interval: "1h"
-    priority: 1
+```mermaid
+graph TB
+    subgraph "Development Environment"
+        subgraph "Local Development"
+            IDE[IDE/Editor]
+            LOCAL[Local Server]
+            DEMO[Demo Environment]
+        end
+        
+        subgraph "Testing"
+            UNIT[Unit Tests]
+            INT[Integration Tests]
+            E2E[E2E Tests]
+            PERF[Performance Tests]
+        end
+        
+        subgraph "Quality Gates"
+            LINT[ESLint]
+            TYPE[TypeScript]
+            COV[Coverage]
+            SEC[Security Scan]
+        end
+        
+        subgraph "CI/CD Pipeline"
+            BUILD[Build Process]
+            TEST[Test Execution]
+            DEPLOY[Deployment]
+            MONITOR[Monitoring]
+        end
+    end
 ```
+
+### Development Workflow
+
+1. **Local Development**: Hot reload with TypeScript compilation
+2. **Testing**: Comprehensive test suite with coverage reporting
+3. **Quality Assurance**: Automated linting, type checking, and security scanning
+4. **CI/CD**: Automated build, test, and deployment pipeline
+5. **Monitoring**: Continuous performance and error monitoring
 
 ## Future Architecture Considerations
 
-### 1. Microservices Evolution
+### Planned Enhancements
 
-#### Service Decomposition:
-- **Search Service**: Dedicated search and indexing service
-- **Cache Service**: Centralized caching with Redis Cluster
-- **Configuration Service**: Dynamic configuration management
-- **Metrics Service**: Centralized metrics and monitoring
+1. **Semantic Search**: Integration of embedding-based search
+2. **Machine Learning**: Predictive analytics for incident response
+3. **Multi-tenancy**: Support for multiple organizations
+4. **Federation**: Distributed deployment across multiple regions
+5. **Event Streaming**: Real-time event processing and notifications
 
-### 2. Event-Driven Architecture
+### Scalability Roadmap
 
-#### Event Streaming:
-- **Document Updates**: Real-time document change notifications
-- **Cache Invalidation**: Event-driven cache invalidation
-- **Metrics Streaming**: Real-time performance metrics
-- **Alert Processing**: Event-driven alert correlation
-
-### 3. AI/ML Integration
-
-#### Machine Learning Pipeline:
-- **Embedding Generation**: Document embeddings for semantic search
-- **Relevance Scoring**: ML-based confidence scoring
-- **Usage Analytics**: Learn from user behavior patterns
-- **Predictive Caching**: Preload frequently accessed content
-
-## Monitoring and Observability
-
-### 1. Application Metrics
-
-#### Key Performance Indicators:
-- **Request Rate**: Requests per second per tool
-- **Response Time**: P50, P95, P99 latencies
-- **Error Rate**: Error percentage by tool and source
-- **Cache Hit Rate**: Cache effectiveness metrics
-- **Source Health**: Availability of each documentation source
-
-### 2. Business Metrics
-
-#### Operational Impact:
-- **Resolution Time**: Time to find relevant runbook
-- **Success Rate**: Percentage of successful tool calls
-- **User Satisfaction**: Confidence score correlation with outcomes
-- **Coverage**: Percentage of alerts with matching runbooks
-
-### 3. Infrastructure Metrics
-
-#### System Health:
-- **Resource Usage**: CPU, memory, disk, network
-- **Connection Health**: Database and external service connections
-- **Log Analysis**: Error pattern detection and alerting
-- **Security Events**: Authentication failures and suspicious activity
-
-This architecture supports the current Milestone 1.1 implementation while providing a roadmap for future scalability and feature expansion.
+1. **Phase 1**: Vertical scaling optimization
+2. **Phase 2**: Horizontal scaling with load balancing
+3. **Phase 3**: Microservices decomposition
+4. **Phase 4**: Event-driven architecture
+5. **Phase 5**: Global distribution and edge computing

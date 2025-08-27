@@ -1,9 +1,9 @@
 /**
  * HTTP Client - Enterprise HTTP client with circuit breaker and rate limiting
- * 
+ *
  * Authored by: Integration Specialist
  * Date: 2025-01-17
- * 
+ *
  * Features:
  * - Circuit breaker pattern for resilience
  * - Intelligent rate limiting with burst allowance
@@ -69,17 +69,17 @@ export class HttpClient {
   private logger: Logger;
   private authManager: AuthManager;
   private options: HttpClientOptions;
-  
+
   // Circuit Breaker Management
   private circuitBreakers = new Map<string, CircuitBreakerState>();
   private readonly failureThreshold = 5;
   private readonly recoveryTimeout = 60000; // 1 minute
   private readonly halfOpenMaxCalls = 3;
-  
+
   // Rate Limiting Management
   private rateLimits = new Map<string, RateLimitState>();
   private readonly windowDuration = 60000; // 1 minute
-  
+
   // Concurrent Request Management
   private activeRequests = 0;
   private requestQueue: Array<{
@@ -87,7 +87,7 @@ export class HttpClient {
     reject: (reason: any) => void;
     request: () => Promise<HttpResponse>;
   }> = [];
-  
+
   // Performance Metrics
   private metrics = {
     totalRequests: 0,
@@ -96,14 +96,14 @@ export class HttpClient {
     circuitBreakerTrips: 0,
     rateLimitHits: 0,
     avgResponseTime: 0,
-    concurrentPeak: 0
+    concurrentPeak: 0,
   };
 
   constructor(options: HttpClientOptions, authManager: AuthManager, logger: Logger) {
     this.options = options;
     this.authManager = authManager;
     this.logger = logger.child({ component: 'HttpClient' });
-    
+
     this.axiosInstance = this.createAxiosInstance();
   }
 
@@ -111,16 +111,16 @@ export class HttpClient {
     this.logger.info('Initializing HTTP client', {
       timeout: this.options.timeout,
       maxConcurrent: this.options.maxConcurrentRequests,
-      retryAttempts: this.options.retryAttempts
+      retryAttempts: this.options.retryAttempts,
     });
-    
+
     // Test basic connectivity
     try {
       await this.axiosInstance.get('https://httpbin.org/status/200', { timeout: 5000 });
       this.logger.debug('HTTP client connectivity test passed');
     } catch (error) {
-      this.logger.warn('HTTP client connectivity test failed', { 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.warn('HTTP client connectivity test failed', {
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -128,36 +128,36 @@ export class HttpClient {
   async request(request: HttpRequest): Promise<HttpResponse> {
     const startTime = Date.now();
     const sourceKey = `${request.source.name}:${request.endpoint.name}`;
-    
+
     // Check circuit breaker
     if (!this.isCircuitBreakerClosed(sourceKey)) {
       throw new Error(`Circuit breaker is open for ${sourceKey}`);
     }
-    
+
     // Check rate limiting
     await this.checkRateLimit(request.source, request.endpoint);
-    
+
     // Handle concurrent request limiting
     if (this.activeRequests >= this.options.maxConcurrentRequests) {
       return this.queueRequest(request);
     }
-    
+
     this.activeRequests++;
     this.updateConcurrentPeak();
-    
+
     try {
       const response = await this.executeRequest(request);
-      
+
       // Record success
       this.recordSuccess(sourceKey);
       this.updateMetrics(true, Date.now() - startTime);
-      
+
       return response;
     } catch (error: any) {
       // Record failure
       this.recordFailure(sourceKey);
       this.updateMetrics(false, Date.now() - startTime);
-      
+
       throw error;
     } finally {
       this.activeRequests--;
@@ -165,24 +165,27 @@ export class HttpClient {
     }
   }
 
-  async healthCheck(url: string, timeout: number): Promise<{ status: number; responseTime: number }> {
+  async healthCheck(
+    url: string,
+    timeout: number
+  ): Promise<{ status: number; responseTime: number }> {
     const startTime = Date.now();
-    
+
     try {
-      const response = await this.axiosInstance.get(url, { 
+      const response = await this.axiosInstance.get(url, {
         timeout,
-        headers: { 'User-Agent': this.options.userAgent }
+        headers: { 'User-Agent': this.options.userAgent },
       });
-      
+
       return {
         status: response.status,
-        responseTime: Date.now() - startTime
+        responseTime: Date.now() - startTime,
       };
     } catch (error: any) {
       if (error.response) {
         return {
           status: error.response.status,
-          responseTime: Date.now() - startTime
+          responseTime: Date.now() - startTime,
         };
       }
       throw error;
@@ -195,23 +198,23 @@ export class HttpClient {
       activeRequests: this.activeRequests,
       queuedRequests: this.requestQueue.length,
       circuitBreakerStates: Object.fromEntries(this.circuitBreakers),
-      rateLimitStates: Object.fromEntries(this.rateLimits)
+      rateLimitStates: Object.fromEntries(this.rateLimits),
     };
   }
 
   async cleanup(): Promise<void> {
     this.logger.info('Cleaning up HTTP client');
-    
+
     // Clear queued requests
     this.requestQueue.forEach(({ reject }) => {
       reject(new Error('HTTP client shutting down'));
     });
     this.requestQueue = [];
-    
+
     // Reset circuit breakers
     this.circuitBreakers.clear();
     this.rateLimits.clear();
-    
+
     this.logger.info('HTTP client cleanup completed');
   }
 
@@ -225,21 +228,21 @@ export class HttpClient {
       maxRedirects: this.options.followRedirects ? 5 : 0,
       validateStatus: () => true, // Don't throw on HTTP errors
       headers: {
-        'User-Agent': this.options.userAgent
-      }
+        'User-Agent': this.options.userAgent,
+      },
     });
 
     // Request interceptor
     instance.interceptors.request.use(
-      (config) => {
+      config => {
         this.logger.debug('HTTP request starting', {
           method: config.method?.toUpperCase(),
           url: config.url,
-          headers: this.sanitizeHeaders(config.headers || {})
+          headers: this.sanitizeHeaders(config.headers || {}),
         });
         return config;
       },
-      (error) => {
+      error => {
         this.logger.error('HTTP request interceptor error', { error: error.message });
         return Promise.reject(error);
       }
@@ -247,20 +250,20 @@ export class HttpClient {
 
     // Response interceptor
     instance.interceptors.response.use(
-      (response) => {
+      response => {
         this.logger.debug('HTTP response received', {
           status: response.status,
           url: response.config.url,
           contentType: response.headers['content-type'],
-          size: this.getResponseSize(response)
+          size: this.getResponseSize(response),
         });
         return response;
       },
-      (error) => {
+      error => {
         this.logger.error('HTTP response error', {
           status: error.response?.status,
           url: error.config?.url,
-          message: error.message
+          message: error.message,
         });
         return Promise.reject(error);
       }
@@ -272,15 +275,15 @@ export class HttpClient {
   private async executeRequest(request: HttpRequest): Promise<HttpResponse> {
     const config = await this.buildRequestConfig(request);
     const startTime = Date.now();
-    
+
     // Implement retry logic
     let lastError: Error = new Error('Unknown error');
     const maxRetries = request.endpoint.retry_attempts ?? this.options.retryAttempts;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const response = await this.axiosInstance.request(config);
-        
+
         return {
           data: response.data,
           status: response.status,
@@ -289,16 +292,16 @@ export class HttpClient {
           url: response.config.url || request.url,
           contentType: response.headers['content-type'] || 'unknown',
           contentLength: this.getContentLength(response),
-          responseTime: Date.now() - startTime
+          responseTime: Date.now() - startTime,
         };
       } catch (error: any) {
         lastError = error;
-        
+
         // Don't retry on authentication errors or client errors
         if (error.response?.status && error.response.status >= 400 && error.response.status < 500) {
           break;
         }
-        
+
         // Wait before retry (exponential backoff with jitter)
         if (attempt < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, attempt), 10000) + Math.random() * 1000;
@@ -306,13 +309,13 @@ export class HttpClient {
             attempt: attempt + 1,
             maxRetries,
             delay,
-            error: error.message
+            error: error.message,
           });
           await this.sleep(delay);
         }
       }
     }
-    
+
     throw new Error(`Request failed after ${maxRetries + 1} attempts: ${lastError.message}`);
   }
 
@@ -323,8 +326,8 @@ export class HttpClient {
       timeout: request.endpoint.timeout_ms || this.options.timeout,
       headers: {
         ...request.headers,
-        ...request.endpoint.headers
-      }
+        ...request.endpoint.headers,
+      },
     };
 
     // Add authentication
@@ -340,11 +343,11 @@ export class HttpClient {
 
     // Add search query
     if (request.query && request.method === 'GET') {
-      config.params = { 
-        ...config.params, 
-        q: request.query, 
-        query: request.query, 
-        search: request.query 
+      config.params = {
+        ...config.params,
+        q: request.query,
+        query: request.query,
+        search: request.query,
       };
     }
 
@@ -366,7 +369,7 @@ export class HttpClient {
       this.requestQueue.push({
         resolve,
         reject,
-        request: () => this.request(request)
+        request: () => this.request(request),
       });
     });
   }
@@ -374,26 +377,24 @@ export class HttpClient {
   private processQueue(): void {
     if (this.requestQueue.length > 0 && this.activeRequests < this.options.maxConcurrentRequests) {
       const { resolve, reject, request } = this.requestQueue.shift()!;
-      
-      request()
-        .then(resolve)
-        .catch(reject);
+
+      request().then(resolve).catch(reject);
     }
   }
 
   private isCircuitBreakerClosed(sourceKey: string): boolean {
     const breaker = this.circuitBreakers.get(sourceKey);
-    
+
     if (!breaker) {
       return true; // No breaker = closed
     }
-    
+
     const now = Date.now();
-    
+
     switch (breaker.state) {
       case 'closed':
         return true;
-      
+
       case 'open':
         if (now >= breaker.nextAttempt) {
           breaker.state = 'half-open';
@@ -402,10 +403,10 @@ export class HttpClient {
           return true;
         }
         return false;
-      
+
       case 'half-open':
         return breaker.failures < this.halfOpenMaxCalls;
-      
+
       default:
         return true;
     }
@@ -413,7 +414,7 @@ export class HttpClient {
 
   private recordSuccess(sourceKey: string): void {
     const breaker = this.circuitBreakers.get(sourceKey);
-    
+
     if (breaker) {
       if (breaker.state === 'half-open') {
         breaker.state = 'closed';
@@ -425,29 +426,29 @@ export class HttpClient {
 
   private recordFailure(sourceKey: string): void {
     let breaker = this.circuitBreakers.get(sourceKey);
-    
+
     if (!breaker) {
       breaker = {
         failures: 0,
         lastFailure: 0,
         state: 'closed',
-        nextAttempt: 0
+        nextAttempt: 0,
       };
       this.circuitBreakers.set(sourceKey, breaker);
     }
-    
+
     breaker.failures++;
     breaker.lastFailure = Date.now();
-    
+
     if (breaker.failures >= this.failureThreshold) {
       breaker.state = 'open';
       breaker.nextAttempt = Date.now() + this.recoveryTimeout;
       this.metrics.circuitBreakerTrips++;
-      
+
       this.logger.warn('Circuit breaker opened due to failures', {
         sourceKey,
         failures: breaker.failures,
-        nextAttempt: new Date(breaker.nextAttempt).toISOString()
+        nextAttempt: new Date(breaker.nextAttempt).toISOString(),
       });
     }
   }
@@ -456,26 +457,26 @@ export class HttpClient {
     const sourceKey = `${source.name}:${endpoint.name}`;
     const limit = endpoint.rate_limit || source.performance_override?.default_retry_attempts || 60;
     const burstAllowance = Math.ceil(limit * 0.2); // 20% burst
-    
+
     let state = this.rateLimits.get(sourceKey);
     const now = Date.now();
-    
+
     if (!state) {
       state = {
         requests: 0,
         windowStart: now,
-        burstUsed: 0
+        burstUsed: 0,
       };
       this.rateLimits.set(sourceKey, state);
     }
-    
+
     // Reset window if expired
     if (now - state.windowStart >= this.windowDuration) {
       state.requests = 0;
       state.windowStart = now;
       state.burstUsed = 0;
     }
-    
+
     // Check if rate limit exceeded
     if (state.requests >= limit) {
       // Check if burst is available
@@ -484,45 +485,45 @@ export class HttpClient {
         this.logger.debug('Using burst allowance for rate limit', {
           sourceKey,
           burstUsed: state.burstUsed,
-          burstAllowance
+          burstAllowance,
         });
       } else {
         // Calculate wait time
         const waitTime = this.windowDuration - (now - state.windowStart);
         this.metrics.rateLimitHits++;
-        
+
         this.logger.info('Rate limit exceeded, waiting', {
           sourceKey,
           waitTime,
           requests: state.requests,
-          limit
+          limit,
         });
-        
+
         await this.sleep(waitTime);
-        
+
         // Reset after waiting
         state.requests = 0;
         state.windowStart = Date.now();
         state.burstUsed = 0;
       }
     }
-    
+
     state.requests++;
   }
 
   private updateMetrics(success: boolean, responseTime: number): void {
     this.metrics.totalRequests++;
-    
+
     if (success) {
       this.metrics.successfulRequests++;
     } else {
       this.metrics.failedRequests++;
     }
-    
+
     // Update rolling average response time
     const totalRequests = this.metrics.totalRequests;
-    this.metrics.avgResponseTime = 
-      ((this.metrics.avgResponseTime * (totalRequests - 1)) + responseTime) / totalRequests;
+    this.metrics.avgResponseTime =
+      (this.metrics.avgResponseTime * (totalRequests - 1) + responseTime) / totalRequests;
   }
 
   private updateConcurrentPeak(): void {
@@ -533,17 +534,19 @@ export class HttpClient {
 
   private sanitizeHeaders(headers: Record<string, any>): Record<string, string> {
     const sanitized: Record<string, string> = {};
-    
+
     for (const [key, value] of Object.entries(headers)) {
-      if (key.toLowerCase().includes('authorization') || 
-          key.toLowerCase().includes('key') || 
-          key.toLowerCase().includes('token')) {
+      if (
+        key.toLowerCase().includes('authorization') ||
+        key.toLowerCase().includes('key') ||
+        key.toLowerCase().includes('token')
+      ) {
         sanitized[key] = '[REDACTED]';
       } else {
         sanitized[key] = String(value);
       }
     }
-    
+
     return sanitized;
   }
 
@@ -561,14 +564,14 @@ export class HttpClient {
     if (contentLength) {
       return parseInt(contentLength);
     }
-    
+
     // Estimate from data size
     if (typeof response.data === 'string') {
       return response.data.length;
     } else if (response.data) {
       return JSON.stringify(response.data).length;
     }
-    
+
     return 0;
   }
 

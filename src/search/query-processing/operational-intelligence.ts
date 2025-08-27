@@ -1,19 +1,15 @@
 /**
  * Operational Intelligence - Domain-specific patterns and incident response flows
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Advanced operational intelligence system that understands incident response
  * patterns, organizational workflows, and operational context to predict and
  * enhance query context with enterprise operations knowledge.
  */
 
-import { 
-  IntentType, 
-  QueryContext, 
-  OperationalPattern,
-} from './types.js';
+import { IntentType, QueryContext, OperationalPattern } from './types.js';
 import { logger } from '../../utils/logger.js';
 
 interface IncidentResponseFlow {
@@ -50,11 +46,14 @@ interface OrganizationalContext {
     roles: string[];
     contactMethods: string[];
   }>;
-  systemCriticality: Record<string, {
-    level: 'low' | 'medium' | 'high' | 'critical';
-    businessImpact: string;
-    stakeholders: string[];
-  }>;
+  systemCriticality: Record<
+    string,
+    {
+      level: 'low' | 'medium' | 'high' | 'critical';
+      businessImpact: string;
+      stakeholders: string[];
+    }
+  >;
 }
 
 interface OperationalIntelligenceConfig {
@@ -135,7 +134,9 @@ export class OperationalIntelligence {
       });
     } catch (error) {
       logger.error('Failed to initialize Operational Intelligence', { error });
-      throw new Error(`Operational Intelligence initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Operational Intelligence initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -199,7 +200,7 @@ export class OperationalIntelligence {
    */
   analyzeIncidentFlow(query: string, context?: QueryContext): IncidentResponseFlow | null {
     const normalizedQuery = this.normalizeQuery(query);
-    
+
     for (const flow of this.incidentResponseFlows) {
       const score = this.calculateFlowMatchScore(normalizedQuery, context, flow);
       if (score > 0.7) {
@@ -215,11 +216,11 @@ export class OperationalIntelligence {
    */
   getPatternRecommendations(query: string, intent: IntentType): OperationalPattern[] {
     const normalizedQuery = this.normalizeQuery(query);
-    
+
     return this.operationalPatterns
       .filter(pattern => pattern.applicableIntents.includes(intent))
       .filter(pattern => {
-        const keywordMatches = pattern.triggerKeywords.filter(keyword => 
+        const keywordMatches = pattern.triggerKeywords.filter(keyword =>
           normalizedQuery.includes(keyword.toLowerCase())
         );
         return keywordMatches.length > 0;
@@ -319,7 +320,11 @@ export class OperationalIntelligence {
           {
             phase: 'investigation',
             duration: '10-30 minutes',
-            actions: ['analyze performance metrics', 'check recent deployments', 'review resource usage'],
+            actions: [
+              'analyze performance metrics',
+              'check recent deployments',
+              'review resource usage',
+            ],
             roles: ['engineering_team'],
             escalationTriggers: ['no clear cause identified'],
           },
@@ -350,7 +355,11 @@ export class OperationalIntelligence {
           {
             phase: 'containment',
             duration: '0-15 minutes',
-            actions: ['isolate affected systems', 'disable compromised accounts', 'preserve evidence'],
+            actions: [
+              'isolate affected systems',
+              'disable compromised accounts',
+              'preserve evidence',
+            ],
             roles: ['security_team', 'ops_team'],
             escalationTriggers: ['data breach suspected'],
           },
@@ -364,7 +373,11 @@ export class OperationalIntelligence {
           {
             phase: 'recovery',
             duration: '1-4 hours',
-            actions: ['patch vulnerabilities', 'restore services', 'implement additional monitoring'],
+            actions: [
+              'patch vulnerabilities',
+              'restore services',
+              'implement additional monitoring',
+            ],
             roles: ['engineering_team', 'security_team'],
             escalationTriggers: ['recovery unsuccessful'],
           },
@@ -392,7 +405,7 @@ export class OperationalIntelligence {
           escalationThreshold: 95,
         },
         strategyAdjustments: {
-          scoringBoosts: { 'disk': 1.5, 'cleanup': 1.4, 'storage': 1.3 },
+          scoringBoosts: { disk: 1.5, cleanup: 1.4, storage: 1.3 },
           filterPreferences: { categories: ['runbook', 'procedure'] },
           resultPriorities: ['immediate_actions', 'prevention', 'monitoring'],
         },
@@ -410,7 +423,7 @@ export class OperationalIntelligence {
           escalationThreshold: 80,
         },
         strategyAdjustments: {
-          scoringBoosts: { 'memory': 1.6, 'heap': 1.4, 'profile': 1.3 },
+          scoringBoosts: { memory: 1.6, heap: 1.4, profile: 1.3 },
           filterPreferences: { categories: ['troubleshooting', 'debugging'] },
           resultPriorities: ['diagnostic_tools', 'analysis_procedures', 'mitigation'],
         },
@@ -428,7 +441,7 @@ export class OperationalIntelligence {
           escalationThreshold: 70,
         },
         strategyAdjustments: {
-          scoringBoosts: { 'database': 1.5, 'connection': 1.4, 'pool': 1.3 },
+          scoringBoosts: { database: 1.5, connection: 1.4, pool: 1.3 },
           filterPreferences: { categories: ['troubleshooting', 'database'] },
           resultPriorities: ['connection_diagnostics', 'network_checks', 'database_health'],
         },
@@ -442,11 +455,15 @@ export class OperationalIntelligence {
         contextEnhancements: {
           requiredSystems: ['deployment', 'version_control', 'monitoring'],
           impliedSeverity: 'high',
-          suggestedActions: ['stop deployment', 'revert to previous version', 'notify stakeholders'],
+          suggestedActions: [
+            'stop deployment',
+            'revert to previous version',
+            'notify stakeholders',
+          ],
           escalationThreshold: 60,
         },
         strategyAdjustments: {
-          scoringBoosts: { 'rollback': 1.6, 'deployment': 1.4, 'revert': 1.5 },
+          scoringBoosts: { rollback: 1.6, deployment: 1.4, revert: 1.5 },
           filterPreferences: { categories: ['procedure', 'deployment'] },
           resultPriorities: ['immediate_rollback', 'verification', 'communication'],
         },
@@ -464,7 +481,7 @@ export class OperationalIntelligence {
           escalationThreshold: 50,
         },
         strategyAdjustments: {
-          scoringBoosts: { 'ssl': 1.5, 'certificate': 1.6, 'renewal': 1.4 },
+          scoringBoosts: { ssl: 1.5, certificate: 1.6, renewal: 1.4 },
           filterPreferences: { categories: ['security', 'procedure'] },
           resultPriorities: ['renewal_procedure', 'verification_steps', 'monitoring_setup'],
         },
@@ -500,22 +517,22 @@ export class OperationalIntelligence {
         },
       ],
       systemCriticality: {
-        'authentication': {
+        authentication: {
           level: 'critical',
           businessImpact: 'Users cannot login, complete service disruption',
           stakeholders: ['product_team', 'customer_success'],
         },
-        'payment': {
+        payment: {
           level: 'critical',
           businessImpact: 'Revenue loss, customer trust impact',
           stakeholders: ['finance_team', 'business_team'],
         },
-        'api': {
+        api: {
           level: 'high',
           businessImpact: 'Integration partners affected, feature degradation',
           stakeholders: ['partner_team', 'product_team'],
         },
-        'monitoring': {
+        monitoring: {
           level: 'high',
           businessImpact: 'Reduced observability, delayed incident detection',
           stakeholders: ['engineering_team', 'ops_team'],
@@ -550,7 +567,7 @@ export class OperationalIntelligence {
 
   private applyPatternBasedEnhancements(query: string, context: QueryContext): void {
     for (const pattern of this.operationalPatterns) {
-      const keywordMatches = pattern.triggerKeywords.filter(keyword => 
+      const keywordMatches = pattern.triggerKeywords.filter(keyword =>
         query.includes(keyword.toLowerCase())
       );
 
@@ -570,10 +587,7 @@ export class OperationalIntelligence {
         // Add metadata for pattern match
         context.metadata = {
           ...context.metadata,
-          matchedPatterns: [
-            ...(context.metadata?.matchedPatterns || []),
-            pattern.id,
-          ],
+          matchedPatterns: [...(context.metadata?.matchedPatterns || []), pattern.id],
         };
 
         this.metrics.patternMatches++;
@@ -583,7 +597,7 @@ export class OperationalIntelligence {
 
   private applyIncidentFlowContext(query: string, context: QueryContext): void {
     const matchingFlow = this.analyzeIncidentFlow(query, context);
-    
+
     if (matchingFlow) {
       // Apply urgency boost
       if (matchingFlow.contextEnhancements.urgencyBoost > 1.0) {
@@ -612,7 +626,7 @@ export class OperationalIntelligence {
     const now = new Date();
     const currentTime = now.getUTCHours() * 100 + now.getUTCMinutes();
     const businessStart = 900; // 09:00
-    const businessEnd = 1700;  // 17:00
+    const businessEnd = 1700; // 17:00
 
     context.businessHours = currentTime >= businessStart && currentTime <= businessEnd;
 
@@ -638,7 +652,8 @@ export class OperationalIntelligence {
 
     // Weekend context (simplified - would need more sophisticated date handling)
     const dayOfWeek = new Date().getUTCDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday or Saturday
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      // Sunday or Saturday
       context.metadata = {
         ...context.metadata,
         weekendContext: true,
@@ -646,7 +661,11 @@ export class OperationalIntelligence {
     }
   }
 
-  private calculateFlowMatchScore(query: string, context: QueryContext | undefined, flow: IncidentResponseFlow): number {
+  private calculateFlowMatchScore(
+    query: string,
+    context: QueryContext | undefined,
+    flow: IncidentResponseFlow
+  ): number {
     let score = 0;
 
     // Check alert type matches
@@ -674,7 +693,7 @@ export class OperationalIntelligence {
   private optimizeDataStructures(): void {
     // Sort patterns by trigger keyword frequency for faster matching
     this.operationalPatterns.sort((a, b) => b.triggerKeywords.length - a.triggerKeywords.length);
-    
+
     // Sort incident flows by criticality
     this.incidentResponseFlows.sort((a, b) => {
       const aUrgency = a.contextEnhancements.urgencyBoost;
@@ -723,7 +742,9 @@ export class OperationalIntelligence {
 
   private calculateTargetMetPercentage(): number {
     if (this.processingTimes.length === 0) return 100;
-    const withinTarget = this.processingTimes.filter(time => time <= this.config.maxProcessingTime).length;
+    const withinTarget = this.processingTimes.filter(
+      time => time <= this.config.maxProcessingTime
+    ).length;
     return (withinTarget / this.processingTimes.length) * 100;
   }
 }

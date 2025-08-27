@@ -1,9 +1,9 @@
 /**
  * Intent Classifier - ML-based intent recognition for operational scenarios
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * High-performance intent classification using pattern matching, keyword analysis,
  * and operational context understanding. Targets >90% accuracy for operational
  * scenarios with <20ms processing time.
@@ -39,9 +39,9 @@ interface IntentMetrics {
   };
   intentDistribution: Record<IntentType, number>;
   confidenceDistribution: {
-    high: number;    // >0.9
-    medium: number;  // 0.7-0.9
-    low: number;     // <0.7
+    high: number; // >0.9
+    medium: number; // 0.7-0.9
+    low: number; // <0.7
   };
 }
 
@@ -95,7 +95,9 @@ export class IntentClassifier {
       });
     } catch (error) {
       logger.error('Failed to initialize Intent Classifier', { error });
-      throw new Error(`Intent Classifier initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Intent Classifier initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -111,7 +113,7 @@ export class IntentClassifier {
 
       // Pattern-based intent matching
       const intentScores = this.calculateIntentScores(normalizedQuery, entities, context);
-      
+
       // Apply context boosting
       this.applyContextBoosting(intentScores, entities, context);
 
@@ -120,8 +122,11 @@ export class IntentClassifier {
         .map(([intent, score]) => ({ intent: intent as IntentType, confidence: score }))
         .sort((a, b) => b.confidence - a.confidence);
 
-      const primaryIntent = sortedIntents[0] || { intent: IntentType.GENERAL_SEARCH, confidence: 0.5 };
-      const alternativeIntents = this.config.enableMultiIntent 
+      const primaryIntent = sortedIntents[0] || {
+        intent: IntentType.GENERAL_SEARCH,
+        confidence: 0.5,
+      };
+      const alternativeIntents = this.config.enableMultiIntent
         ? sortedIntents.slice(1, 3).filter(i => i.confidence > 0.3)
         : undefined;
 
@@ -208,9 +213,23 @@ export class IntentClassifier {
       {
         intent: IntentType.FIND_RUNBOOK,
         keywords: [
-          'runbook', 'playbook', 'handle', 'respond', 'alert', 'incident',
-          'procedure', 'how to', 'what to do', 'response', 'guide',
-          'disk space', 'memory', 'cpu', 'network', 'database', 'service'
+          'runbook',
+          'playbook',
+          'handle',
+          'respond',
+          'alert',
+          'incident',
+          'procedure',
+          'how to',
+          'what to do',
+          'response',
+          'guide',
+          'disk space',
+          'memory',
+          'cpu',
+          'network',
+          'database',
+          'service',
         ],
         patterns: [
           /\b(how to (handle|respond|deal with)|what to do (when|if))\b/i,
@@ -227,8 +246,17 @@ export class IntentClassifier {
       {
         intent: IntentType.EMERGENCY_RESPONSE,
         keywords: [
-          'emergency', 'urgent', 'critical', 'immediate', 'crisis',
-          'outage', 'down', 'failure', 'crash', 'panic', 'disaster'
+          'emergency',
+          'urgent',
+          'critical',
+          'immediate',
+          'crisis',
+          'outage',
+          'down',
+          'failure',
+          'crash',
+          'panic',
+          'disaster',
         ],
         patterns: [
           /\b(emergency|urgent|critical|immediate)\s+(response|action|procedure)\b/i,
@@ -244,8 +272,17 @@ export class IntentClassifier {
       {
         intent: IntentType.ESCALATION_PATH,
         keywords: [
-          'escalate', 'contact', 'who', 'call', 'notify', 'alert',
-          'manager', 'team', 'on-call', 'support', 'responsible'
+          'escalate',
+          'contact',
+          'who',
+          'call',
+          'notify',
+          'alert',
+          'manager',
+          'team',
+          'on-call',
+          'support',
+          'responsible',
         ],
         patterns: [
           /\b(who to (contact|call|notify|alert))\b/i,
@@ -261,8 +298,16 @@ export class IntentClassifier {
       {
         intent: IntentType.GET_PROCEDURE,
         keywords: [
-          'steps', 'procedure', 'instructions', 'how', 'process',
-          'restart', 'configure', 'install', 'deploy', 'setup'
+          'steps',
+          'procedure',
+          'instructions',
+          'how',
+          'process',
+          'restart',
+          'configure',
+          'install',
+          'deploy',
+          'setup',
         ],
         patterns: [
           /\b(steps to|how to|procedure for)\b/i,
@@ -278,8 +323,17 @@ export class IntentClassifier {
       {
         intent: IntentType.TROUBLESHOOT,
         keywords: [
-          'troubleshoot', 'debug', 'diagnose', 'investigate', 'analyze',
-          'problem', 'issue', 'error', 'bug', 'fix', 'solve'
+          'troubleshoot',
+          'debug',
+          'diagnose',
+          'investigate',
+          'analyze',
+          'problem',
+          'issue',
+          'error',
+          'bug',
+          'fix',
+          'solve',
         ],
         patterns: [
           /\b(troubleshoot|debug|diagnose|investigate)\b/i,
@@ -295,8 +349,15 @@ export class IntentClassifier {
       {
         intent: IntentType.STATUS_CHECK,
         keywords: [
-          'status', 'health', 'check', 'monitor', 'metrics',
-          'availability', 'uptime', 'performance', 'dashboard'
+          'status',
+          'health',
+          'check',
+          'monitor',
+          'metrics',
+          'availability',
+          'uptime',
+          'performance',
+          'dashboard',
         ],
         patterns: [
           /\b(status|health)\s+(check|monitoring|dashboard)\b/i,
@@ -312,8 +373,15 @@ export class IntentClassifier {
       {
         intent: IntentType.CONFIGURATION,
         keywords: [
-          'configure', 'configuration', 'setup', 'settings', 'config',
-          'install', 'deployment', 'environment', 'parameter'
+          'configure',
+          'configuration',
+          'setup',
+          'settings',
+          'config',
+          'install',
+          'deployment',
+          'environment',
+          'parameter',
         ],
         patterns: [
           /\b(configur(e|ation|ing))\b/i,
@@ -321,7 +389,7 @@ export class IntentClassifier {
           /\b(install|deployment)\s+(configuration|setup)\b/i,
         ],
         contextIndicators: ['systems'],
-        confidence: 0.80,
+        confidence: 0.8,
         priority: 5,
       },
 
@@ -329,15 +397,23 @@ export class IntentClassifier {
       {
         intent: IntentType.GENERAL_SEARCH,
         keywords: [
-          'search', 'find', 'look', 'documentation', 'docs',
-          'information', 'help', 'about', 'what', 'where'
+          'search',
+          'find',
+          'look',
+          'documentation',
+          'docs',
+          'information',
+          'help',
+          'about',
+          'what',
+          'where',
         ],
         patterns: [
           /\b(search|find|look)\s+(for|up)\b/i,
           /\b(documentation|docs|information)\s+(about|on)\b/i,
         ],
         contextIndicators: [],
-        confidence: 0.60,
+        confidence: 0.6,
         priority: 1,
       },
     ];
@@ -345,11 +421,23 @@ export class IntentClassifier {
 
   private initializeEntityExtractors(): Map<string, RegExp> {
     return new Map([
-      ['systems', /\b(database|db|mysql|postgres|redis|nginx|apache|kubernetes|k8s|docker|jenkins|elasticsearch|kafka|rabbitmq|mongodb|cassandra|prometheus|grafana|splunk|datadog|new relic)\b/gi],
+      [
+        'systems',
+        /\b(database|db|mysql|postgres|redis|nginx|apache|kubernetes|k8s|docker|jenkins|elasticsearch|kafka|rabbitmq|mongodb|cassandra|prometheus|grafana|splunk|datadog|new relic)\b/gi,
+      ],
       ['severity', /\b(low|medium|high|critical|urgent|emergency|minor|major|blocker)\b/gi],
-      ['alertType', /\b(disk\s*space|memory|cpu|network|connectivity|performance|latency|throughput|availability|security|authentication|authorization)\b/gi],
-      ['actions', /\b(restart|reboot|deploy|rollback|scale|configure|install|update|patch|backup|restore|migrate|monitor|check|verify|test)\b/gi],
-      ['timeContext', /\b(immediate|urgent|asap|now|today|tonight|weekend|business hours|after hours|maintenance window)\b/gi],
+      [
+        'alertType',
+        /\b(disk\s*space|memory|cpu|network|connectivity|performance|latency|throughput|availability|security|authentication|authorization)\b/gi,
+      ],
+      [
+        'actions',
+        /\b(restart|reboot|deploy|rollback|scale|configure|install|update|patch|backup|restore|migrate|monitor|check|verify|test)\b/gi,
+      ],
+      [
+        'timeContext',
+        /\b(immediate|urgent|asap|now|today|tonight|weekend|business hours|after hours|maintenance window)\b/gi,
+      ],
     ]);
   }
 
@@ -418,8 +506,8 @@ export class IntentClassifier {
   }
 
   private calculateIntentScores(
-    query: string, 
-    entities: IntentClassification['entities'], 
+    query: string,
+    entities: IntentClassification['entities'],
     context?: QueryContext
   ): Record<IntentType, number> {
     const scores: Record<IntentType, number> = {} as any;
@@ -428,7 +516,7 @@ export class IntentClassifier {
       let score = 0;
 
       // Keyword matching with frequency boost
-      const keywordMatches = pattern.keywords.filter(keyword => 
+      const keywordMatches = pattern.keywords.filter(keyword =>
         query.includes(keyword.toLowerCase())
       );
       score += (keywordMatches.length / pattern.keywords.length) * 0.4;
@@ -465,8 +553,11 @@ export class IntentClassifier {
           if (entities.severity || context?.severity) contextMatches++;
           break;
         case 'systems':
-          if ((entities.systems && entities.systems.length > 0) || 
-              (context?.systems && context.systems.length > 0)) contextMatches++;
+          if (
+            (entities.systems && entities.systems.length > 0) ||
+            (context?.systems && context.systems.length > 0)
+          )
+            contextMatches++;
           break;
         case 'alertType':
           if (entities.alertType || context?.alertType) contextMatches++;
@@ -504,8 +595,10 @@ export class IntentClassifier {
     }
 
     // Boost procedure for system-specific queries
-    if ((entities.systems && entities.systems.length > 0) || 
-        (context?.systems && context.systems.length > 0)) {
+    if (
+      (entities.systems && entities.systems.length > 0) ||
+      (context?.systems && context.systems.length > 0)
+    ) {
       scores[IntentType.GET_PROCEDURE] *= 1.1;
     }
   }
@@ -561,7 +654,9 @@ export class IntentClassifier {
 
   private calculateTargetMetPercentage(): number {
     if (this.processingTimes.length === 0) return 100;
-    const withinTarget = this.processingTimes.filter(time => time <= this.config.maxProcessingTime).length;
+    const withinTarget = this.processingTimes.filter(
+      time => time <= this.config.maxProcessingTime
+    ).length;
     return (withinTarget / this.processingTimes.length) * 100;
   }
 }

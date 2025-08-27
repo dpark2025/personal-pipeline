@@ -1,9 +1,9 @@
 /**
  * Embedding Manager - Document embedding generation and storage
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Manages document embedding generation, storage, and similarity calculations
  * with efficient caching and batch processing for optimal performance.
  */
@@ -93,7 +93,7 @@ export class EmbeddingManager {
         const batch = documents.slice(i, i + this.config.batchSize);
         const batchPromises = batch.map(doc => this.processDocument(doc));
         const results = await Promise.all(batchPromises);
-        
+
         newEmbeddings += results.filter(Boolean).length;
       }
 
@@ -129,7 +129,7 @@ export class EmbeddingManager {
       // Check cache first
       const contentHash = this.generateContentHash(text);
       const cached = this.embeddings.get(contentHash);
-      
+
       if (cached && this.config.enableCaching) {
         this.metrics.cacheHits++;
         return cached.embedding;
@@ -162,7 +162,9 @@ export class EmbeddingManager {
       return embedding;
     } catch (error) {
       logger.error('Failed to generate embedding', { error, textLength: text.length });
-      throw new Error(`Embedding generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Embedding generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -192,7 +194,9 @@ export class EmbeddingManager {
       return similarities;
     } catch (error) {
       logger.error('Failed to calculate similarities', { error });
-      throw new Error(`Similarity calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Similarity calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -210,11 +214,11 @@ export class EmbeddingManager {
   hasDocumentEmbedding(documentId: string, contentHash?: string): boolean {
     const embedding = this.embeddings.get(documentId);
     if (!embedding) return false;
-    
+
     if (contentHash && embedding.contentHash !== contentHash) {
       return false; // Content has changed
     }
-    
+
     return true;
   }
 
@@ -266,7 +270,7 @@ export class EmbeddingManager {
   private async processDocument(document: SearchResult): Promise<boolean> {
     try {
       const contentHash = this.generateContentHash(document.content);
-      
+
       // Check if we already have this embedding
       if (this.hasDocumentEmbedding(document.id, contentHash)) {
         this.metrics.cacheHits++;
@@ -275,11 +279,11 @@ export class EmbeddingManager {
 
       // Generate new embedding
       const embedding = await this.generateEmbedding(document.content);
-      
+
       // Cache the embedding
       this.cacheEmbedding(document.id, embedding, contentHash);
       this.metrics.cacheMisses++;
-      
+
       return true; // New embedding generated
     } catch (error) {
       logger.error('Failed to process document', {
@@ -334,7 +338,7 @@ export class EmbeddingManager {
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
       const char = content.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return hash.toString(36);
@@ -368,7 +372,8 @@ export class EmbeddingManager {
   private updateGenerationMetrics(generationTime: number): void {
     const currentAvg = this.metrics.avgGenerationTime;
     const count = this.metrics.totalEmbeddings + 1;
-    this.metrics.avgGenerationTime = (currentAvg * this.metrics.totalEmbeddings + generationTime) / count;
+    this.metrics.avgGenerationTime =
+      (currentAvg * this.metrics.totalEmbeddings + generationTime) / count;
     this.metrics.totalEmbeddings = count;
   }
 

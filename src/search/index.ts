@@ -1,9 +1,9 @@
 /**
  * Search Module Exports - Production-grade intelligent search system
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Centralized exports for the intelligent search system including semantic search,
  * query processing, and contextual understanding components.
  */

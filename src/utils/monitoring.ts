@@ -91,8 +91,8 @@ export class MonitoringService extends EventEmitter {
       description: 'Cache service is completely unavailable',
       severity: 'critical',
       condition: metrics =>
-        metrics.cache?.cache_enabled && 
-        !metrics.cache.memory_healthy && 
+        metrics.cache?.cache_enabled &&
+        !metrics.cache.memory_healthy &&
         !metrics.cache.redis_healthy,
       cooldownMs: 300000, // 5 minutes
       enabled: true,
@@ -457,7 +457,7 @@ export class MonitoringService extends EventEmitter {
       description: alert.description,
       time: alert.timestamp.toLocaleString(),
       id: alert.id,
-      severity: alert.severity
+      severity: alert.severity,
     };
 
     if (alert.severity === 'critical') {

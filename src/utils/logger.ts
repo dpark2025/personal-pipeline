@@ -9,7 +9,7 @@ import winston from 'winston';
 
 // Define log levels
 const levels = {
-  silent: -1,  // Special level to disable all logging
+  silent: -1, // Special level to disable all logging
   error: 0,
   warn: 1,
   info: 2,
@@ -56,10 +56,13 @@ const fileFormat = winston.format.combine(
 const level = () => {
   // Check LOG_LEVEL environment variable first
   const logLevel = process.env.LOG_LEVEL;
-  if (logLevel && ['silent', 'error', 'warn', 'info', 'http', 'debug'].includes(logLevel.toLowerCase())) {
+  if (
+    logLevel &&
+    ['silent', 'error', 'warn', 'info', 'http', 'debug'].includes(logLevel.toLowerCase())
+  ) {
     return logLevel.toLowerCase();
   }
-  
+
   // Fallback to NODE_ENV-based logic
   const env = process.env.NODE_ENV || 'development';
   const isDevelopment = env === 'development';

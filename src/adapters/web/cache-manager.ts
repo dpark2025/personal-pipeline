@@ -1,9 +1,9 @@
 /**
  * Cache Manager - Intelligent HTTP response caching with TTL and invalidation
- * 
+ *
  * Authored by: Integration Specialist
  * Date: 2025-01-17
- * 
+ *
  * Features:
  * - Multi-tier caching strategy (memory + optional Redis)
  * - HTTP cache headers support (ETag, Last-Modified, Cache-Control)
@@ -63,12 +63,12 @@ export class CacheManager {
   private logger: Logger;
   private options: CacheManagerOptions;
   private globalCache?: CacheService;
-  
+
   // In-memory cache for HTTP responses
   private memoryCache = new Map<string, CacheEntry>();
   private accessOrder = new Map<string, number>(); // For LRU eviction
   private accessCounter = 0;
-  
+
   // Cache metrics
   private metrics: CacheMetrics = {
     hits: 0,
@@ -77,12 +77,12 @@ export class CacheManager {
     deletes: 0,
     evictions: 0,
     totalSize: 0,
-    memoryUsage: 0
+    memoryUsage: 0,
   };
-  
+
   // TTL parsing cache
   private ttlCache = new Map<string, number>();
-  
+
   // Cache warming configuration
   private warmupKeys: string[] = [];
 
@@ -97,27 +97,27 @@ export class CacheManager {
       defaultTtl: this.options.defaultTtl,
       maxCacheSize: this.options.maxCacheSize,
       enableMetrics: this.options.enableMetrics,
-      hasGlobalCache: !!this.globalCache
+      hasGlobalCache: !!this.globalCache,
     });
 
     // Parse default TTL
     const defaultTtlMs = this.parseTtl(this.options.defaultTtl);
     this.logger.debug('Parsed default TTL', {
       ttlString: this.options.defaultTtl,
-      ttlMs: defaultTtlMs
+      ttlMs: defaultTtlMs,
     });
-    
+
     // Warm up cache if enabled
     if (this.options.warmupOnStart) {
       await this.warmupCache();
     }
-    
+
     this.logger.info('Cache manager initialized successfully');
   }
 
   async get(key: string): Promise<any | null> {
     const startTime = Date.now();
-    
+
     try {
       // Check memory cache first
       const memoryEntry = this.memoryCache.get(key);
@@ -125,16 +125,16 @@ export class CacheManager {
         this.updateAccessOrder(key);
         memoryEntry.hitCount++;
         this.metrics.hits++;
-        
+
         this.logger.debug('Cache hit (memory)', {
           key,
           hitCount: memoryEntry.hitCount,
-          age: Date.now() - memoryEntry.timestamp
+          age: Date.now() - memoryEntry.timestamp,
         });
-        
+
         return memoryEntry.data;
       }
-      
+
       // Check global cache if available
       if (this.globalCache) {
         try {
@@ -143,70 +143,72 @@ export class CacheManager {
             // Store in memory cache for faster future access
             this.setMemoryCache(key, globalEntry, this.options.defaultTtl);
             this.metrics.hits++;
-            
+
             this.logger.debug('Cache hit (global)', { key });
             return globalEntry;
           }
         } catch (error: any) {
           this.logger.warn('Global cache get failed', {
             key,
-            error: error.message
+            error: error.message,
           });
         }
       }
-      
+
       // Cache miss
       this.metrics.misses++;
-      
+
       this.logger.debug('Cache miss', {
         key,
-        responseTime: Date.now() - startTime
+        responseTime: Date.now() - startTime,
       });
-      
+
       return null;
     } catch (error: any) {
       this.metrics.misses++;
       this.logger.error('Cache get failed', {
         key,
-        error: error.message
+        error: error.message,
       });
       return null;
     }
   }
 
-  async set(key: string, data: any, ttl?: string, httpHeaders?: Record<string, string>): Promise<void> {
+  async set(
+    key: string,
+    data: any,
+    ttl?: string,
+    httpHeaders?: Record<string, string>
+  ): Promise<void> {
     try {
       const ttlMs = ttl ? this.parseTtl(ttl) : this.parseTtl(this.options.defaultTtl);
-      
+
       // Store in memory cache
       this.setMemoryCache(key, data, ttl || this.options.defaultTtl, httpHeaders);
-      
+
       // Store in global cache if available
       if (this.globalCache) {
         try {
-          await this.globalCache.set(
-            { type: 'web_response', identifier: key }, 
-            data
-          );
+          await this.globalCache.set({ type: 'web_response', identifier: key }, data);
         } catch (error: any) {
           this.logger.warn('Global cache set failed', {
             key,
-            error: error.message
+            error: error.message,
           });
         }
       }
-      
+
       this.metrics.sets++;
-      
+
       this.logger.debug('Cache set', {
         key,
         ttl: ttlMs,
-        size: this.estimateSize(data)
+        size: this.estimateSize(data),
       });
     } catch (error: any) {
       this.logger.error('Cache set failed', {
         key,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -221,7 +223,7 @@ export class CacheManager {
         this.metrics.totalSize -= entry.size;
         this.metrics.deletes++;
       }
-      
+
       // Remove from global cache if available
       if (this.globalCache) {
         try {
@@ -229,16 +231,16 @@ export class CacheManager {
         } catch (error: any) {
           this.logger.warn('Global cache delete failed', {
             key,
-            error: error.message
+            error: error.message,
           });
         }
       }
-      
+
       this.logger.debug('Cache delete', { key });
     } catch (error: any) {
       this.logger.error('Cache delete failed', {
         key,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -250,22 +252,22 @@ export class CacheManager {
       this.accessOrder.clear();
       this.accessCounter = 0;
       this.metrics.totalSize = 0;
-      
+
       // Clear global cache if available
       if (this.globalCache) {
         try {
           await this.globalCache.clearByType('web_response');
         } catch (error: any) {
           this.logger.warn('Global cache clear failed', {
-            error: error.message
+            error: error.message,
           });
         }
       }
-      
+
       this.logger.info('Cache cleared');
     } catch (error: any) {
       this.logger.error('Cache clear failed', {
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -273,56 +275,58 @@ export class CacheManager {
   async getStats(): Promise<CacheStats> {
     const entries = Array.from(this.memoryCache.values());
     const validEntries = entries.filter(entry => this.isEntryValid(entry));
-    
-    const hitRate = this.metrics.hits + this.metrics.misses > 0 
-      ? this.metrics.hits / (this.metrics.hits + this.metrics.misses) 
-      : 0;
-    
+
+    const hitRate =
+      this.metrics.hits + this.metrics.misses > 0
+        ? this.metrics.hits / (this.metrics.hits + this.metrics.misses)
+        : 0;
+
     const timestamps = validEntries.map(entry => entry.timestamp);
-    
+
     return {
       totalEntries: validEntries.length,
       totalSize: this.metrics.totalSize,
       hitRate,
       missRate: 1 - hitRate,
       evictionCount: this.metrics.evictions,
-      avgHitCount: validEntries.length > 0 
-        ? validEntries.reduce((sum, entry) => sum + entry.hitCount, 0) / validEntries.length 
-        : 0,
+      avgHitCount:
+        validEntries.length > 0
+          ? validEntries.reduce((sum, entry) => sum + entry.hitCount, 0) / validEntries.length
+          : 0,
       oldestEntry: timestamps.length > 0 ? Math.min(...timestamps) : undefined,
-      newestEntry: timestamps.length > 0 ? Math.max(...timestamps) : undefined
+      newestEntry: timestamps.length > 0 ? Math.max(...timestamps) : undefined,
     };
   }
 
   getMetrics(): CacheMetrics {
     return {
       ...this.metrics,
-      memoryUsage: this.estimateMemoryUsage()
+      memoryUsage: this.estimateMemoryUsage(),
     };
   }
 
   async warmupCache(keys?: string[]): Promise<void> {
     const keysToWarm = keys || this.warmupKeys;
-    
+
     if (keysToWarm.length === 0) {
       this.logger.debug('No keys configured for cache warmup');
       return;
     }
-    
+
     this.logger.info('Starting cache warmup', {
-      keyCount: keysToWarm.length
+      keyCount: keysToWarm.length,
     });
-    
+
     // Note: Actual warmup would require coordination with the web adapter
     // to pre-fetch common URLs. This is a placeholder for that functionality.
-    
+
     this.logger.info('Cache warmup completed');
   }
 
   configureWarmup(keys: string[]): void {
     this.warmupKeys = keys;
     this.logger.debug('Cache warmup configured', {
-      keyCount: keys.length
+      keyCount: keys.length,
     });
   }
 
@@ -331,48 +335,48 @@ export class CacheManager {
     if (!entry || !this.isEntryValid(entry)) {
       return false;
     }
-    
+
     if (!httpHeaders) {
       return true;
     }
-    
+
     // Check ETag
     const etag = httpHeaders['etag'];
     if (etag && entry.etag && entry.etag !== etag) {
       this.logger.debug('Cache invalidated by ETag change', {
         key,
         oldETag: entry.etag,
-        newETag: etag
+        newETag: etag,
       });
       return false;
     }
-    
+
     // Check Last-Modified
     const lastModified = httpHeaders['last-modified'];
     if (lastModified && entry.lastModified) {
       const entryTime = new Date(entry.lastModified).getTime();
       const headerTime = new Date(lastModified).getTime();
-      
+
       if (headerTime > entryTime) {
         this.logger.debug('Cache invalidated by Last-Modified change', {
           key,
           oldLastModified: entry.lastModified,
-          newLastModified: lastModified
+          newLastModified: lastModified,
         });
         return false;
       }
     }
-    
+
     return true;
   }
 
   async cleanup(): Promise<void> {
     this.logger.info('Cleaning up cache manager');
-    
+
     await this.clear();
     this.ttlCache.clear();
     this.warmupKeys = [];
-    
+
     // Reset metrics
     this.metrics = {
       hits: 0,
@@ -381,9 +385,9 @@ export class CacheManager {
       deletes: 0,
       evictions: 0,
       totalSize: 0,
-      memoryUsage: 0
+      memoryUsage: 0,
     };
-    
+
     this.logger.info('Cache manager cleanup completed');
   }
 
@@ -391,13 +395,18 @@ export class CacheManager {
   // Private Implementation
   // ============================
 
-  private setMemoryCache(key: string, data: any, ttl: string, httpHeaders?: Record<string, string>): void {
+  private setMemoryCache(
+    key: string,
+    data: any,
+    ttl: string,
+    httpHeaders?: Record<string, string>
+  ): void {
     const ttlMs = this.parseTtl(ttl);
     const size = this.estimateSize(data);
-    
+
     // Check if we need to evict entries
     this.evictIfNecessary(size);
-    
+
     const entry: CacheEntry = {
       key,
       data,
@@ -406,9 +415,9 @@ export class CacheManager {
       etag: httpHeaders?.['etag'],
       lastModified: httpHeaders?.['last-modified'],
       hitCount: 0,
-      size
+      size,
     };
-    
+
     this.memoryCache.set(key, entry);
     this.updateAccessOrder(key);
     this.metrics.totalSize += size;
@@ -417,12 +426,12 @@ export class CacheManager {
   private isEntryValid(entry: CacheEntry): boolean {
     const now = Date.now();
     const age = now - entry.timestamp;
-    
+
     // Check TTL
     if (age > entry.ttl) {
       return false;
     }
-    
+
     // Adaptive TTL based on hit count
     if (this.options.adaptiveTtl && entry.hitCount > 10) {
       // Extend TTL for frequently accessed items
@@ -431,7 +440,7 @@ export class CacheManager {
         return true;
       }
     }
-    
+
     return true;
   }
 
@@ -444,7 +453,7 @@ export class CacheManager {
     while (this.memoryCache.size >= this.options.maxCacheSize) {
       this.evictLru();
     }
-    
+
     // Check if we need to evict based on total size (rough memory limit)
     const maxMemoryBytes = this.options.maxCacheSize * 1024 * 1024; // Convert to bytes
     while (this.metrics.totalSize + newItemSize > maxMemoryBytes && this.memoryCache.size > 0) {
@@ -455,14 +464,14 @@ export class CacheManager {
   private evictLru(): void {
     let lruKey: string | null = null;
     let lruAccess = Infinity;
-    
+
     for (const [key, accessTime] of this.accessOrder) {
       if (accessTime < lruAccess) {
         lruAccess = accessTime;
         lruKey = key;
       }
     }
-    
+
     if (lruKey) {
       const entry = this.memoryCache.get(lruKey);
       if (entry) {
@@ -470,11 +479,11 @@ export class CacheManager {
         this.accessOrder.delete(lruKey);
         this.metrics.totalSize -= entry.size;
         this.metrics.evictions++;
-        
+
         this.logger.debug('Evicted LRU cache entry', {
           key: lruKey,
           age: Date.now() - entry.timestamp,
-          hitCount: entry.hitCount
+          hitCount: entry.hitCount,
         });
       }
     }
@@ -485,16 +494,16 @@ export class CacheManager {
     if (this.ttlCache.has(ttlString)) {
       return this.ttlCache.get(ttlString)!;
     }
-    
+
     const ttlLower = ttlString.toLowerCase();
     let milliseconds = 0;
-    
+
     // Parse duration string (e.g., "1h", "30m", "45s", "1d")
     const match = ttlLower.match(/^(\d+)([smhd])$/);
     if (match) {
       const value = parseInt(match[1]);
       const unit = match[2];
-      
+
       switch (unit) {
         case 's':
           milliseconds = value * 1000;
@@ -520,10 +529,10 @@ export class CacheManager {
         milliseconds = 5 * 60 * 1000; // Default 5 minutes
       }
     }
-    
+
     // Cache the parsed result
     this.ttlCache.set(ttlString, milliseconds);
-    
+
     return milliseconds;
   }
 
@@ -543,16 +552,16 @@ export class CacheManager {
 
   private estimateMemoryUsage(): number {
     let totalMemory = 0;
-    
+
     for (const entry of this.memoryCache.values()) {
       totalMemory += entry.size;
       totalMemory += 200; // Overhead for entry metadata
     }
-    
+
     // Add overhead for maps and other structures
     totalMemory += this.memoryCache.size * 50; // Access order map
     totalMemory += this.ttlCache.size * 50; // TTL cache
-    
+
     return totalMemory;
   }
 }

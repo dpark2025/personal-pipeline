@@ -1,6 +1,6 @@
 /**
  * Documentation Indexer Test Suite
- * 
+ *
  * Comprehensive test coverage for the Documentation Indexer CLI tool including:
  * - CLI argument parsing and validation
  * - Core indexing functionality
@@ -13,11 +13,11 @@ import { describe, it, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { 
-  DocumentationIndexer, 
-  ProgressTracker, 
+import {
+  DocumentationIndexer,
+  ProgressTracker,
   ChangeDetectionService,
-  IndexerConfig
+  IndexerConfig,
 } from '../../../scripts/index-docs.js';
 import { ConfigManager } from '../../../src/utils/config.js';
 import { CacheService } from '../../../src/utils/cache.js';
@@ -40,9 +40,9 @@ describe('Documentation Indexer Test Suite', () => {
           type: 'file',
           base_paths: [tempDir],
           recursive: true,
-          enabled: true
-        }
-      ]
+          enabled: true,
+        },
+      ],
     };
 
     configManager = new ConfigManager();
@@ -72,7 +72,7 @@ describe('Documentation Indexer Test Suite', () => {
         force_fingerprint_check: false,
         cleanup_orphaned: false,
         validate_corpus: false,
-        show_changes: false
+        show_changes: false,
       };
 
       assert.strictEqual(config.batch_size, 25);
@@ -95,7 +95,7 @@ describe('Documentation Indexer Test Suite', () => {
         force_fingerprint_check: true,
         cleanup_orphaned: true,
         validate_corpus: true,
-        show_changes: true
+        show_changes: true,
       };
 
       assert.strictEqual(config.incremental, true);
@@ -132,7 +132,7 @@ describe('Documentation Indexer Test Suite', () => {
       progressTracker.startIndexing(sources);
 
       progressTracker.updateProgress('source1', 5, 10, 'processing');
-      
+
       const report = progressTracker.generateProgressReport();
       assert.strictEqual(report.total_documents, 10);
       assert.strictEqual(report.processed_documents, 5);
@@ -148,7 +148,7 @@ describe('Documentation Indexer Test Suite', () => {
         error_type: 'connection_failed',
         message: 'Failed to connect to source',
         timestamp: new Date(),
-        severity: 'high'
+        severity: 'high',
       });
 
       const report = progressTracker.generateProgressReport();
@@ -173,7 +173,7 @@ describe('Documentation Indexer Test Suite', () => {
       progressTracker.startIndexing(sources);
 
       progressTracker.updateProgress('source1', 5, 10, 'processing');
-      
+
       const estimatedTime = progressTracker.estimateTimeRemaining();
       assert.ok(typeof estimatedTime === 'number');
       assert.ok(estimatedTime >= 0);
@@ -190,13 +190,13 @@ describe('Documentation Indexer Test Suite', () => {
         memory: {
           ttl_seconds: 3600,
           check_period_seconds: 600,
-          max_keys: 1000
+          max_keys: 1000,
         },
         redis: {
-          enabled: false
-        }
+          enabled: false,
+        },
       };
-      
+
       cacheService = new CacheService(cacheConfig as any);
       changeDetection = new ChangeDetectionService(cacheService, path.join(tempDir, 'state'));
     });
@@ -208,15 +208,15 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Test Document 1',
           content: 'This is test content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
+          last_updated: new Date().toISOString(),
         },
         {
           id: 'doc2',
           title: 'Test Document 2',
           content: 'This is more test content',
           type: 'procedure',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       const changes = await changeDetection.detectChanges('test-source', documents);
@@ -236,8 +236,8 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Test Document',
           content: 'This is test content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // First run - should detect addition
@@ -259,8 +259,8 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Test Document',
           content: 'Original content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // First run
@@ -273,8 +273,8 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Test Document',
           content: 'Updated content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // Second run - should detect content change
@@ -293,8 +293,8 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Original Title',
           content: 'Test content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // First run
@@ -307,8 +307,8 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Updated Title',
           content: 'Test content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // Second run - should detect metadata change
@@ -325,15 +325,15 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Document 1',
           content: 'Content 1',
           type: 'runbook',
-          last_updated: new Date().toISOString()
+          last_updated: new Date().toISOString(),
         },
         {
           id: 'doc2',
           title: 'Document 2',
           content: 'Content 2',
           type: 'procedure',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // First run
@@ -346,8 +346,8 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Document 1',
           content: 'Content 1',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // Second run - should detect deletion
@@ -365,7 +365,7 @@ describe('Documentation Indexer Test Suite', () => {
         title: 'Test Document',
         content: 'This is test content',
         type: 'runbook',
-        last_updated: new Date().toISOString()
+        last_updated: new Date().toISOString(),
       };
 
       // Access private method through any for testing
@@ -385,7 +385,7 @@ describe('Documentation Indexer Test Suite', () => {
         title: 'Server Restart Procedure',
         content: 'Steps to restart server',
         type: 'runbook',
-        last_updated: new Date().toISOString()
+        last_updated: new Date().toISOString(),
       };
 
       const troubleshootDoc = {
@@ -393,7 +393,7 @@ describe('Documentation Indexer Test Suite', () => {
         title: 'Troubleshooting Network Issues',
         content: 'How to troubleshoot network problems',
         type: 'guide',
-        last_updated: new Date().toISOString()
+        last_updated: new Date().toISOString(),
       };
 
       const escalationDoc = {
@@ -401,7 +401,7 @@ describe('Documentation Indexer Test Suite', () => {
         title: 'Escalation Procedures',
         content: 'When to escalate issues to senior team',
         type: 'procedure',
-        last_updated: new Date().toISOString()
+        last_updated: new Date().toISOString(),
       };
 
       const changes1 = await changeDetection.detectChanges('test-source', [runbookDoc]);
@@ -424,13 +424,13 @@ describe('Documentation Indexer Test Suite', () => {
         path.join(tempDir, 'test-runbook.md'),
         '# Test Runbook\n\nThis is a test runbook for indexing.'
       );
-      
+
       await fs.writeFile(
         path.join(tempDir, 'test-procedure.json'),
         JSON.stringify({
           id: 'proc1',
           title: 'Test Procedure',
-          steps: ['Step 1', 'Step 2', 'Step 3']
+          steps: ['Step 1', 'Step 2', 'Step 3'],
         })
       );
 
@@ -446,7 +446,7 @@ describe('Documentation Indexer Test Suite', () => {
         force_fingerprint_check: false,
         cleanup_orphaned: false,
         validate_corpus: false,
-        show_changes: false
+        show_changes: false,
       };
 
       indexer = new DocumentationIndexer(configManager, indexerConfig);
@@ -464,7 +464,7 @@ describe('Documentation Indexer Test Suite', () => {
 
     it('should perform dry run indexing', async () => {
       await indexer.initialize();
-      
+
       const report = await indexer.indexAllSources();
 
       assert.ok(report);
@@ -487,7 +487,7 @@ describe('Documentation Indexer Test Suite', () => {
 
       assert.ok(report);
       assert.strictEqual(report.summary.success_rate, 1);
-      
+
       // Check that change detection was performed
       for (const sourceReport of report.sources) {
         if (sourceReport.changes) {
@@ -501,14 +501,14 @@ describe('Documentation Indexer Test Suite', () => {
 
     it('should generate quality recommendations', async () => {
       await indexer.initialize();
-      
+
       const report = await indexer.indexAllSources();
 
       assert.ok(Array.isArray(report.recommendations));
       assert.ok(report.recommendations.length > 0);
-      
+
       // Should include cache warming recommendation
-      const hasCacheRecommendation = report.recommendations.some(rec => 
+      const hasCacheRecommendation = report.recommendations.some(rec =>
         rec.includes('cache warming')
       );
       assert.ok(hasCacheRecommendation);
@@ -521,30 +521,30 @@ describe('Documentation Indexer Test Suite', () => {
           {
             name: 'failing-source',
             type: 'nonexistent',
-            enabled: true
-          }
-        ]
+            enabled: true,
+          },
+        ],
       };
-      
+
       mock.method(configManager, 'getConfig', () => failingConfig);
-      
+
       const failingIndexer = new DocumentationIndexer(configManager, indexerConfig);
-      
+
       // Should not throw error during initialization with dry_run
       await failingIndexer.initialize();
-      
+
       const report = await failingIndexer.indexAllSources();
-      
+
       // Should complete despite failures
       assert.ok(report);
       assert.ok(report.errors.length >= 0); // May have errors
-      
+
       await failingIndexer.cleanup();
     });
 
     it('should calculate quality scores', async () => {
       await indexer.initialize();
-      
+
       const report = await indexer.indexAllSources();
 
       for (const sourceReport of report.sources) {
@@ -556,17 +556,17 @@ describe('Documentation Indexer Test Suite', () => {
 
     it('should track performance metrics', async () => {
       await indexer.initialize();
-      
+
       const report = await indexer.indexAllSources();
 
       assert.ok(report.performance);
       assert.ok(typeof report.performance.total_duration_ms === 'number');
       assert.ok(report.performance.total_duration_ms >= 0);
-      
+
       for (const sourceReport of report.sources) {
         assert.ok(typeof sourceReport.processing_time_ms === 'number');
         assert.ok(sourceReport.processing_time_ms >= 0);
-        
+
         if (sourceReport.documents_processed > 0) {
           assert.ok(typeof sourceReport.avg_processing_time_per_doc === 'number');
           assert.ok(sourceReport.avg_processing_time_per_doc >= 0);
@@ -589,7 +589,7 @@ describe('Documentation Indexer Test Suite', () => {
         force_fingerprint_check: false,
         cleanup_orphaned: false,
         validate_corpus: false,
-        show_changes: false
+        show_changes: false,
       };
 
       // Should handle invalid batch size gracefully
@@ -609,7 +609,7 @@ describe('Documentation Indexer Test Suite', () => {
         force_fingerprint_check: false,
         cleanup_orphaned: false,
         validate_corpus: false,
-        show_changes: false
+        show_changes: false,
       };
 
       // Should handle invalid output format
@@ -618,7 +618,7 @@ describe('Documentation Indexer Test Suite', () => {
 
     it('should handle invalid since date', () => {
       const invalidDate = new Date('invalid-date');
-      
+
       const config: IndexerConfig = {
         sources: [],
         parallel: false,
@@ -632,7 +632,7 @@ describe('Documentation Indexer Test Suite', () => {
         force_fingerprint_check: false,
         cleanup_orphaned: false,
         validate_corpus: false,
-        show_changes: false
+        show_changes: false,
       };
 
       // Should handle invalid date
@@ -649,9 +649,9 @@ describe('Documentation Indexer Test Suite', () => {
       const cacheConfig = {
         enabled: true,
         memory: { ttl_seconds: 3600, check_period_seconds: 600, max_keys: 1000 },
-        redis: { enabled: false }
+        redis: { enabled: false },
       };
-      
+
       const cacheService = new CacheService(cacheConfig as any);
       changeDetection = new ChangeDetectionService(cacheService, stateDir);
     });
@@ -663,14 +663,17 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Test Document',
           content: 'Test content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       await changeDetection.detectChanges('test-source', documents);
 
       // Check that state directory was created
-      const stateDirExists = await fs.access(stateDir).then(() => true).catch(() => false);
+      const stateDirExists = await fs
+        .access(stateDir)
+        .then(() => true)
+        .catch(() => false);
       assert.ok(stateDirExists);
     });
 
@@ -681,8 +684,8 @@ describe('Documentation Indexer Test Suite', () => {
           title: 'Test Document',
           content: 'Test content',
           type: 'runbook',
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       ];
 
       // First detection should create state
@@ -697,7 +700,10 @@ describe('Documentation Indexer Test Suite', () => {
 
       // Check that state file exists
       const stateFile = path.join(stateDir, 'test-source.json');
-      const stateExists = await fs.access(stateFile).then(() => true).catch(() => false);
+      const stateExists = await fs
+        .access(stateFile)
+        .then(() => true)
+        .catch(() => false);
       assert.ok(stateExists);
 
       // Verify state content

@@ -1,9 +1,9 @@
 /**
  * Web Adapter - Enterprise Integration Package
- * 
+ *
  * Authored by: Integration Specialist
  * Date: 2025-01-17
- * 
+ *
  * Complete web adapter package for Personal Pipeline with semantic search
  * integration, multi-protocol support, and enterprise features.
  */
@@ -33,11 +33,7 @@ export type {
   RateLimitState,
 } from './http-client.js';
 
-export type {
-  AuthCredentials,
-  AuthResult,
-  OAuth2TokenResponse,
-} from './auth-manager.js';
+export type { AuthCredentials, AuthResult, OAuth2TokenResponse } from './auth-manager.js';
 
 export type {
   ContentExtractorOptions,
@@ -45,15 +41,6 @@ export type {
   ContentQuality,
 } from './content-extractor.js';
 
-export type {
-  UrlTemplate,
-  PaginatedUrls,
-  UrlValidationResult,
-} from './url-manager.js';
+export type { UrlTemplate, PaginatedUrls, UrlValidationResult } from './url-manager.js';
 
-export type {
-  CacheManagerOptions,
-  CacheEntry,
-  CacheStats,
-  CacheMetrics,
-} from './cache-manager.js';
+export type { CacheManagerOptions, CacheEntry, CacheStats, CacheMetrics } from './cache-manager.js';

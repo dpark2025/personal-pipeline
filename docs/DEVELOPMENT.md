@@ -1,108 +1,206 @@
-# Personal Pipeline Development Guide
+# Development Guide
+
+This comprehensive guide covers development setup, workflows, and best practices for Personal Pipeline contributors and maintainers.
 
 ## Prerequisites
 
-### Required Dependencies
-- **Node.js**: >= 18.0.0
-- **npm**: >= 8.0.0  
-- **TypeScript**: >= 5.3.3 (installed via devDependencies)
-- **Git**: For version control
+### Required Software
 
-### External Dependencies (Optional)
+- **Node.js** >= 20.0.0 ([Download](https://nodejs.org/))
+- **npm** >= 8.0.0 (comes with Node.js)
+- **Git** >= 2.30.0 ([Download](https://git-scm.com/))
 
-#### Redis (Recommended for Enhanced Performance)
-- **Version**: >= 6.0.0
-- **Purpose**: Persistent caching layer for improved performance and memory efficiency
-- **Status**: Optional - system automatically falls back to memory-only mode if unavailable
-- **Installation**: See [Redis Setup Guide](REDIS-SETUP.md) for detailed instructions
+### Optional Dependencies
 
-**Performance Impact**:
-- **With Redis**: Persistent cache across restarts, lower memory usage, shared cache for multiple instances
-- **Without Redis**: Memory-only caching, higher memory usage, cold cache on restart
-- **Both modes**: Fully supported for development and production
+- **Redis** >= 6.0.0 for enhanced caching (see [Redis Setup Guide](#redis-setup))
+- **Docker** for containerized development
+- **VS Code** with recommended extensions
 
-**Quick Redis Setup**:
-```bash
-# macOS (Homebrew)
-brew install redis && brew services start redis
+### System Requirements
 
-# Ubuntu/Debian
-sudo apt install redis-server && sudo systemctl start redis-server
+- **Memory**: 4GB minimum, 8GB recommended
+- **Storage**: 2GB free space for development dependencies
+- **OS**: macOS, Linux, or Windows with WSL2
 
-# Docker
-docker run -d --name redis-pp -p 6379:6379 redis:7-alpine
+## Quick Start
 
-# Verify installation
-redis-cli ping  # Expected: PONG
-```
-
-**Development without Redis**:
-```bash
-# The system works perfectly without Redis
-npm install
-npm run dev
-# System automatically uses memory-only caching
-```
-
-## Quick Setup
+### 1. Clone and Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/personal-pipeline-mcp.git
-cd personal-pipeline-mcp
+git clone https://github.com/[username]/personal-pipeline.git
+cd personal-pipeline
 
 # Install dependencies
 npm install
 
-# Copy configuration template
+# Verify installation
+npm run health
+```
+
+### 2. Configuration
+
+```bash
+# Copy sample configuration
 cp config/config.sample.yaml config/config.yaml
 
-# Build the project
-npm run build
-
-# Start development server
-npm run dev
+# Edit configuration for your environment
+# See Configuration Guide below
 ```
 
-## Project Structure
+### 3. Start Development
 
-```
-personal-pipeline-mcp/
-├── src/                    # Source code
-│   ├── core/              # MCP server implementation
-│   ├── adapters/          # Source adapter framework
-│   ├── tools/             # MCP tool implementations
-│   ├── types/             # TypeScript type definitions
-│   ├── utils/             # Utilities and configuration
-│   └── index.ts           # Main entry point
-├── tests/                 # Test files
-│   └── unit/              # Unit tests
-├── config/                # Configuration files
-│   ├── config.yaml        # Live configuration (gitignored)
-│   └── config.sample.yaml # Configuration template
-├── docs/                  # Documentation
-├── dist/                  # Compiled JavaScript (gitignored)
-└── package.json           # Project configuration
-```
-
-## Development Commands
-
-### Core Development
 ```bash
-# Start development server with hot reload
+# Start in development mode with hot reload
 npm run dev
 
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Clean build artifacts
-npm run clean
+# Or start demo environment with sample data
+npm run demo:start
 ```
 
-### Testing
+### 4. Stop Development
+
+⚠️ **IMPORTANT**: Always stop services when finished to prevent resource leaks and port conflicts.
+
+```bash
+# Stop demo environment (recommended - includes full cleanup)
+npm run demo:stop
+
+# Or if running individual components:
+# 1. Press Ctrl+C in terminal where server is running
+# 2. Kill any remaining processes:
+pkill -f "node.*personal-pipeline"
+pkill -f "redis-server.*6379"
+
+# Verify all processes stopped
+npm run health  # Should fail if properly stopped
+```
+
+See [Server Management Guide](./SERVER-MANAGEMENT.md) for complete server lifecycle documentation.
+
+## Development Environment Setup
+
+### IDE Configuration
+
+#### VS Code Extensions (Recommended)
+
+Create `.vscode/extensions.json`:
+
+```json
+{
+  "recommendations": [
+    "ms-vscode.vscode-typescript-next",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml"
+  ]
+}
+```
+
+#### VS Code Settings
+
+Create `.vscode/settings.json`:
+
+```json
+{
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "eslint.format.enable": true,
+  "files.associations": {
+    "*.yaml": "yaml",
+    "*.yml": "yaml"
+  }
+}
+```
+
+### Environment Variables
+
+Create `.env.development`:
+
+```bash
+# Server Configuration
+PORT=3000
+HOST=0.0.0.0
+NODE_ENV=development
+
+# Logging
+LOG_LEVEL=debug
+
+# Optional: Redis Configuration
+# REDIS_URL=redis://localhost:6379
+
+# Optional: External API Keys
+# CONFLUENCE_TOKEN=your_confluence_token
+# GITHUB_TOKEN=your_github_token
+```
+
+### Redis Setup
+
+Redis provides enhanced caching but is optional. The system works in memory-only mode without Redis.
+
+#### Install Redis
+
+**macOS (Homebrew):**
+```bash
+brew install redis
+brew services start redis
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install redis-server
+sudo systemctl start redis-server
+```
+
+**Docker:**
+```bash
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+```
+
+#### Enable Redis
+
+```bash
+# Set environment variable
+export REDIS_URL="redis://localhost:6379"
+
+# Or add to .env.development
+echo "REDIS_URL=redis://localhost:6379" >> .env.development
+```
+
+#### Verify Redis Connection
+
+```bash
+# Test Redis integration
+npm run test:redis
+
+# Check cache status
+npm run health
+```
+
+## Development Workflow
+
+### 1. Feature Development
+
+```bash
+# Create feature branch
+git checkout -b feature/your-feature-name
+
+# Make changes and test
+npm run dev  # Start development server
+npm test     # Run tests
+npm run lint # Check code quality
+
+# Commit changes
+git add .
+git commit -m "feat: add your feature description"
+```
+
+### 2. Testing Strategy
+
 ```bash
 # Run all tests
 npm test
@@ -110,581 +208,557 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 
-# Run tests with coverage report
+# Run with coverage
 npm run test:coverage
 
-# View coverage report
-open coverage/lcov-report/index.html
+# Run specific test suites
+npm run test:unit
+npm run test:integration
+
+# Test with Redis (requires Redis server)
+npm run test:redis
 ```
 
-### Code Quality
-```bash
-# Run ESLint
-npm run lint
+### 3. Code Quality
 
-# Fix ESLint issues automatically
+```bash
+# Lint and fix code
+npm run lint
 npm run lint:fix
 
-# Format code with Prettier
+# Format code
 npm run format
 
-# Check if code is properly formatted
-npm run format:check
-
-# Run TypeScript compiler checks
+# Type checking
 npm run typecheck
+
+# Full quality check
+npm run lint && npm run typecheck && npm test
 ```
 
-### Health Checks
+### 4. Build and Deployment
+
 ```bash
-# Check if server is running
-npm run health
+# Build for production
+npm run build
 
-# Manual health check
-curl http://localhost:3000/health
+# Test production build locally
+npm run start
 
-# Development Tools (Milestone 1.2)
-npm run generate-sample-data  # Generate test data and realistic runbooks
-npm run validate-config       # Validate YAML configuration with schema checking
-npm run test-mcp             # Interactive MCP client testing tool
+# Clean build artifacts
+npm run clean
 ```
 
-## Development Tools (Milestone 1.2)
+## Project Structure
 
-The project now includes three powerful development utilities to streamline development and testing:
+```
+personal-pipeline/
+├── src/                    # Source code
+│   ├── adapters/          # Source adapters
+│   │   ├── base.ts        # Abstract base class
+│   │   ├── file-enhanced.ts # File system adapter
+│   │   ├── index.ts       # Adapter registry
+│   │   └── web/           # Web adapter components
+│   ├── api/               # REST API implementation
+│   │   ├── routes.ts      # API routes
+│   │   ├── middleware.ts  # Request middleware
+│   │   ├── transforms.ts  # Data transformations
+│   │   └── caching-middleware.ts # Caching layer
+│   ├── core/              # Core server logic
+│   │   └── server.ts      # Main MCP server
+│   ├── search/            # Search and intelligence
+│   │   ├── intelligent-search-engine.ts
+│   │   ├── semantic-engine.ts
+│   │   └── query-processing/
+│   ├── tools/             # MCP tools implementation
+│   │   └── index.ts       # PPMCPTools class
+│   ├── types/             # TypeScript definitions
+│   │   └── index.ts       # Shared types and schemas
+│   ├── utils/             # Utilities and helpers
+│   │   ├── cache.ts       # Caching system
+│   │   ├── config.ts      # Configuration manager
+│   │   ├── logger.ts      # Winston logging
+│   │   ├── monitoring.ts  # Health monitoring
+│   │   └── performance.ts # Performance tracking
+│   └── index.ts           # Application entry point
+├── config/                # Configuration files
+├── docs/                  # Documentation
+├── tests/                 # Test suites
+├── scripts/               # Development scripts
+└── planning/              # Project planning documents
+```
 
-### Sample Data Generator
+## Development Tools
 
-Generate realistic test data for development and testing:
+### Interactive MCP Explorer
+
+Test MCP tools interactively:
 
 ```bash
-# Generate sample data with default settings
+# Start interactive explorer
+npm run mcp-explorer
+
+# Features:
+# - Auto-completion for tool names and parameters
+# - Performance analytics
+# - Session management
+# - Test suite execution
+```
+
+### Sample Data Generation
+
+Generate realistic test data:
+
+```bash
+# Generate sample runbooks and knowledge base
 npm run generate-sample-data
 
-# Generated content includes:
-# - 15 realistic runbooks across 7 alert scenarios
-# - 30 knowledge base articles with metadata
-# - Test configuration files
-# - JSON and Markdown formats
-```
-
-**Output Structure**:
-```
-test-data/
-├── runbooks/           # JSON runbook files
-├── knowledge-base/     # Markdown articles + metadata
-├── configs/           # Sample configuration files
-└── generation-summary.json
-```
-
-**Usage Examples**:
-```bash
-# Use generated test data
-cp test-data/configs/test-config.yaml config/config.yaml
-npm run dev
-npm run test-mcp
-```
-
-### Configuration Validator
-
-Validate YAML configuration files with comprehensive checking:
-
-```bash
-# Validate default config
+# Validate generated data
 npm run validate-config
-
-# Validate specific config file
-npm run validate-config -- --config path/to/config.yaml
-
-# Save validation report
-npm run validate-config -- --output validation-report.json
-
-# Skip specific checks
-npm run validate-config -- --no-connections --no-environment
 ```
 
-**Validation Features**:
-- Schema validation with Zod
-- Environment variable checking
-- Source connection testing
-- System requirements verification
-- Performance recommendations
+### Health Dashboard
 
-**Example Output**:
-```
-✅ Passed: 12
-⚠️  Warnings: 2
-❌ Errors: 0
-📋 Total: 14
-
-🎉 Configuration validation passed!
-```
-
-### MCP Client Testing Tool
-
-Interactive tool for testing all 7 MCP tools:
+Monitor system health in real-time:
 
 ```bash
-# Interactive mode (default)
-npm run test-mcp
+# Start health dashboard
+npm run health:dashboard
 
-# Run automated test suite
-npm run test-mcp -- --test-suite
-
-# Quick validation of all tools
-npm run test-mcp -- --validate
-
-# Test specific tool
-npm run test-mcp -- --tool search_runbooks
+# Features:
+# - Real-time metrics
+# - Performance graphs
+# - Error tracking
+# - Cache statistics
 ```
 
-**Interactive Mode Features**:
-- Menu-driven tool selection
-- Parameter input with validation
-- Real-time response formatting
-- Performance metrics display
-
-**Test Suite Features**:
-- 18 automated test scenarios
-- Response time monitoring
-- Success rate calculation
-- Detailed error reporting
-
-**Example Usage**:
-```bash
-# Start interactive testing
-npm run test-mcp
-
-# Select tool (1-7)
-Select tool (0-7): 1
-
-# Follow prompts to test search_runbooks
-Enter alert_type: disk_space
-Enter severity: critical
-Enter affected_systems: web-server-01
-
-# View formatted response
-✅ Success!
-⏱️  Response time: 45ms
-📄 Response: { ... }
-```
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the project root for sensitive configuration:
+### Performance Testing
 
 ```bash
-# Example .env file
-NODE_ENV=development
-LOG_LEVEL=debug
+# Quick performance test
+npm run benchmark:quick
 
-# Source authentication (examples)
-CONFLUENCE_TOKEN=your_confluence_token
-GITHUB_TOKEN=your_github_token
-DATABASE_URL=postgresql://user:pass@localhost/db
+# Comprehensive benchmark
+npm run benchmark
+
+# Stress testing
+npm run benchmark:stress
+
+# Load testing with monitoring
+npm run load-test
 ```
 
-### Configuration File
+## Configuration Management
 
-Edit `config/config.yaml` to configure documentation sources:
+### Configuration Files
 
 ```yaml
+# config/config.yaml - Main configuration
 server:
   port: 3000
-  host: "localhost"
-  log_level: "info"
-  cache_ttl_seconds: 3600
+  host: '0.0.0.0'
+  cors_origins: ['*']
+
+cache:
+  strategy: hybrid    # memory | redis | hybrid
+  ttl: 300           # 5 minutes
+  max_memory_items: 1000
 
 sources:
-  # Local file system adapter
-  - name: "local-docs"
+  - name: "local-runbooks"
     type: "file"
-    base_url: "./docs"
-    enabled: true
+    base_url: "./test-data-integration/runbooks"
+    recursive: true
+    supported_extensions: ['.md', '.json']
     priority: 1
-    refresh_interval: "5m"
-    
-  # Confluence adapter (when implemented)
-  - name: "company-confluence"
-    type: "confluence"
-    base_url: "https://company.atlassian.net/wiki"
+
+  - name: "web-docs"
+    type: "web"
+    base_url: "https://api.example.com"
+    endpoints:
+      - path: "/docs"
+        method: "GET"
+        content_type: "json"
     auth:
       type: "bearer_token"
-      token_env: "CONFLUENCE_TOKEN"
-    enabled: false
-    priority: 2
-    refresh_interval: "1h"
+      token_env: "API_TOKEN"
+
+performance:
+  concurrent_searches: 10
+  timeout_ms: 5000
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout: 30000
+
+logging:
+  level: "info"
+  format: "json"
+  file: "logs/personal-pipeline.log"
 ```
 
-## Development Workflow
-
-### 1. Setting Up New Features
+### Configuration Validation
 
 ```bash
-# Create feature branch
-git checkout -b feature/new-source-adapter
+# Validate configuration
+npm run validate-config
 
-# Make changes
-# ...
+# Check configuration schema
+npm run validate-config -- --verbose
 
-# Run quality checks
-npm run typecheck
-npm run lint
-npm run test
-
-# Build and test
-npm run build
-npm start
+# Test configuration with dry run
+npm run validate-config -- --dry-run
 ```
 
-### 2. Testing MCP Tools
+## Testing Framework
 
-Use the MCP client to test tools during development:
+### Test Structure
 
-```bash
-# Start the server
-npm run dev
-
-# In another terminal, test with curl (for HTTP endpoints)
-curl -X GET http://localhost:3000/health
-
-# For MCP protocol testing, you'll need an MCP client
-# The server communicates via stdio transport
+```
+tests/
+├── unit/                  # Unit tests
+│   ├── adapters/         # Adapter tests
+│   ├── core/             # Core logic tests
+│   ├── tools/            # MCP tools tests
+│   └── utils/            # Utility tests
+├── integration/           # Integration tests
+│   ├── api/              # API endpoint tests
+│   ├── cache/            # Cache integration tests
+│   └── adapters/         # Adapter integration tests
+├── performance/           # Performance tests
+└── utils/                # Test utilities
+    ├── test-helpers.ts   # Common test helpers
+    ├── test-data-generators.ts # Test data generation
+    └── redis-mock.ts     # Redis mocking utilities
 ```
 
-### 3. Adding New Source Adapters
+### Writing Tests
 
-1. **Create adapter class** extending `SourceAdapter`:
+#### Unit Test Example
 
 ```typescript
-// src/adapters/my-source.ts
-import { SourceAdapter } from './base';
+// tests/unit/tools/search-runbooks.test.ts
+import { PPMCPTools } from '../../../src/tools/index.js';
+import { MockAdapter } from '../../utils/test-helpers.js';
 
-export class MySourceAdapter extends SourceAdapter {
-  async search(query: string): Promise<SearchResult[]> {
-    // Implementation
-  }
-  
-  async searchRunbooks(alertType: string): Promise<Runbook[]> {
-    // Implementation
-  }
-  
-  // ... other required methods
-}
-```
+describe('search_runbooks', () => {
+  let tools: PPMCPTools;
+  let mockAdapter: MockAdapter;
 
-2. **Register the adapter factory**:
+  beforeEach(() => {
+    mockAdapter = new MockAdapter();
+    tools = new PPMCPTools();
+    tools.registerAdapter('test', mockAdapter);
+  });
 
-```typescript
-// src/core/server.ts
-this.sourceRegistry.registerFactory('my-source', (config) => {
-  return new MySourceAdapter(config);
-});
-```
+  it('should search runbooks by alert type', async () => {
+    // Arrange
+    mockAdapter.mockSearchRunbooks([
+      {
+        id: 'disk-space-critical',
+        title: 'Critical Disk Space Alert',
+        confidence_score: 0.95
+      }
+    ]);
 
-3. **Add configuration schema**:
+    // Act
+    const result = await tools.search_runbooks('disk_space', 'critical');
 
-```typescript
-// src/types/index.ts - update SourceType enum
-export const SourceType = z.enum([
-  'confluence', 'notion', 'github', 'database', 'web', 'file', 'my-source'
-]);
-```
-
-4. **Write tests**:
-
-```typescript
-// tests/unit/adapters/my-source.test.ts
-describe('MySourceAdapter', () => {
-  // Test implementation
-});
-```
-
-### 4. Adding New MCP Tools
-
-1. **Add tool definition** to `PPMCPTools` class:
-
-```typescript
-// src/tools/index.ts
-private getMyNewTool(): Tool {
-  return {
-    name: 'my_new_tool',
-    description: 'Description of what the tool does',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        // Define input parameters
-      },
-      required: ['param1']
-    }
-  };
-}
-```
-
-2. **Add tool handler**:
-
-```typescript
-// Add to handleToolCall switch statement
-case 'my_new_tool':
-  result = await this.myNewTool(request.params.arguments);
-  break;
-```
-
-3. **Implement tool logic**:
-
-```typescript
-private async myNewTool(args: any): Promise<MyToolResponse> {
-  // Implementation
-}
-```
-
-4. **Update documentation**:
-
-```markdown
-<!-- docs/API.md -->
-### my_new_tool
-
-Description of the tool...
-```
-
-## Testing Strategy
-
-### Unit Tests
-
-Test individual components in isolation:
-
-```typescript
-// tests/unit/tools/search.test.ts
-import { PPMCPTools } from '../../../src/tools';
-
-describe('PPMCPTools - search_runbooks', () => {
-  it('should return runbooks matching alert criteria', async () => {
-    // Test implementation
+    // Assert
+    expect(result).toHaveProperty('runbooks');
+    expect(result.runbooks).toHaveLength(1);
+    expect(result.runbooks[0].confidence_score).toBeGreaterThan(0.9);
   });
 });
 ```
 
-### Integration Tests
-
-Test component interactions:
+#### Integration Test Example
 
 ```typescript
-// tests/integration/server.test.ts
-import { PersonalPipelineServer } from '../../src/core/server';
+// tests/integration/api/runbooks.test.ts
+import request from 'supertest';
+import { createTestApp } from '../../utils/test-helpers.js';
 
-describe('PersonalPipelineServer Integration', () => {
-  it('should handle complete tool call flow', async () => {
-    // Test implementation
+describe('POST /api/runbooks/search', () => {
+  let app: Express;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+  });
+
+  it('should search runbooks via REST API', async () => {
+    const response = await request(app)
+      .post('/api/runbooks/search')
+      .send({
+        alert_type: 'disk_space',
+        severity: 'critical'
+      })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.runbooks).toBeDefined();
   });
 });
 ```
 
-### Test Coverage Requirements
+### Performance Testing
 
-- **Minimum**: 80% overall coverage
-- **Target**: 90%+ for core components
-- **Critical Paths**: 100% coverage for MCP protocol handling
+```typescript
+// tests/performance/search-performance.test.ts
+describe('Search Performance', () => {
+  it('should meet response time requirements', async () => {
+    const startTime = Date.now();
+    
+    const result = await tools.search_runbooks('disk_space', 'critical');
+    
+    const responseTime = Date.now() - startTime;
+    expect(responseTime).toBeLessThan(200); // < 200ms requirement
+  });
 
-```bash
-# Check current coverage
-npm run test:coverage
+  it('should handle concurrent requests', async () => {
+    const requests = Array(50).fill(null).map(() => 
+      tools.search_runbooks('memory_leak', 'high')
+    );
 
-# Coverage thresholds in package.json
-"jest": {
-  "coverageThreshold": {
-    "global": {
-      "branches": 80,
-      "functions": 80,
-      "lines": 80,
-      "statements": 80
-    }
-  }
-}
+    const results = await Promise.all(requests);
+    
+    results.forEach(result => {
+      expect(result.retrieval_time_ms).toBeLessThan(500);
+    });
+  });
+});
 ```
 
 ## Debugging
 
-### Development Debugging
+### Debug Configuration
 
-```bash
-# Start with debug logging
-LOG_LEVEL=debug npm run dev
+Create `.vscode/launch.json`:
 
-# Enable Node.js debugging
-node --inspect dist/index.js
-
-# Use VS Code debugger
-# Set breakpoints and press F5
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Personal Pipeline",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/index.ts",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "debug"
+      },
+      "runtimeArgs": ["--loader", "tsx/esm"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Debug Tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": ["--runInBand", "--no-cache"],
+      "env": {
+        "NODE_ENV": "test"
+      },
+      "console": "integratedTerminal"
+    }
+  ]
+}
 ```
 
-### Log Analysis
+### Logging and Monitoring
 
-```bash
-# View logs in real-time
-tail -f logs/app.log
+```typescript
+// Use structured logging
+import { logger } from '../utils/logger.js';
 
-# Search for errors
-grep "ERROR" logs/app.log
+// Log levels: error, warn, info, debug
+logger.info('Processing search request', {
+  alertType,
+  severity,
+  requestId: generateRequestId()
+});
 
-# View structured logs
-cat logs/app.log | jq '.'
+logger.error('Search failed', {
+  error: error.message,
+  stack: error.stack,
+  context: { alertType, severity }
+});
 ```
 
-### Health Check Debugging
+### Performance Profiling
 
 ```bash
-# Check server health
-curl http://localhost:3000/health | jq '.'
+# Profile application startup
+node --prof src/index.ts
 
-# Check individual source health
-curl http://localhost:3000/metrics | jq '.sources'
+# Profile specific operations
+npm run benchmark -- --profile
 
-# Test MCP protocol via stdio
-echo '{"method":"tools/list"}' | node dist/index.js
+# Memory usage analysis
+node --inspect src/index.ts
+```
+
+## Code Style and Standards
+
+### TypeScript Guidelines
+
+1. **Use strict TypeScript configuration**
+2. **Define interfaces for all data structures**
+3. **Use type guards for runtime validation**
+4. **Prefer composition over inheritance**
+5. **Use meaningful variable and function names**
+
+```typescript
+// Good: Clear interface definitions
+interface RunbookSearchRequest {
+  alertType: string;
+  severity?: AlertSeverity;
+  systems?: string[];
+  context?: SearchContext;
+}
+
+// Good: Type guards
+function isValidAlertType(type: unknown): type is string {
+  return typeof type === 'string' && type.length > 0;
+}
+
+// Good: Descriptive function names
+async function searchRunbooksWithConfidenceScoring(
+  request: RunbookSearchRequest
+): Promise<RunbookSearchResult> {
+  // Implementation
+}
+```
+
+### Error Handling
+
+```typescript
+// Custom error types
+export class AdapterError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly details?: any
+  ) {
+    super(message);
+    this.name = 'AdapterError';
+  }
+}
+
+// Error handling pattern
+async function searchWithErrorHandling(query: string): Promise<SearchResult> {
+  try {
+    return await performSearch(query);
+  } catch (error) {
+    if (error instanceof AdapterError) {
+      logger.error('Adapter error during search', {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      });
+      throw error;
+    }
+    
+    // Handle unexpected errors
+    logger.error('Unexpected search error', {
+      error: error.message,
+      stack: error.stack
+    });
+    
+    throw new AdapterError(
+      'Search operation failed',
+      'SEARCH_ERROR',
+      { originalError: error.message }
+    );
+  }
+}
+```
+
+### Async/Await Best Practices
+
+```typescript
+// Good: Proper error handling
+async function processMultipleRequests(requests: Request[]): Promise<Result[]> {
+  try {
+    const results = await Promise.all(
+      requests.map(async (request) => {
+        try {
+          return await processRequest(request);
+        } catch (error) {
+          logger.error('Request processing failed', {
+            requestId: request.id,
+            error: error.message
+          });
+          return createErrorResult(request.id, error);
+        }
+      })
+    );
+    
+    return results;
+  } catch (error) {
+    logger.error('Batch processing failed', { error: error.message });
+    throw new ProcessingError('Batch operation failed', 'BATCH_ERROR');
+  }
+}
 ```
 
 ## Performance Optimization
 
-### Profiling
-
-```bash
-# Profile startup time
-time npm start
-
-# Memory usage monitoring
-node --max-old-space-size=4096 dist/index.js
-
-# CPU profiling
-node --prof dist/index.js
-```
-
-### Cache Optimization
-
-```javascript
-// Monitor cache performance
-const cache = require('node-cache');
-const myCache = new cache({ stdTTL: 600, checkperiod: 120 });
-
-// Cache hit rate monitoring
-const hitRate = myCache.getStats().hits / myCache.getStats().keys;
-console.log(`Cache hit rate: ${hitRate * 100}%`);
-```
-
-### Query Performance
+### Caching Strategies
 
 ```typescript
-// Monitor query performance
-const startTime = Date.now();
-const results = await adapter.search(query);
-const duration = Date.now() - startTime;
-
-logger.info('Query performance', {
-  query,
-  duration,
-  resultCount: results.length,
-  cacheHit: results.length > 0 && duration < 50
-});
-```
-
-## Code Style Guide
-
-### TypeScript Standards
-
-```typescript
-// Use strict typing
-interface SearchRequest {
-  query: string;
-  filters?: SearchFilters;
-  maxResults?: number;
-}
-
-// Prefer async/await over Promises
-async function searchDocuments(request: SearchRequest): Promise<SearchResult[]> {
-  try {
-    const results = await adapter.search(request.query, request.filters);
-    return results.slice(0, request.maxResults || 10);
-  } catch (error) {
-    logger.error('Search failed', { error, query: request.query });
-    throw new SourceError('Search operation failed', adapter.name);
+// Implement intelligent caching
+class IntelligentCache {
+  private hotCache = new Map<string, CacheEntry>(); // Frequently accessed
+  private warmCache = new Map<string, CacheEntry>(); // Recently accessed
+  
+  async get(key: string): Promise<any> {
+    // Check hot cache first
+    if (this.hotCache.has(key)) {
+      return this.hotCache.get(key)?.value;
+    }
+    
+    // Check warm cache
+    if (this.warmCache.has(key)) {
+      const entry = this.warmCache.get(key)!;
+      // Promote to hot cache if frequently accessed
+      this.promoteToHot(key, entry);
+      return entry.value;
+    }
+    
+    return null; // Cache miss
   }
-}
-
-// Use proper error handling
-class CustomError extends Error {
-  constructor(message: string, public code: string) {
-    super(message);
-    this.name = 'CustomError';
+  
+  private promoteToHot(key: string, entry: CacheEntry): void {
+    if (entry.accessCount > HOT_CACHE_THRESHOLD) {
+      this.hotCache.set(key, entry);
+      this.warmCache.delete(key);
+    }
   }
 }
 ```
 
-### ESLint Configuration
+### Database Optimization
 
-Key rules enforced:
-
-```json
-{
-  "@typescript-eslint/no-unused-vars": "error",
-  "@typescript-eslint/explicit-function-return-type": "warn",
-  "prefer-const": "error",
-  "no-var": "error",
-  "complexity": ["warn", 10],
-  "max-lines-per-function": ["warn", 100]
+```typescript
+// Batch operations for better performance
+async function batchUpdateDocuments(updates: DocumentUpdate[]): Promise<void> {
+  const BATCH_SIZE = 100;
+  
+  for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+    const batch = updates.slice(i, i + BATCH_SIZE);
+    
+    await Promise.all(
+      batch.map(update => updateDocument(update))
+    );
+    
+    // Small delay to prevent overwhelming the system
+    if (i + BATCH_SIZE < updates.length) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  }
 }
-```
-
-### Prettier Configuration
-
-```json
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 100,
-  "tabWidth": 2,
-  "useTabs": false
-}
-```
-
-## Git Workflow
-
-### Branch Strategy
-
-```bash
-# Feature development
-git checkout -b feature/adapter-confluence
-git checkout -b bugfix/memory-leak-fix
-git checkout -b hotfix/critical-security-patch
-
-# Always create PRs for main branch
-git push origin feature/adapter-confluence
-# Create pull request via GitHub
-```
-
-### Commit Messages
-
-Follow conventional commits:
-
-```bash
-# Format: type(scope): description
-git commit -m "feat(adapters): add Confluence source adapter"
-git commit -m "fix(tools): resolve memory leak in search_runbooks"
-git commit -m "docs(api): update tool documentation with examples"
-git commit -m "test(integration): add end-to-end server tests"
-```
-
-### Pre-commit Hooks
-
-```bash
-# Install husky for git hooks
-npx husky install
-
-# Pre-commit checks
-npm run lint
-npm run typecheck
-npm run test
 ```
 
 ## Deployment
@@ -692,174 +766,226 @@ npm run test
 ### Local Deployment
 
 ```bash
-# Production build
+# Build and run locally
 npm run build
+npm start
 
-# Start production server
-NODE_ENV=production npm start
+# Using Docker
+docker build -t personal-pipeline .
+docker run -p 3000:3000 personal-pipeline
 ```
+
+### Production Considerations
+
+1. **Environment Variables**: Use secure credential management
+2. **Health Checks**: Implement comprehensive health endpoints
+3. **Monitoring**: Set up metrics collection and alerting
+4. **Logging**: Configure structured logging with log rotation
+5. **Security**: Enable HTTPS, rate limiting, and input validation
 
 ### Docker Deployment
 
-```bash
-# Build Docker image
-docker build -t personal-pipeline-mcp .
+```dockerfile
+FROM node:20-alpine AS builder
 
-# Run container
-docker run -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e LOG_LEVEL=info \
-  -v $(pwd)/config:/app/config \
-  personal-pipeline-mcp
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+FROM node:20-alpine AS runtime
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S personal-pipeline -u 1001
+
+WORKDIR /app
+COPY --from=builder --chown=personal-pipeline:nodejs /app/node_modules ./node_modules
+COPY --chown=personal-pipeline:nodejs . .
+
+USER personal-pipeline
+
+RUN npm run build
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+CMD ["npm", "start"]
 ```
 
-### Environment Configuration
+## Contributing Guidelines
 
-```bash
-# Development
-NODE_ENV=development
-LOG_LEVEL=debug
+### Pull Request Process
 
-# Production
-NODE_ENV=production
-LOG_LEVEL=info
-CACHE_TTL_SECONDS=3600
-MAX_CONCURRENT_REQUESTS=100
+1. **Fork and Clone**: Fork the repository and clone your fork
+2. **Branch**: Create a feature branch from `main`
+3. **Implement**: Make your changes with tests
+4. **Test**: Ensure all tests pass and coverage is maintained
+5. **Lint**: Run linting and fix any issues
+6. **Commit**: Use conventional commit messages
+7. **Push**: Push your branch to your fork
+8. **PR**: Create a pull request with detailed description
+
+### Commit Message Format
+
 ```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Test additions or modifications
+- `chore`: Build process or auxiliary tool changes
+
+**Examples:**
+```
+feat(api): add runbook search endpoint
+
+Add POST /api/runbooks/search endpoint with filtering
+and pagination support. Includes request validation
+and comprehensive error handling.
+
+Closes #123
+```
+
+### Code Review Guidelines
+
+1. **Functionality**: Does the code work as intended?
+2. **Performance**: Are there any performance implications?
+3. **Security**: Are there any security vulnerabilities?
+4. **Maintainability**: Is the code readable and maintainable?
+5. **Testing**: Are there adequate tests?
+6. **Documentation**: Is the code properly documented?
 
 ## Troubleshooting
 
-### Common Issues
+### Server Management Issues
 
-1. **Server won't start**
-   ```bash
-   # Check Node.js version
-   node --version  # Should be >= 18.0.0
-   
-   # Check for port conflicts
-   lsof -i :3000
-   
-   # Check configuration
-   npm run typecheck
-   ```
+#### Server Won't Stop
 
-2. **MCP tools not responding**
-   ```bash
-   # Check logs
-   tail -f logs/app.log
-   
-   # Verify tool registration
-   curl http://localhost:3000/health
-   ```
+```bash
+# Force kill all Personal Pipeline processes
+pkill -f "node.*personal-pipeline"
+pkill -f "tsx.*src/index"
 
-3. **Source adapter failures**
-   ```bash
-   # Check source health
-   curl http://localhost:3000/metrics
-   
-   # Verify configuration
-   cat config/config.yaml
-   ```
+# Kill processes on specific ports
+npx kill-port 3000
+npx kill-port 6379
 
-### Performance Issues
+# Check for remaining processes
+ps aux | grep -v grep | grep personal-pipeline
+```
 
-1. **Slow response times**
-   - Check cache hit rates
-   - Monitor source adapter performance
-   - Review query complexity
+#### Port Already in Use
 
-2. **Memory leaks**
-   - Monitor heap usage with `node --inspect`
-   - Check for unclosed connections
-   - Review cache cleanup policies
+```bash
+# Find what's using the port
+lsof -i :3000
+netstat -tulpn | grep :3000
 
-3. **High CPU usage**
-   - Profile with `node --prof`
-   - Check for infinite loops
-   - Review recursive operations
+# Kill process using the port
+npx kill-port 3000
 
-### Development Tools Issues
+# Or start on different port
+PORT=8080 npm run dev
+```
 
-1. **Sample data generation fails**
-   ```bash
-   # Check write permissions
-   ls -la test-data/
-   
-   # Clear and regenerate
-   rm -rf test-data/
-   npm run generate-sample-data
-   ```
+#### Process Cleanup Issues
 
-2. **Configuration validation errors**
-   ```bash
-   # Check YAML syntax
-   npm run validate-config -- --config config/config.yaml
-   
-   # Test with sample config
-   npm run validate-config -- --config test-data/configs/test-config.yaml
-   ```
+```bash
+# Complete environment reset
+./scripts/cleanup-environment.sh
 
-3. **MCP testing tool connection issues**
-   ```bash
-   # Ensure server is running
-   npm run health
-   
-   # Test with mock mode (no server required)
-   npm run test-mcp -- --validate
-   ```
+# Or manual cleanup:
+pkill -f "personal-pipeline"
+rm -rf /tmp/personal-pipeline-*
+rm -rf logs/*.log
+```
 
-### Redis and Caching Issues
+See [Server Management Guide](./SERVER-MANAGEMENT.md) for comprehensive troubleshooting procedures.
 
-4. **Redis connection failures**
-   ```bash
-   # Check if Redis is running
-   redis-cli ping
-   # Expected: PONG
-   
-   # Check cache health
-   npm run health:cache
-   
-   # Check system logs for Redis warnings
-   tail -f logs/app.log | grep -i redis
-   ```
+### Development Issues
 
-5. **Cache performance issues**
-   ```bash
-   # Monitor cache hit rates
-   npm run performance:monitor
-   
-   # Check cache statistics
-   curl http://localhost:3000/health/cache | jq '.cache.stats'
-   
-   # Clear cache if needed
-   curl -X DELETE http://localhost:3000/cache/all
-   ```
+#### Build Errors
 
-6. **Memory-only fallback behavior**
-   ```bash
-   # System automatically falls back to memory-only when Redis unavailable
-   # Check fallback status
-   npm run health:cache | jq '.cache.redis_connected'
-   
-   # Force memory-only mode for testing
-   # Set in config/config.yaml:
-   # redis:
-   #   enabled: false
-   ```
+```bash
+# Clear cache and reinstall
+rm -rf node_modules package-lock.json
+npm install
 
-**Redis Setup Resources**:
-- **Installation Guide**: [Redis Setup Documentation](REDIS-SETUP.md)
-- **Configuration Guide**: [Caching Strategies Documentation](CACHING-STRATEGIES.md)
-- **Performance Tuning**: See caching documentation for optimization tips
+# Clear TypeScript cache
+rm -rf dist/
+npm run build
+```
+
+#### Test Failures
+
+```bash
+# Run tests in verbose mode
+npm test -- --verbose
+
+# Run specific test file
+npm test -- tests/unit/tools/search-runbooks.test.ts
+
+# Update snapshots if needed
+npm test -- --updateSnapshot
+```
+
+#### Redis Connection Issues
+
+```bash
+# Check Redis status
+redis-cli ping
+
+# Check connection in application
+npm run health
+
+# Run without Redis
+unset REDIS_URL
+npm run dev
+```
+
+#### Performance Issues
+
+```bash
+# Profile the application
+npm run benchmark
+
+# Check memory usage
+node --inspect src/index.ts
+
+# Enable debug logging
+LOG_LEVEL=debug npm run dev
+```
 
 ### Getting Help
 
-- **Documentation**: Check `/docs` directory
-- **Issues**: GitHub issue tracker
-- **Logs**: Check application logs for error details
-- **Health Checks**: Use `/health` and `/metrics` endpoints
-- **Development Tools**: Use `npm run validate-config` and `npm run test-mcp -- --help` for diagnostics
+1. **Documentation**: Check existing docs in `/docs` directory
+2. **Issues**: Search GitHub issues for similar problems
+3. **Discussions**: Use GitHub Discussions for questions
+4. **Community**: Join the community chat for real-time help
 
-## Contributing
+## Resources
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed contribution guidelines.
+### Documentation Links
+
+- [API Documentation](./API.md)
+- [Architecture Overview](./ARCHITECTURE.md)
+- [Testing Guide](./TESTING.md)
+- [Configuration Reference](../config/CONFIG_OVERVIEW.md)
+
+### External Resources
+
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Node.js Documentation](https://nodejs.org/docs/)
+- [Jest Testing Framework](https://jestjs.io/docs/getting-started)
+- [Express.js Guide](https://expressjs.com/en/guide/)
+- [Redis Documentation](https://redis.io/docs/)

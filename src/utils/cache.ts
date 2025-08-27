@@ -11,7 +11,12 @@ import { CacheConfig, CacheStats, CacheHealthCheck } from '../types/index.js';
 import { CircuitBreakerFactory } from './circuit-breaker.js';
 import { RedisConnectionManager } from './redis-connection-manager.js';
 
-export type CacheContentType = 'runbooks' | 'procedures' | 'decision_trees' | 'knowledge_base' | 'web_response';
+export type CacheContentType =
+  | 'runbooks'
+  | 'procedures'
+  | 'decision_trees'
+  | 'knowledge_base'
+  | 'web_response';
 
 export interface CacheKey {
   type: CacheContentType;

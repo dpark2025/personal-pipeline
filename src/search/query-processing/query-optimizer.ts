@@ -1,20 +1,15 @@
 /**
  * Query Optimizer - Search strategy optimization based on intent and context
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Intelligent search strategy optimizer that selects optimal search approaches,
  * scoring weights, and filtering strategies based on query intent, context,
  * and operational requirements with <10ms processing time.
  */
 
-import { 
-  IntentType, 
-  SearchStrategy, 
-  ProcessedQuery, 
-  QueryContext,
-} from './types.js';
+import { IntentType, SearchStrategy, ProcessedQuery, QueryContext } from './types.js';
 import { SearchFilters } from '../../types/index.js';
 import { logger } from '../../utils/logger.js';
 
@@ -107,7 +102,9 @@ export class QueryOptimizer {
       });
     } catch (error) {
       logger.error('Failed to initialize Query Optimizer', { error });
-      throw new Error(`Query Optimizer initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Query Optimizer initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -120,7 +117,7 @@ export class QueryOptimizer {
     try {
       // Find matching strategy rule
       const rule = this.findBestStrategy(processedQuery);
-      
+
       // Apply adaptive optimizations
       const optimizedStrategy = this.config.enableAdaptiveWeights
         ? this.applyAdaptiveOptimizations(rule.strategy, processedQuery)
@@ -372,10 +369,10 @@ export class QueryOptimizer {
     return {
       totalOptimizations: 0,
       strategyDistribution: {
-        'semantic_primary': 0,
-        'fuzzy_primary': 0,
-        'hybrid_balanced': 0,
-        'exact_match': 0,
+        semantic_primary: 0,
+        fuzzy_primary: 0,
+        hybrid_balanced: 0,
+        exact_match: 0,
       },
       averageProcessingTime: 0,
       processingTimePercentiles: { p50: 0, p95: 0, p99: 0 },
@@ -389,10 +386,10 @@ export class QueryOptimizer {
 
   private findBestStrategy(processedQuery: ProcessedQuery): StrategyRule {
     const { intent, context } = processedQuery;
-    
+
     // Find rules matching the intent
     const candidateRules = this.strategyRules.filter(rule => rule.intent === intent.intent);
-    
+
     // Score each rule based on conditions
     let bestRule = candidateRules[0]; // Default to first match
     let bestScore = 0;
@@ -421,8 +418,8 @@ export class QueryOptimizer {
       // Check systems condition
       if (rule.conditions.systems) {
         const systems = intent.entities.systems || context?.systems || [];
-        const hasMatchingSystems = rule.conditions.systems.some(sys => 
-          systems.includes(sys) || systems.some(s => s.includes(sys))
+        const hasMatchingSystems = rule.conditions.systems.some(
+          sys => systems.includes(sys) || systems.some(s => s.includes(sys))
         );
         if (hasMatchingSystems) {
           score += 10;
@@ -444,7 +441,7 @@ export class QueryOptimizer {
   }
 
   private applyAdaptiveOptimizations(
-    baseStrategy: StrategyRule['strategy'], 
+    baseStrategy: StrategyRule['strategy'],
     processedQuery: ProcessedQuery
   ): SearchStrategy {
     const strategy = JSON.parse(JSON.stringify(baseStrategy)) as SearchStrategy; // Deep copy
@@ -493,11 +490,11 @@ export class QueryOptimizer {
     // Urgent queries get tighter time constraints
     if (context?.urgent) {
       strategy.timeConstraints.targetResponseTime = Math.min(
-        strategy.timeConstraints.targetResponseTime, 
+        strategy.timeConstraints.targetResponseTime,
         100
       );
       strategy.timeConstraints.maxResponseTime = Math.min(
-        strategy.timeConstraints.maxResponseTime, 
+        strategy.timeConstraints.maxResponseTime,
         200
       );
     }
@@ -510,21 +507,21 @@ export class QueryOptimizer {
 
     // Ensure minimum response times
     strategy.timeConstraints.targetResponseTime = Math.max(
-      strategy.timeConstraints.targetResponseTime, 
+      strategy.timeConstraints.targetResponseTime,
       50
     );
     strategy.timeConstraints.maxResponseTime = Math.max(
-      strategy.timeConstraints.maxResponseTime, 
+      strategy.timeConstraints.maxResponseTime,
       100
     );
   }
 
   private calculateQueryComplexity(enhancedQuery: any): number {
     const factors = [
-      enhancedQuery.expansions.length / 10,           // Expansion complexity
-      enhancedQuery.contextTerms.length / 8,          // Context complexity
-      enhancedQuery.operationalKeywords.length / 6,   // Keyword complexity
-      enhancedQuery.enhancedQuery.length / 200,       // Query length complexity
+      enhancedQuery.expansions.length / 10, // Expansion complexity
+      enhancedQuery.contextTerms.length / 8, // Context complexity
+      enhancedQuery.operationalKeywords.length / 6, // Keyword complexity
+      enhancedQuery.enhancedQuery.length / 200, // Query length complexity
     ];
 
     return Math.min(factors.reduce((sum, factor) => sum + factor, 0) / factors.length, 1.0);
@@ -587,8 +584,8 @@ export class QueryOptimizer {
   }
 
   private updateMetrics(
-    strategy: SearchStrategy, 
-    processedQuery: ProcessedQuery, 
+    strategy: SearchStrategy,
+    processedQuery: ProcessedQuery,
     processingTime: number
   ): void {
     this.metrics.totalOptimizations++;
@@ -642,7 +639,9 @@ export class QueryOptimizer {
 
   private calculateTargetMetPercentage(): number {
     if (this.processingTimes.length === 0) return 100;
-    const withinTarget = this.processingTimes.filter(time => time <= this.config.maxProcessingTime).length;
+    const withinTarget = this.processingTimes.filter(
+      time => time <= this.config.maxProcessingTime
+    ).length;
     return (withinTarget / this.processingTimes.length) * 100;
   }
 }

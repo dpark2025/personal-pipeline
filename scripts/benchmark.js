@@ -391,7 +391,12 @@ class PerformanceBenchmark {
         PORT: this.serverInfo.serverPort.toString()
       };
 
-      this.mcpProcess = spawn('npm', ['run', 'dev'], {
+      // Use built version if available, fallback to dev mode
+      const useBuiltVersion = existsSync(join(__dirname, '..', 'dist', 'index.js'));
+      const command = useBuiltVersion ? 'node' : 'npm';
+      const args = useBuiltVersion ? ['dist/index.js'] : ['run', 'dev'];
+      
+      this.mcpProcess = spawn(command, args, {
         cwd: join(__dirname, '..'),
         stdio: ['pipe', 'pipe', 'pipe'],
         env

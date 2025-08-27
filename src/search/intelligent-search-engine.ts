@@ -1,16 +1,16 @@
 /**
  * Intelligent Search Engine - Integration layer for query processing and semantic search
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Production-grade intelligent search engine that combines query processing
  * with semantic search to deliver contextually-aware, intent-driven search
  * results with >30% relevance improvement and <200ms response times.
  */
 
 import { SemanticSearchEngine } from './semantic-engine.js';
-import { 
+import {
   // QueryProcessor,
   QueryContext,
   ProcessedQuery,
@@ -150,7 +150,9 @@ export class IntelligentSearchEngine {
       });
     } catch (error) {
       logger.error('Failed to initialize Intelligent Search Engine', { error });
-      throw new Error(`Intelligent Search Engine initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Intelligent Search Engine initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -175,7 +177,11 @@ export class IntelligentSearchEngine {
   /**
    * Perform intelligent search with query processing and semantic understanding
    */
-  async search(query: string, context?: QueryContext, filters?: SearchFilters): Promise<SearchResult[]> {
+  async search(
+    query: string,
+    context?: QueryContext,
+    filters?: SearchFilters
+  ): Promise<SearchResult[]> {
     if (!this.isInitialized) {
       throw new Error('Intelligent Search Engine not initialized');
     }
@@ -215,10 +221,14 @@ export class IntelligentSearchEngine {
       if (this.config.integration.enableSemanticSearch) {
         // Step 2: Perform semantic search with enhanced query and optimized strategy
         const semanticSearchStart = performance.now();
-        
-        const searchQuery = (processedQuery as ProcessedQuery | undefined)?.enhancedQuery?.enhancedQuery || query;
-        const searchFilters = this.mergeFilters(filters, processedQuery as ProcessedQuery | undefined);
-        
+
+        const searchQuery =
+          (processedQuery as ProcessedQuery | undefined)?.enhancedQuery?.enhancedQuery || query;
+        const searchFilters = this.mergeFilters(
+          filters,
+          processedQuery as ProcessedQuery | undefined
+        );
+
         results = await this.semanticSearchEngine.search(searchQuery, searchFilters);
         semanticSearchTime = performance.now() - semanticSearchStart;
 
@@ -235,7 +245,14 @@ export class IntelligentSearchEngine {
       const totalResponseTime = performance.now() - startTime;
 
       // Update metrics
-      this.updateSearchMetrics(searchId, totalResponseTime, queryProcessingTime, semanticSearchTime, results.length, processedQuery);
+      this.updateSearchMetrics(
+        searchId,
+        totalResponseTime,
+        queryProcessingTime,
+        semanticSearchTime,
+        results.length,
+        processedQuery
+      );
 
       // Log performance warning if target not met
       if (totalResponseTime > this.config.integration.maxResponseTime) {
@@ -301,8 +318,11 @@ export class IntelligentSearchEngine {
     return results
       .filter(result => result.metadata?.runbook_data)
       .map(result => result.metadata!.runbook_data as Runbook)
-      .sort((a, b) => this.calculateRunbookRelevanceScore(b, operationalContext) - 
-                      this.calculateRunbookRelevanceScore(a, operationalContext));
+      .sort(
+        (a, b) =>
+          this.calculateRunbookRelevanceScore(b, operationalContext) -
+          this.calculateRunbookRelevanceScore(a, operationalContext)
+      );
   }
 
   /**
@@ -311,8 +331,12 @@ export class IntelligentSearchEngine {
   getPerformanceMetrics(): any {
     return {
       intelligent: this.metrics,
-      semantic: this.config.integration.enableSemanticSearch ? this.semanticSearchEngine.getPerformanceMetrics() : null,
-      queryProcessing: this.config.integration.enableQueryProcessing ? { disabled: true, reason: 'Temporarily disabled for build fix' } : null,
+      semantic: this.config.integration.enableSemanticSearch
+        ? this.semanticSearchEngine.getPerformanceMetrics()
+        : null,
+      queryProcessing: this.config.integration.enableQueryProcessing
+        ? { disabled: true, reason: 'Temporarily disabled for build fix' }
+        : null,
     };
   }
 
@@ -325,8 +349,12 @@ export class IntelligentSearchEngine {
       config: this.config,
       metrics: this.metrics,
       components: {
-        semanticSearch: this.config.integration.enableSemanticSearch ? this.semanticSearchEngine.getStatus() : 'disabled',
-        queryProcessing: this.config.integration.enableQueryProcessing ? 'temporarily_disabled' : 'disabled',
+        semanticSearch: this.config.integration.enableSemanticSearch
+          ? this.semanticSearchEngine.getStatus()
+          : 'disabled',
+        queryProcessing: this.config.integration.enableQueryProcessing
+          ? 'temporarily_disabled'
+          : 'disabled',
       },
     };
   }
@@ -336,7 +364,7 @@ export class IntelligentSearchEngine {
    */
   async cleanup(): Promise<void> {
     logger.info('Cleaning up Intelligent Search Engine');
-    
+
     const cleanupPromises = [];
 
     if (this.config.integration.enableSemanticSearch) {
@@ -349,7 +377,7 @@ export class IntelligentSearchEngine {
     }
 
     await Promise.all(cleanupPromises);
-    
+
     this.responseTimes = [];
     this.metrics = this.initializeMetrics();
     this.isInitialized = false;
@@ -385,7 +413,10 @@ export class IntelligentSearchEngine {
     return `search_${timestamp}_${random}`;
   }
 
-  private mergeFilters(userFilters?: SearchFilters, processedQuery?: ProcessedQuery): SearchFilters {
+  private mergeFilters(
+    userFilters?: SearchFilters,
+    processedQuery?: ProcessedQuery
+  ): SearchFilters {
     const baseFilters = { ...userFilters };
 
     if (processedQuery?.strategy.recommendedFilters) {
@@ -398,7 +429,10 @@ export class IntelligentSearchEngine {
     return baseFilters;
   }
 
-  private applySearchStrategyOptimization(results: SearchResult[], processedQuery: ProcessedQuery): SearchResult[] {
+  private applySearchStrategyOptimization(
+    results: SearchResult[],
+    processedQuery: ProcessedQuery
+  ): SearchResult[] {
     const { strategy, intent } = processedQuery;
 
     // Apply result limit optimization
@@ -411,19 +445,26 @@ export class IntelligentSearchEngine {
       // Apply intent-specific boosts
       switch (intent.intent) {
         case 'EMERGENCY_RESPONSE':
-          if (result.metadata?.urgency === 'high' || 
-              (result.content && result.content.includes('emergency'))) {
+          if (
+            result.metadata?.urgency === 'high' ||
+            (result.content && result.content.includes('emergency'))
+          ) {
             boostScore += 0.2;
           }
           break;
         case 'FIND_RUNBOOK':
-          if (result.category === 'runbook' || 
-              (result.content && result.content.includes('runbook'))) {
+          if (
+            result.category === 'runbook' ||
+            (result.content && result.content.includes('runbook'))
+          ) {
             boostScore += 0.15;
           }
           break;
         case 'ESCALATION_PATH':
-          if ((result.content && (result.content.includes('escalation') || result.content.includes('contact')))) {
+          if (
+            result.content &&
+            (result.content.includes('escalation') || result.content.includes('contact'))
+          ) {
             boostScore += 0.1;
           }
           break;
@@ -432,8 +473,10 @@ export class IntelligentSearchEngine {
       // Apply system-specific boosts
       if (intent.entities.systems) {
         for (const system of intent.entities.systems) {
-          if (result.content.toLowerCase().includes(system.toLowerCase()) ||
-              result.title.toLowerCase().includes(system.toLowerCase())) {
+          if (
+            result.content.toLowerCase().includes(system.toLowerCase()) ||
+            result.title.toLowerCase().includes(system.toLowerCase())
+          ) {
             boostScore += 0.05;
           }
         }
@@ -454,7 +497,11 @@ export class IntelligentSearchEngine {
     return boostedResults.sort((a, b) => b.confidence_score - a.confidence_score);
   }
 
-  private constructRunbookQuery(alertType: string, severity: string, affectedSystems: string[]): string {
+  private constructRunbookQuery(
+    alertType: string,
+    severity: string,
+    affectedSystems: string[]
+  ): string {
     const queryParts = [
       `runbook for ${alertType}`,
       `severity ${severity}`,
@@ -470,7 +517,7 @@ export class IntelligentSearchEngine {
     // System match scoring
     if (context.systems && runbook.triggers) {
       const systemMatches = context.systems.filter(system =>
-        runbook.triggers.some(trigger => 
+        runbook.triggers.some(trigger =>
           JSON.stringify(trigger).toLowerCase().includes(system.toLowerCase())
         )
       );
@@ -533,7 +580,10 @@ export class IntelligentSearchEngine {
     this.metrics.responseTimePercentiles = this.calculateResponseTimePercentiles();
 
     // Update search approach distribution
-    if (this.config.integration.enableQueryProcessing && this.config.integration.enableSemanticSearch) {
+    if (
+      this.config.integration.enableQueryProcessing &&
+      this.config.integration.enableSemanticSearch
+    ) {
       this.metrics.searchApproachDistribution.intelligentSearch++;
     } else if (this.config.integration.enableSemanticSearch) {
       this.metrics.searchApproachDistribution.semanticFallback++;
@@ -550,12 +600,13 @@ export class IntelligentSearchEngine {
         this.metrics.relevanceImprovement + 0.1, // Incremental improvement
         35 // Cap at 35% improvement
       );
-      this.metrics.performanceTargets.achievedRelevanceImprovement = this.metrics.relevanceImprovement;
+      this.metrics.performanceTargets.achievedRelevanceImprovement =
+        this.metrics.relevanceImprovement;
     }
   }
 
   private updateAverage(currentAverage: number, count: number, newValue: number): number {
-    return ((currentAverage * (count - 1)) + newValue) / count;
+    return (currentAverage * (count - 1) + newValue) / count;
   }
 
   private calculateResponseTimePercentiles(): { p50: number; p95: number; p99: number } {

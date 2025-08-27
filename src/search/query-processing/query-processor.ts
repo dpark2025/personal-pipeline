@@ -1,9 +1,9 @@
 /**
  * Query Processor - Core query processing orchestration
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Main orchestration class for intelligent query processing that coordinates
  * intent classification, query enhancement, and search strategy optimization
  * with sub-50ms processing targets.
@@ -14,11 +14,11 @@ import { IntentClassifier } from './intent-classifier.js';
 import { QueryOptimizer } from './query-optimizer.js';
 import { OperationalIntelligence } from './operational-intelligence.js';
 import { PerformanceMonitor } from './performance-monitor.js';
-import { 
-  QueryContext, 
-  ProcessedQuery, 
-  IntentClassification, 
-  EnhancedQuery, 
+import {
+  QueryContext,
+  ProcessedQuery,
+  IntentClassification,
+  EnhancedQuery,
   SearchStrategy,
   QueryProcessingConfig,
 } from './types.js';
@@ -123,7 +123,9 @@ export class QueryProcessor {
       this.performanceMonitor.recordInitialization(initTime);
     } catch (error) {
       logger.error('Failed to initialize Query Processor', { error });
-      throw new Error(`Query Processor initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Query Processor initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -197,7 +199,7 @@ export class QueryProcessor {
             strategyOptimization: 0,
           },
         };
-        
+
         strategy = this.queryOptimizer.optimizeSearchStrategy(tempProcessedQuery);
       } else {
         // Sequential processing
@@ -229,7 +231,7 @@ export class QueryProcessor {
             strategyOptimization: 0,
           },
         };
-        
+
         strategy = this.queryOptimizer.optimizeSearchStrategy(tempProcessedQuery2);
       }
 
@@ -260,7 +262,7 @@ export class QueryProcessor {
           processingId,
           targetTime: `${this.config.performance.targetProcessingTime}ms`,
           actualTime: `${totalProcessingTime.toFixed(2)}ms`,
-          query: `${query.substring(0, 50)  }...`,
+          query: `${query.substring(0, 50)}...`,
         });
       } else {
         logger.debug('Query processing completed within target', {
@@ -274,9 +276,9 @@ export class QueryProcessor {
       return processedQuery;
     } catch (error) {
       const responseTime = performance.now() - startTime;
-      logger.error('Query processing failed', { 
-        processingId, 
-        error, 
+      logger.error('Query processing failed', {
+        processingId,
+        error,
         responseTime: `${responseTime.toFixed(2)}ms`,
       });
 
@@ -298,7 +300,7 @@ export class QueryProcessor {
    * Enhance query with contextual understanding
    */
   async enhanceQuery(
-    query: string, 
+    query: string,
     _intent: IntentClassification, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     _context?: QueryContext // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): Promise<EnhancedQuery> {
@@ -358,7 +360,7 @@ export class QueryProcessor {
    */
   async cleanup(): Promise<void> {
     logger.info('Cleaning up Query Processor');
-    
+
     await Promise.all([
       this.intentClassifier.cleanup(),
       // this.contextEnhancer.cleanup(),
@@ -366,15 +368,15 @@ export class QueryProcessor {
       this.operationalIntelligence.cleanup(),
       this.performanceMonitor.cleanup(),
     ]);
-    
+
     this.isInitialized = false;
   }
 
   // Private methods
 
   private createFallbackResult(
-    query: string, 
-    context: QueryContext | undefined, 
+    query: string,
+    context: QueryContext | undefined,
     processingTime: number
   ): ProcessedQuery {
     return {

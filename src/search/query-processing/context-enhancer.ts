@@ -1,9 +1,9 @@
 /**
  * Context Enhancer - Query expansion and enhancement with domain knowledge
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Intelligent query enhancement system that expands queries with operational
  * context, synonyms, domain knowledge, and contextual understanding to improve
  * search relevance by >30% while maintaining <15ms processing time.
@@ -106,7 +106,9 @@ export class ContextEnhancer {
       });
     } catch (error) {
       logger.error('Failed to initialize Context Enhancer', { error });
-      throw new Error(`Context Enhancer initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Context Enhancer initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -114,42 +116,38 @@ export class ContextEnhancer {
    * Enhance query with contextual understanding and domain knowledge
    */
   async enhanceQuery(
-    query: string, 
-    context?: QueryContext, 
+    query: string,
+    context?: QueryContext,
     intent?: IntentClassification
   ): Promise<EnhancedQuery> {
     const startTime = performance.now();
 
     try {
       const normalizedQuery = this.normalizeQuery(query);
-      
+
       // Extract operational keywords
       const operationalKeywords = this.extractOperationalKeywords(normalizedQuery, intent);
-      
+
       // Generate synonyms and expansions
-      const expansions = this.config.enableSynonyms 
+      const expansions = this.config.enableSynonyms
         ? this.generateSynonymExpansions(normalizedQuery, operationalKeywords)
         : [];
-      
+
       // Add contextual terms
       const contextTerms = this.config.enableContextInjection
         ? this.generateContextualTerms(normalizedQuery, context, intent)
         : [];
-      
+
       // Build enhanced query
       const enhancedQuery = this.buildEnhancedQuery(
-        normalizedQuery, 
-        expansions, 
-        contextTerms, 
+        normalizedQuery,
+        expansions,
+        contextTerms,
         operationalKeywords
       );
-      
+
       // Generate boost terms for scoring
-      const boostTerms = this.generateBoostTerms(
-        operationalKeywords, 
-        contextTerms, 
-        intent
-      );
+      const boostTerms = this.generateBoostTerms(operationalKeywords, contextTerms, intent);
 
       const processingTime = performance.now() - startTime;
 
@@ -241,7 +239,16 @@ export class ContextEnhancer {
       // Infrastructure terms
       {
         primary: 'database',
-        synonyms: ['db', 'mysql', 'postgres', 'postgresql', 'mongodb', 'redis', 'cassandra', 'oracle'],
+        synonyms: [
+          'db',
+          'mysql',
+          'postgres',
+          'postgresql',
+          'mongodb',
+          'redis',
+          'cassandra',
+          'oracle',
+        ],
         weight: 1.0,
       },
       {
@@ -254,7 +261,7 @@ export class ContextEnhancer {
         synonyms: ['application', 'app', 'process', 'daemon', 'microservice', 'api'],
         weight: 1.0,
       },
-      
+
       // Performance terms
       {
         primary: 'performance',
@@ -271,7 +278,7 @@ export class ContextEnhancer {
         synonyms: ['processor', 'cpu usage', 'cpu load', 'compute', 'processing'],
         weight: 1.0,
       },
-      
+
       // Problem types
       {
         primary: 'issue',
@@ -288,7 +295,7 @@ export class ContextEnhancer {
         synonyms: ['reboot', 'reload', 'refresh', 'cycle', 'bounce'],
         weight: 1.0,
       },
-      
+
       // Operations terms
       {
         primary: 'deploy',
@@ -305,7 +312,7 @@ export class ContextEnhancer {
         synonyms: ['backup', 'snapshot', 'archive', 'copy', 'dump'],
         weight: 1.0,
       },
-      
+
       // Network terms
       {
         primary: 'network',
@@ -317,7 +324,7 @@ export class ContextEnhancer {
         synonyms: ['lb', 'proxy', 'reverse proxy', 'nginx', 'haproxy', 'f5'],
         weight: 1.0,
       },
-      
+
       // Security terms
       {
         primary: 'security',
@@ -334,71 +341,92 @@ export class ContextEnhancer {
 
   private initializeOperationalContexts(): Map<IntentType, OperationalContext> {
     return new Map([
-      [IntentType.FIND_RUNBOOK, {
-        domain: 'incident_response',
-        relatedTerms: ['alert', 'incident', 'response', 'procedure', 'guide', 'playbook'],
-        contextualBoosts: { 'severity': 1.5, 'system': 1.3, 'alert_type': 1.4 },
-        systemMappings: {
-          'web': ['nginx', 'apache', 'load balancer', 'frontend'],
-          'database': ['mysql', 'postgres', 'mongodb', 'redis'],
-          'infrastructure': ['kubernetes', 'docker', 'aws', 'cloud'],
+      [
+        IntentType.FIND_RUNBOOK,
+        {
+          domain: 'incident_response',
+          relatedTerms: ['alert', 'incident', 'response', 'procedure', 'guide', 'playbook'],
+          contextualBoosts: { severity: 1.5, system: 1.3, alert_type: 1.4 },
+          systemMappings: {
+            web: ['nginx', 'apache', 'load balancer', 'frontend'],
+            database: ['mysql', 'postgres', 'mongodb', 'redis'],
+            infrastructure: ['kubernetes', 'docker', 'aws', 'cloud'],
+          },
         },
-      }],
-      
-      [IntentType.EMERGENCY_RESPONSE, {
-        domain: 'critical_operations',
-        relatedTerms: ['immediate', 'urgent', 'critical', 'emergency', 'outage', 'down'],
-        contextualBoosts: { 'immediate': 2.0, 'critical': 1.8, 'outage': 1.6 },
-        systemMappings: {
-          'core': ['database', 'authentication', 'payment', 'api'],
-          'infrastructure': ['network', 'dns', 'load balancer', 'cdn'],
+      ],
+
+      [
+        IntentType.EMERGENCY_RESPONSE,
+        {
+          domain: 'critical_operations',
+          relatedTerms: ['immediate', 'urgent', 'critical', 'emergency', 'outage', 'down'],
+          contextualBoosts: { immediate: 2.0, critical: 1.8, outage: 1.6 },
+          systemMappings: {
+            core: ['database', 'authentication', 'payment', 'api'],
+            infrastructure: ['network', 'dns', 'load balancer', 'cdn'],
+          },
         },
-      }],
-      
-      [IntentType.ESCALATION_PATH, {
-        domain: 'organizational',
-        relatedTerms: ['contact', 'escalate', 'manager', 'team', 'on-call', 'support'],
-        contextualBoosts: { 'manager': 1.4, 'team': 1.2, 'on-call': 1.6 },
-        systemMappings: {
-          'roles': ['manager', 'engineer', 'operator', 'admin'],
+      ],
+
+      [
+        IntentType.ESCALATION_PATH,
+        {
+          domain: 'organizational',
+          relatedTerms: ['contact', 'escalate', 'manager', 'team', 'on-call', 'support'],
+          contextualBoosts: { manager: 1.4, team: 1.2, 'on-call': 1.6 },
+          systemMappings: {
+            roles: ['manager', 'engineer', 'operator', 'admin'],
+          },
         },
-      }],
-      
-      [IntentType.GET_PROCEDURE, {
-        domain: 'operational_procedures',
-        relatedTerms: ['steps', 'procedure', 'instructions', 'how to', 'process'],
-        contextualBoosts: { 'steps': 1.3, 'procedure': 1.4, 'instructions': 1.2 },
-        systemMappings: {
-          'actions': ['restart', 'deploy', 'configure', 'backup', 'restore'],
+      ],
+
+      [
+        IntentType.GET_PROCEDURE,
+        {
+          domain: 'operational_procedures',
+          relatedTerms: ['steps', 'procedure', 'instructions', 'how to', 'process'],
+          contextualBoosts: { steps: 1.3, procedure: 1.4, instructions: 1.2 },
+          systemMappings: {
+            actions: ['restart', 'deploy', 'configure', 'backup', 'restore'],
+          },
         },
-      }],
-      
-      [IntentType.TROUBLESHOOT, {
-        domain: 'debugging',
-        relatedTerms: ['debug', 'diagnose', 'investigate', 'analyze', 'troubleshoot'],
-        contextualBoosts: { 'error': 1.3, 'log': 1.2, 'debug': 1.4 },
-        systemMappings: {
-          'debugging': ['logs', 'metrics', 'traces', 'monitoring'],
+      ],
+
+      [
+        IntentType.TROUBLESHOOT,
+        {
+          domain: 'debugging',
+          relatedTerms: ['debug', 'diagnose', 'investigate', 'analyze', 'troubleshoot'],
+          contextualBoosts: { error: 1.3, log: 1.2, debug: 1.4 },
+          systemMappings: {
+            debugging: ['logs', 'metrics', 'traces', 'monitoring'],
+          },
         },
-      }],
-      
-      [IntentType.STATUS_CHECK, {
-        domain: 'monitoring',
-        relatedTerms: ['status', 'health', 'check', 'monitor', 'metrics'],
-        contextualBoosts: { 'status': 1.3, 'health': 1.3, 'metrics': 1.2 },
-        systemMappings: {
-          'monitoring': ['dashboard', 'metrics', 'alerts', 'uptime'],
+      ],
+
+      [
+        IntentType.STATUS_CHECK,
+        {
+          domain: 'monitoring',
+          relatedTerms: ['status', 'health', 'check', 'monitor', 'metrics'],
+          contextualBoosts: { status: 1.3, health: 1.3, metrics: 1.2 },
+          systemMappings: {
+            monitoring: ['dashboard', 'metrics', 'alerts', 'uptime'],
+          },
         },
-      }],
-      
-      [IntentType.CONFIGURATION, {
-        domain: 'system_configuration',
-        relatedTerms: ['configure', 'config', 'setup', 'settings', 'parameter'],
-        contextualBoosts: { 'config': 1.3, 'setup': 1.2, 'settings': 1.1 },
-        systemMappings: {
-          'config': ['environment', 'parameter', 'variable', 'setting'],
+      ],
+
+      [
+        IntentType.CONFIGURATION,
+        {
+          domain: 'system_configuration',
+          relatedTerms: ['configure', 'config', 'setup', 'settings', 'parameter'],
+          contextualBoosts: { config: 1.3, setup: 1.2, settings: 1.1 },
+          systemMappings: {
+            config: ['environment', 'parameter', 'variable', 'setting'],
+          },
         },
-      }],
+      ],
     ]);
   }
 
@@ -411,18 +439,24 @@ export class ContextEnhancer {
       ['containers', ['docker', 'kubernetes', 'podman', 'containerd']],
       ['cloud_providers', ['aws', 'azure', 'gcp', 'digital ocean', 'linode']],
       ['message_queues', ['rabbitmq', 'kafka', 'sqs', 'redis', 'activemq']],
-      
+
       // Alert types
       ['performance_alerts', ['high cpu', 'memory leak', 'slow response', 'timeout']],
       ['availability_alerts', ['service down', 'connection refused', '404 error', '500 error']],
       ['security_alerts', ['unauthorized access', 'failed login', 'certificate expired']],
       ['capacity_alerts', ['disk full', 'memory usage', 'connection limit', 'queue full']],
-      
+
       // Common procedures
-      ['restart_procedures', ['graceful restart', 'rolling restart', 'force restart', 'service reload']],
+      [
+        'restart_procedures',
+        ['graceful restart', 'rolling restart', 'force restart', 'service reload'],
+      ],
       ['deployment_procedures', ['blue green', 'canary deployment', 'rolling update', 'hotfix']],
       ['backup_procedures', ['full backup', 'incremental backup', 'point in time', 'snapshot']],
-      ['scaling_procedures', ['horizontal scaling', 'vertical scaling', 'auto scaling', 'manual scaling']],
+      [
+        'scaling_procedures',
+        ['horizontal scaling', 'vertical scaling', 'auto scaling', 'manual scaling'],
+      ],
     ]);
   }
 
@@ -491,21 +525,21 @@ export class ContextEnhancer {
 
     // Add synonyms for operational keywords
     for (const keyword of operationalKeywords) {
-      const synonymGroup = this.synonymGroups.find(group => 
-        group.primary === keyword || group.synonyms.includes(keyword)
+      const synonymGroup = this.synonymGroups.find(
+        group => group.primary === keyword || group.synonyms.includes(keyword)
       );
-      
+
       if (synonymGroup) {
         // Add primary term if we found a synonym
         if (synonymGroup.synonyms.includes(keyword)) {
           expansions.push(synonymGroup.primary);
         }
-        
+
         // Add relevant synonyms
         const relevantSynonyms = synonymGroup.synonyms
           .filter(synonym => !query.includes(synonym))
           .slice(0, 3); // Limit synonyms per group
-        
+
         expansions.push(...relevantSynonyms);
       }
     }
@@ -514,9 +548,7 @@ export class ContextEnhancer {
     for (const [, terms] of this.domainKnowledge.entries()) {
       const hasRelatedTerm = terms.some(term => query.includes(term));
       if (hasRelatedTerm) {
-        const additionalTerms = terms
-          .filter(term => !query.includes(term))
-          .slice(0, 2); // Limit terms per domain
+        const additionalTerms = terms.filter(term => !query.includes(term)).slice(0, 2); // Limit terms per domain
         expansions.push(...additionalTerms);
       }
     }
@@ -550,22 +582,20 @@ export class ContextEnhancer {
     // Add intent-specific context
     if (intent && this.operationalContexts.has(intent.intent)) {
       const operationalContext = this.operationalContexts.get(intent.intent)!;
-      
+
       // Add related terms not already in query
       const newTerms = operationalContext.relatedTerms
         .filter(term => !query.includes(term))
         .slice(0, 3);
       contextTerms.push(...newTerms);
-      
+
       // Add system mappings if relevant
       for (const [, terms] of Object.entries(operationalContext.systemMappings)) {
-        const hasRelatedSystem = terms.some(term => 
-          query.includes(term) || (context?.systems && context.systems.includes(term))
+        const hasRelatedSystem = terms.some(
+          term => query.includes(term) || (context?.systems && context.systems.includes(term))
         );
         if (hasRelatedSystem) {
-          const additionalTerms = terms
-            .filter(term => !query.includes(term))
-            .slice(0, 2);
+          const additionalTerms = terms.filter(term => !query.includes(term)).slice(0, 2);
           contextTerms.push(...additionalTerms);
         }
       }
@@ -581,13 +611,13 @@ export class ContextEnhancer {
     _operationalKeywords: string[] // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ): string {
     const queryParts = [originalQuery];
-    
+
     // Add most relevant expansions
     const topExpansions = expansions.slice(0, Math.floor(this.config.maxExpansions * 0.6));
     if (topExpansions.length > 0) {
       queryParts.push(...topExpansions);
     }
-    
+
     // Add context terms
     const topContextTerms = contextTerms.slice(0, Math.floor(this.config.maxExpansions * 0.4));
     if (topContextTerms.length > 0) {
@@ -630,14 +660,14 @@ export class ContextEnhancer {
   private optimizeDataStructures(): void {
     // Sort synonym groups by weight for faster processing
     this.synonymGroups.sort((a, b) => b.weight - a.weight);
-    
+
     // Pre-compile any regex patterns if needed
     // Currently using simple string matching for performance
   }
 
   private updateMetrics(enhancement: EnhancedQuery, processingTime: number): void {
     this.metrics.totalEnhancements++;
-    
+
     // Update processing time tracking
     this.processingTimes.push(processingTime);
     if (this.processingTimes.length > this.maxProcessingHistorySize) {
@@ -647,19 +677,22 @@ export class ContextEnhancer {
     // Update averages
     this.metrics.averageProcessingTime = this.calculateAverageProcessingTime();
     this.metrics.processingTimePercentiles = this.calculateProcessingTimePercentiles();
-    
+
     // Update enhancement effectiveness
-    this.metrics.averageExpansions = 
-      (this.metrics.averageExpansions * (this.metrics.totalEnhancements - 1) + enhancement.expansions.length) / 
+    this.metrics.averageExpansions =
+      (this.metrics.averageExpansions * (this.metrics.totalEnhancements - 1) +
+        enhancement.expansions.length) /
       this.metrics.totalEnhancements;
-    
-    this.metrics.averageContextTerms = 
-      (this.metrics.averageContextTerms * (this.metrics.totalEnhancements - 1) + enhancement.contextTerms.length) / 
+
+    this.metrics.averageContextTerms =
+      (this.metrics.averageContextTerms * (this.metrics.totalEnhancements - 1) +
+        enhancement.contextTerms.length) /
       this.metrics.totalEnhancements;
 
     this.metrics.enhancementEffectiveness.synonymsAdded += enhancement.expansions.length;
     this.metrics.enhancementEffectiveness.contextTermsAdded += enhancement.contextTerms.length;
-    this.metrics.enhancementEffectiveness.operationalKeywordsFound += enhancement.operationalKeywords.length;
+    this.metrics.enhancementEffectiveness.operationalKeywordsFound +=
+      enhancement.operationalKeywords.length;
   }
 
   private calculateAverageProcessingTime(): number {
@@ -684,7 +717,9 @@ export class ContextEnhancer {
 
   private calculateTargetMetPercentage(): number {
     if (this.processingTimes.length === 0) return 100;
-    const withinTarget = this.processingTimes.filter(time => time <= this.config.maxProcessingTime).length;
+    const withinTarget = this.processingTimes.filter(
+      time => time <= this.config.maxProcessingTime
+    ).length;
     return (withinTarget / this.processingTimes.length) * 100;
   }
 }

@@ -4,7 +4,7 @@
  * Intelligent MCP server for documentation retrieval and incident response.
  * Provides structured access to operational runbooks, procedures, and
  * decision trees through the Model Context Protocol.
- * 
+ *
  * Build trigger: Testing multi-arch manifest with GHCR permissions fix
  */
 
@@ -38,7 +38,6 @@ import { createSampleConfig } from './utils/config.js';
  */
 async function main(): Promise<void> {
   try {
-
     logger.info('Starting Personal Pipeline MCP Server...', {
       version: '0.1.0',
       nodeVersion: process.version,
@@ -51,7 +50,7 @@ async function main(): Promise<void> {
     // Parse command-line arguments
     const configIndex = process.argv.findIndex(arg => arg === '--config' || arg === '-c');
     let configPath: string | undefined;
-    
+
     if (configIndex !== -1 && configIndex + 1 < process.argv.length) {
       configPath = process.argv[configIndex + 1];
       logger.info(`Using explicit config file: ${configPath}`);
@@ -154,7 +153,7 @@ export * from './types/index.js';
 // Export adapter framework
 export * from './adapters/index.js';
 
-// Export utilities  
+// Export utilities
 export * from './utils/index.js';
 
 // Export tools for advanced usage

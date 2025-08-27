@@ -16,7 +16,7 @@ The presentation has been formatted to fit within standard terminal dimensions:
 │ │  │   │  ║   ║
 └─┘  └───┘  ╚═══╝
 
-├─┤  ├───┤  ╠═══╣
+├─┤  ├───┤    ╠═══╣
 ├─┼─┤├───┼───┤╠═══╬═══╣
 └─┴─┘└───┴───┘╚═══╩═══╝
 ```
@@ -71,7 +71,7 @@ The presentation has been formatted to fit within standard terminal dimensions:
 ### Architecture Diagrams
 ```ascii
 ┌─────────────┐   ┌─────────────┐
-│   Component │──→│  Component  │
+│  Component  │──→│  Component  │
 │             │   │             │
 └─────────────┘   └─────────────┘
 ```

@@ -64,7 +64,7 @@ export class RedisConnectionManager extends EventEmitter {
     super();
     this.config = config;
     this.currentDelay = config.retry_delay_ms;
-    
+
     // Install the ioredis error handler to prevent unhandled error events
     installIoredisErrorHandler();
   }
@@ -297,10 +297,10 @@ export class RedisConnectionManager extends EventEmitter {
     this.redis.on('error', (error: Error) => {
       // This handler MUST handle ALL errors synchronously
       this.handleConnectionFailure(error);
-      
+
       // Suppress Redis error logging during tests with error-level logging
       const isTestEnv = process.env.NODE_ENV === 'test' || process.env.LOG_LEVEL === 'error';
-      
+
       if (!isTestEnv) {
         // Log level depends on circuit breaker state and failure count
         if (this.state === ConnectionState.CIRCUIT_OPEN) {
@@ -393,7 +393,7 @@ export class RedisConnectionManager extends EventEmitter {
     // Log appropriately based on failure count and circuit breaker state
     // Suppress logging during tests unless LOG_LEVEL allows it
     const isTestEnv = process.env.NODE_ENV === 'test' || process.env.LOG_LEVEL === 'error';
-    
+
     if (this.consecutiveFailures === 1) {
       // First failure - log as warning to alert administrators (unless in test mode)
       if (!isTestEnv) {

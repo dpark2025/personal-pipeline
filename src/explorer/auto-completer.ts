@@ -1,9 +1,9 @@
 /**
  * Auto-completion Engine for Enhanced MCP Tool Explorer
- * 
+ *
  * Authored by: Backend Technical Lead Agent
  * Date: 2025-08-15
- * 
+ *
  * Provides intelligent tab completion for tool names, parameters, and values
  * with context-aware suggestions and smart matching algorithms.
  */
@@ -14,13 +14,16 @@ interface MCPToolSchema {
   name: string;
   description: string;
   category: string;
-  parameters: Record<string, {
-    type: string;
-    required: boolean;
-    description: string;
-    suggestions?: string[];
-    examples?: any[];
-  }>;
+  parameters: Record<
+    string,
+    {
+      type: string;
+      required: boolean;
+      description: string;
+      suggestions?: string[];
+      examples?: any[];
+    }
+  >;
 }
 
 /**
@@ -40,22 +43,22 @@ export class AutoCompleter {
    */
   complete(line: string): [string[], string] {
     const trimmedLine = line.trim();
-    
+
     // Handle special commands
     if (trimmedLine.startsWith('/')) {
       return this.completeSpecialCommands(trimmedLine);
     }
-    
+
     // Handle tool selection
     if (this.isToolSelection(trimmedLine)) {
       return this.completeToolNames(trimmedLine);
     }
-    
+
     // Handle parameter completion
     if (this.isParameterInput(trimmedLine)) {
       return this.completeParameters(trimmedLine);
     }
-    
+
     // Default completion
     return this.getDefaultCompletions(trimmedLine);
   }
@@ -72,14 +75,14 @@ export class AutoCompleter {
       '/analytics',
       '/stats',
       '/clear',
-      '/help'
+      '/help',
     ];
-    
+
     const partial = line.slice(1); // Remove the '/'
     const matches = specialCommands
       .filter(cmd => cmd.slice(1).startsWith(partial))
       .map(cmd => cmd.slice(1)); // Remove '/' for return value
-    
+
     return [matches, partial];
   }
 
@@ -88,24 +91,22 @@ export class AutoCompleter {
    */
   private completeToolNames(line: string): [string[], string] {
     const toolNames = Object.keys(this.tools);
-    const matches = toolNames.filter(name => 
-      name.toLowerCase().includes(line.toLowerCase())
-    );
-    
+    const matches = toolNames.filter(name => name.toLowerCase().includes(line.toLowerCase()));
+
     // Sort by relevance (exact matches first, then startsWith, then includes)
     matches.sort((a, b) => {
       const aLower = a.toLowerCase();
       const bLower = b.toLowerCase();
       const lineLower = line.toLowerCase();
-      
+
       if (aLower === lineLower && bLower !== lineLower) return -1;
       if (bLower === lineLower && aLower !== lineLower) return 1;
       if (aLower.startsWith(lineLower) && !bLower.startsWith(lineLower)) return -1;
       if (bLower.startsWith(lineLower) && !aLower.startsWith(lineLower)) return 1;
-      
+
       return a.localeCompare(b);
     });
-    
+
     return [matches, line];
   }
 
@@ -115,21 +116,21 @@ export class AutoCompleter {
   private completeParameters(line: string): [string[], string] {
     // Extract parameter name and partial value from context
     const parameterContext = this.extractParameterContext(line);
-    
+
     if (!parameterContext) {
       return [[], line];
     }
-    
+
     const { toolName, parameterName, partialValue } = parameterContext;
     const tool = this.tools[toolName];
-    
+
     if (!tool?.parameters[parameterName]) {
       return [[], partialValue];
     }
-    
+
     const parameter = tool.parameters[parameterName];
     const suggestions = this.getParameterSuggestions(parameter, partialValue);
-    
+
     return [suggestions, partialValue];
   }
 
@@ -138,12 +139,12 @@ export class AutoCompleter {
    */
   private getParameterSuggestions(parameter: any, partialValue: string): string[] {
     let suggestions: string[] = [];
-    
+
     // Add predefined suggestions
     if (parameter.suggestions) {
       suggestions = suggestions.concat(parameter.suggestions);
     }
-    
+
     // Add examples as suggestions
     if (parameter.examples) {
       const exampleStrings = parameter.examples
@@ -151,37 +152,37 @@ export class AutoCompleter {
         .map((ex: any) => String(ex));
       suggestions = suggestions.concat(exampleStrings);
     }
-    
+
     // Add type-specific suggestions
     switch (parameter.type) {
       case 'boolean':
         suggestions = suggestions.concat(['true', 'false', 'yes', 'no']);
         break;
-        
+
       case 'string':
         // Already handled by predefined suggestions
         break;
-        
+
       case 'number':
         suggestions = suggestions.concat(['1', '5', '10', '20', '50', '100']);
         break;
-        
+
       case 'array':
         // Suggest array format examples
         suggestions = suggestions.concat(['["item1","item2"]', '["value"]']);
         break;
-        
+
       case 'object':
         // Suggest object format examples
         suggestions = suggestions.concat(['{}', '{"key":"value"}']);
         break;
     }
-    
+
     // Filter suggestions based on partial value
     const filtered = suggestions.filter(suggestion =>
       suggestion.toLowerCase().includes(partialValue.toLowerCase())
     );
-    
+
     // Remove duplicates and sort
     return [...new Set(filtered)].sort();
   }
@@ -197,22 +198,22 @@ export class AutoCompleter {
     // This is a simplified implementation
     // In a real scenario, you'd track the current tool and parameter context
     // For now, we'll use the current context if available
-    
+
     if (!this.currentContext) {
       return null;
     }
-    
+
     // Parse the current context to extract tool and parameter info
     // This would be enhanced with proper state tracking
     const contextParts = this.currentContext.split(':');
     if (contextParts.length < 2) {
       return null;
     }
-    
+
     return {
       toolName: contextParts[0]!,
       parameterName: contextParts[1]!,
-      partialValue: line
+      partialValue: line,
     };
   }
 
@@ -225,14 +226,15 @@ export class AutoCompleter {
     const containsToolKeywords = Object.keys(this.tools).some(tool =>
       line.toLowerCase().includes(tool.toLowerCase())
     );
-    
+
     return !isNumber && (containsToolKeywords || line.length > 2);
   }
 
   /**
    * Check if input is parameter input
    */
-  private isParameterInput(_line: string): boolean { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  private isParameterInput(_line: string): boolean {
+    // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     // This would be enhanced with proper context tracking
     return this.currentContext.includes(':parameter:');
   }
@@ -246,13 +248,13 @@ export class AutoCompleter {
       '0', // Exit option
       '/help',
       '/favorites',
-      '/history'
+      '/history',
     ];
-    
+
     const matches = defaultOptions.filter(option =>
       option.toLowerCase().includes(_line.toLowerCase())
     );
-    
+
     return [matches, _line];
   }
 
@@ -275,7 +277,7 @@ export class AutoCompleter {
    */
   addToHistory(command: string): void {
     this.commandHistory.push(command);
-    
+
     // Keep only last 100 commands
     if (this.commandHistory.length > 100) {
       this.commandHistory = this.commandHistory.slice(-100);
@@ -294,18 +296,16 @@ export class AutoCompleter {
    */
   getSmartSuggestions(toolName: string): string[] {
     const suggestions: string[] = [];
-    
+
     // Analyze history for patterns
-    const toolUsage = this.commandHistory.filter(cmd => 
-      cmd.includes(toolName)
-    );
-    
+    const toolUsage = this.commandHistory.filter(cmd => cmd.includes(toolName));
+
     if (toolUsage.length > 0) {
       // Extract commonly used parameters
       const commonParams = this.extractCommonParameters(toolUsage);
       suggestions.push(...commonParams);
     }
-    
+
     // Add tool-specific smart suggestions
     const tool = this.tools[toolName];
     if (tool) {
@@ -313,10 +313,10 @@ export class AutoCompleter {
       const requiredParams = Object.entries(tool.parameters)
         .filter(([, param]) => param.required) // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
         .map(([name]) => name); // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
-      
+
       suggestions.push(...requiredParams);
     }
-    
+
     return [...new Set(suggestions)];
   }
 
@@ -325,7 +325,7 @@ export class AutoCompleter {
    */
   private extractCommonParameters(usage: string[]): string[] {
     const paramCounts: Record<string, number> = {};
-    
+
     usage.forEach(cmd => {
       // Simple parameter extraction (would be enhanced in real implementation)
       const matches = cmd.match(/"(\w+)":/g);
@@ -336,7 +336,7 @@ export class AutoCompleter {
         });
       }
     });
-    
+
     // Return parameters sorted by frequency
     return Object.entries(paramCounts)
       .sort(([, a], [, b]) => b - a)
@@ -356,19 +356,21 @@ export class AutoCompleter {
   /**
    * Format completion suggestions with colors and descriptions
    */
-  formatSuggestions(suggestions: string[], _context: string = ''): string { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+  formatSuggestions(suggestions: string[], _context: string = ''): string {
+    // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
     if (suggestions.length === 0) {
       return chalk.gray('No suggestions available');
     }
-    
-    const formatted = suggestions.map((suggestion, _index) => { // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
+
+    const formatted = suggestions.map((suggestion, _index) => {
+      // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
       const tool = this.tools[suggestion];
       if (tool) {
-        return `${chalk.cyan(suggestion)} ${chalk.gray(`- ${  tool.description}`)}`;
+        return `${chalk.cyan(suggestion)} ${chalk.gray(`- ${tool.description}`)}`;
       }
       return chalk.cyan(suggestion);
     });
-    
+
     return formatted.join('\n');
   }
 }

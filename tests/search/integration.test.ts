@@ -1,9 +1,9 @@
 /**
  * Integration Tests - End-to-end semantic search integration
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Comprehensive integration tests for the semantic search system
  * with the existing PersonalPipelineServer and adapter framework.
  */
@@ -20,7 +20,8 @@ class MockSourceAdapter extends SourceAdapter {
     {
       id: 'mock-1',
       title: 'Disk Space Alert Runbook',
-      content: 'This runbook covers procedures for handling disk space alerts, including identifying the cause, cleaning up temporary files, and expanding storage capacity.',
+      content:
+        'This runbook covers procedures for handling disk space alerts, including identifying the cause, cleaning up temporary files, and expanding storage capacity.',
       source: 'mock-source',
       source_type: 'file',
       confidence_score: 0.9,
@@ -58,7 +59,8 @@ class MockSourceAdapter extends SourceAdapter {
     {
       id: 'mock-2',
       title: 'Memory Pressure Investigation',
-      content: 'Guide for investigating memory pressure issues including analyzing memory usage patterns, identifying memory leaks, and optimizing application memory consumption.',
+      content:
+        'Guide for investigating memory pressure issues including analyzing memory usage patterns, identifying memory leaks, and optimizing application memory consumption.',
       source: 'mock-source',
       source_type: 'file',
       confidence_score: 0.85,
@@ -74,7 +76,8 @@ class MockSourceAdapter extends SourceAdapter {
     {
       id: 'mock-3',
       title: 'Database Connection Troubleshooting',
-      content: 'Comprehensive troubleshooting procedures for database connectivity issues, covering connection pool problems, network configuration, and authentication failures.',
+      content:
+        'Comprehensive troubleshooting procedures for database connectivity issues, covering connection pool problems, network configuration, and authentication failures.',
       source: 'mock-source',
       source_type: 'file',
       confidence_score: 0.8,
@@ -100,9 +103,10 @@ class MockSourceAdapter extends SourceAdapter {
   async search(query: string, _filters?: SearchFilters): Promise<SearchResult[]> {
     // Simple fuzzy search simulation
     const queryLower = query.toLowerCase();
-    return this.documents.filter(doc => 
-      doc.title.toLowerCase().includes(queryLower) ||
-      doc.content.toLowerCase().includes(queryLower)
+    return this.documents.filter(
+      doc =>
+        doc.title.toLowerCase().includes(queryLower) ||
+        doc.content.toLowerCase().includes(queryLower)
     );
   }
 
@@ -176,9 +180,9 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
 
   test('should initialize successfully with semantic enhancement', async () => {
     await enhancedAdapter.initialize();
-    
+
     assert(enhancedAdapter.isReady(), 'Adapter should be ready');
-    
+
     const healthCheck = await enhancedAdapter.healthCheck();
     assert(healthCheck.source_name === 'mock-source', 'Should preserve base adapter health check');
     assert(healthCheck.semantic_enhancement, 'Should include semantic enhancement status');
@@ -192,21 +196,21 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
     });
 
     await fallbackAdapter.initialize();
-    
+
     const results = await fallbackAdapter.search('disk space');
     assert(results.length > 0, 'Should return results from base adapter');
     assert(results[0].source === 'mock-source', 'Should use base adapter results');
-    
+
     await fallbackAdapter.cleanup();
   });
 
   test('should maintain backward compatibility with existing interfaces', async () => {
     await enhancedAdapter.initialize();
-    
+
     // Test search interface compatibility
     const searchResults = await enhancedAdapter.search('memory pressure');
     assert(Array.isArray(searchResults), 'Should return array of SearchResults');
-    
+
     searchResults.forEach(result => {
       assert(typeof result.id === 'string', 'Should have id');
       assert(typeof result.title === 'string', 'Should have title');
@@ -215,12 +219,12 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
       assert(Array.isArray(result.match_reasons), 'Should have match reasons');
       assert(typeof result.retrieval_time_ms === 'number', 'Should have retrieval time');
     });
-    
+
     // Test getDocument interface compatibility
     const document = await enhancedAdapter.getDocument('mock-1');
     assert(document !== null, 'Should retrieve document');
     assert(document.id === 'mock-1', 'Should return correct document');
-    
+
     // Test searchRunbooks interface compatibility
     const runbooks = await enhancedAdapter.searchRunbooks('disk_full', 'critical', ['web-server']);
     assert(Array.isArray(runbooks), 'Should return array of Runbooks');
@@ -228,24 +232,24 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
 
   test('should enhance search results with semantic understanding', async () => {
     await enhancedAdapter.initialize();
-    
+
     // Wait for semantic indexing to complete
     let retries = 0;
     while (!enhancedAdapter.isSemanticReady() && retries < 10) {
       await new Promise(resolve => setTimeout(resolve, 500));
       retries++;
     }
-    
+
     if (enhancedAdapter.isSemanticReady()) {
       // Test semantic query that should find relevant content
       const semanticResults = await enhancedAdapter.search('storage space exhausted');
-      
+
       // Should find disk space document even without exact keyword match
       const diskSpaceResult = semanticResults.find(r => r.title.includes('Disk Space'));
       assert(diskSpaceResult, 'Should find semantically relevant document');
     } else {
       console.log('Semantic search not ready, testing fallback behavior');
-      
+
       // Test fallback behavior
       const fallbackResults = await enhancedAdapter.search('disk space');
       assert(fallbackResults.length > 0, 'Should return fallback results');
@@ -254,22 +258,24 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
 
   test('should provide enhanced metadata with semantic capabilities', async () => {
     await enhancedAdapter.initialize();
-    
+
     const metadata = await enhancedAdapter.getMetadata();
-    
+
     // Should include base metadata
     assert(metadata.name === 'mock-source', 'Should include base metadata');
     assert(typeof metadata.documentCount === 'number', 'Should include document count');
-    
+
     // Should include semantic enhancement metadata
     assert(metadata.semantic_enhancement, 'Should include semantic enhancement metadata');
-    assert(typeof metadata.semantic_enhancement.semantic_search_enabled === 'boolean', 
-      'Should indicate if semantic search is enabled');
+    assert(
+      typeof metadata.semantic_enhancement.semantic_search_enabled === 'boolean',
+      'Should indicate if semantic search is enabled'
+    );
   });
 
   test('should handle concurrent requests efficiently', async () => {
     await enhancedAdapter.initialize();
-    
+
     const queries = [
       'disk space issues',
       'memory problems',
@@ -277,42 +283,46 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
       'network troubleshooting',
       'performance optimization',
     ];
-    
+
     const startTime = performance.now();
     const searchPromises = queries.map(query => enhancedAdapter.search(query));
     const results = await Promise.all(searchPromises);
     const totalTime = performance.now() - startTime;
-    
+
     // All searches should complete
     assert.strictEqual(results.length, queries.length);
     results.forEach(result => {
       assert(Array.isArray(result), 'Each search should return an array');
     });
-    
+
     // Should handle concurrent requests efficiently
     const avgTimePerSearch = totalTime / queries.length;
-    assert(avgTimePerSearch < 500, `Average search time ${avgTimePerSearch.toFixed(2)}ms should be reasonable`);
-    
-    console.log(`Concurrent search performance: ${totalTime.toFixed(2)}ms total, ${avgTimePerSearch.toFixed(2)}ms average`);
+    assert(
+      avgTimePerSearch < 500,
+      `Average search time ${avgTimePerSearch.toFixed(2)}ms should be reasonable`
+    );
+
+    console.log(
+      `Concurrent search performance: ${totalTime.toFixed(2)}ms total, ${avgTimePerSearch.toFixed(2)}ms average`
+    );
   });
 
   test('should maintain search quality during fallback scenarios', async () => {
     await enhancedAdapter.initialize();
-    
+
     // Test search quality with both semantic and fallback
     const testQuery = 'disk space alert';
-    
+
     // Get results (may be semantic or fallback depending on readiness)
     const results = await enhancedAdapter.search(testQuery);
-    
+
     assert(results.length > 0, 'Should return relevant results');
-    
+
     // Check result quality
-    const relevantResult = results.find(r => 
-      r.title.toLowerCase().includes('disk') || 
-      r.content.toLowerCase().includes('disk space')
+    const relevantResult = results.find(
+      r => r.title.toLowerCase().includes('disk') || r.content.toLowerCase().includes('disk space')
     );
-    
+
     assert(relevantResult, 'Should find relevant results for disk space query');
     assert(relevantResult.confidence_score > 0, 'Should have positive confidence score');
     assert(relevantResult.retrieval_time_ms >= 0, 'Should record retrieval time');
@@ -320,10 +330,10 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
 
   test('should support configuration updates', async () => {
     await enhancedAdapter.initialize();
-    
+
     const originalConfig = enhancedAdapter.getConfig();
     assert(originalConfig.semantic_config, 'Should have semantic config');
-    
+
     // Update configuration
     enhancedAdapter.configure({
       semantic_config: {
@@ -331,19 +341,22 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
         maxResults: 20,
       },
     });
-    
+
     const updatedConfig = enhancedAdapter.getConfig();
-    assert(updatedConfig.semantic_config.semanticThreshold === 0.5, 'Should update semantic threshold');
+    assert(
+      updatedConfig.semantic_config.semanticThreshold === 0.5,
+      'Should update semantic threshold'
+    );
     assert(updatedConfig.semantic_config.maxResults === 20, 'Should update max results');
   });
 
   test('should handle index refresh correctly', async () => {
     await enhancedAdapter.initialize();
-    
+
     // Test index refresh
     const refreshSuccess = await enhancedAdapter.refreshIndex();
     assert(refreshSuccess === true, 'Index refresh should succeed');
-    
+
     // Test forced refresh
     const forceRefreshSuccess = await enhancedAdapter.refreshIndex(true);
     assert(forceRefreshSuccess === true, 'Forced index refresh should succeed');
@@ -351,23 +364,27 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
 
   test('should provide comprehensive health monitoring', async () => {
     await enhancedAdapter.initialize();
-    
+
     const health = await enhancedAdapter.healthCheck();
-    
+
     // Base adapter health
     assert(health.source_name === 'mock-source', 'Should include source name');
     assert(health.healthy === true, 'Should report healthy status');
     assert(typeof health.response_time_ms === 'number', 'Should include response time');
-    
+
     // Semantic enhancement health
     assert(health.semantic_enhancement, 'Should include semantic health');
-    assert(typeof health.semantic_enhancement.semantic_search_enabled === 'boolean', 
-      'Should report semantic search status');
-    
+    assert(
+      typeof health.semantic_enhancement.semantic_search_enabled === 'boolean',
+      'Should report semantic search status'
+    );
+
     if (health.semantic_enhancement.semantic_search_enabled) {
       assert(health.semantic_enhancement.semantic_status, 'Should include semantic status');
-      assert(typeof health.semantic_enhancement.documents_indexed === 'boolean', 
-        'Should report indexing status');
+      assert(
+        typeof health.semantic_enhancement.documents_indexed === 'boolean',
+        'Should report indexing status'
+      );
     }
   });
 
@@ -377,21 +394,21 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
       enableSemanticSearch: true,
       enableFallback: false, // Disable fallback to test error handling
     });
-    
+
     await errorAdapter.initialize();
-    
+
     // Even if semantic search fails, should not throw if fallback is enabled
     const fallbackEnabledAdapter = new SemanticEnhancedAdapter(mockAdapter, {
       enableSemanticSearch: true,
       enableFallback: true,
     });
-    
+
     await fallbackEnabledAdapter.initialize();
-    
+
     // Should handle search even if semantic fails
     const results = await fallbackEnabledAdapter.search('test query');
     assert(Array.isArray(results), 'Should return results array even with errors');
-    
+
     await errorAdapter.cleanup();
     await fallbackEnabledAdapter.cleanup();
   });
@@ -433,12 +450,16 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
     const _singleResult = await enhancedAdapter.search('disk space management');
     const singleSearchTime = performance.now() - singleSearchStart;
 
-    assert(singleSearchTime < performanceTargets.searchResponseTime, 
-      `Single search time ${singleSearchTime.toFixed(2)}ms should be <${performanceTargets.searchResponseTime}ms`);
+    assert(
+      singleSearchTime < performanceTargets.searchResponseTime,
+      `Single search time ${singleSearchTime.toFixed(2)}ms should be <${performanceTargets.searchResponseTime}ms`
+    );
 
     // Test concurrent searches
-    const concurrentQueries = Array.from({ length: performanceTargets.concurrentSearches }, 
-      (_, i) => `test query ${i}`);
+    const concurrentQueries = Array.from(
+      { length: performanceTargets.concurrentSearches },
+      (_, i) => `test query ${i}`
+    );
 
     const concurrentStart = performance.now();
     const concurrentResults = await Promise.all(
@@ -447,10 +468,14 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
     const concurrentTime = performance.now() - concurrentStart;
 
     const avgConcurrentTime = concurrentTime / performanceTargets.concurrentSearches;
-    assert(avgConcurrentTime < performanceTargets.searchResponseTime * 1.5, 
-      `Average concurrent search time ${avgConcurrentTime.toFixed(2)}ms should be reasonable`);
+    assert(
+      avgConcurrentTime < performanceTargets.searchResponseTime * 1.5,
+      `Average concurrent search time ${avgConcurrentTime.toFixed(2)}ms should be reasonable`
+    );
 
-    console.log(`End-to-end performance: Single=${singleSearchTime.toFixed(2)}ms, Concurrent avg=${avgConcurrentTime.toFixed(2)}ms`);
+    console.log(
+      `End-to-end performance: Single=${singleSearchTime.toFixed(2)}ms, Concurrent avg=${avgConcurrentTime.toFixed(2)}ms`
+    );
 
     // Verify all concurrent searches returned results
     concurrentResults.forEach(result => {
@@ -462,7 +487,7 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
     const loadTestDuration = 5000; // 5 seconds
     const searchInterval = 100; // ms between searches
     const startTime = Date.now();
-    
+
     let searchCount = 0;
     let errorCount = 0;
     const responseTimes: number[] = [];
@@ -472,7 +497,7 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
         const searchStart = performance.now();
         await enhancedAdapter.search(`load test query ${searchCount}`);
         const responseTime = performance.now() - searchStart;
-        
+
         responseTimes.push(responseTime);
         searchCount++;
       } catch (error) {
@@ -482,14 +507,20 @@ const skipSemanticTests = process.env.CI === 'true' || process.env.NODE_ENV === 
       await new Promise(resolve => setTimeout(resolve, searchInterval));
     }
 
-    const avgResponseTime = responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
+    const avgResponseTime =
+      responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
     const errorRate = errorCount / (searchCount + errorCount);
 
-    console.log(`Load test results: ${searchCount} searches, ${errorCount} errors, ${avgResponseTime.toFixed(2)}ms avg response`);
+    console.log(
+      `Load test results: ${searchCount} searches, ${errorCount} errors, ${avgResponseTime.toFixed(2)}ms avg response`
+    );
 
     // Should handle load with low error rate
     assert(errorRate < 0.05, `Error rate ${(errorRate * 100).toFixed(2)}% should be <5%`);
-    assert(avgResponseTime < 300, `Average response time ${avgResponseTime.toFixed(2)}ms should be reasonable under load`);
+    assert(
+      avgResponseTime < 300,
+      `Average response time ${avgResponseTime.toFixed(2)}ms should be reasonable under load`
+    );
     assert(searchCount > 0, 'Should complete some searches during load test');
   });
 });

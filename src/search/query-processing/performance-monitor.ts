@@ -1,9 +1,9 @@
 /**
  * Performance Monitor - Query processing analytics and performance tracking
- * 
+ *
  * Authored by: AI/ML Engineer
  * Date: 2025-01-17
- * 
+ *
  * Advanced performance monitoring system for query processing that tracks
  * processing times, accuracy metrics, resource usage, and provides real-time
  * analytics for continuous optimization with <5ms monitoring overhead.
@@ -80,8 +80,8 @@ export class PerformanceMonitor {
     snapshotRetentionSize: 10000,
     alertThresholds: {
       processingTime: 100, // Alert if >100ms
-      accuracyDrop: 0.1,   // Alert if accuracy drops >10%
-      errorRate: 0.05,     // Alert if error rate >5%
+      accuracyDrop: 0.1, // Alert if accuracy drops >10%
+      errorRate: 0.05, // Alert if error rate >5%
     },
     monitoringOverhead: 5, // 5ms max overhead
   };
@@ -123,7 +123,9 @@ export class PerformanceMonitor {
       });
     } catch (error) {
       logger.error('Failed to initialize Performance Monitor', { error });
-      throw new Error(`Performance Monitor initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Performance Monitor initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -140,9 +142,9 @@ export class PerformanceMonitor {
    * Record query processing performance
    */
   recordProcessing(
-    processingId: string, 
-    query: string, 
-    processingTime: number, 
+    processingId: string,
+    query: string,
+    processingTime: number,
     cached: boolean,
     accuracy?: number
   ): void {
@@ -161,7 +163,7 @@ export class PerformanceMonitor {
 
       // Store snapshot
       this.performanceSnapshots.push(snapshot);
-      
+
       // Maintain retention limit
       if (this.performanceSnapshots.length > this.config.snapshotRetentionSize) {
         this.performanceSnapshots.shift();
@@ -174,15 +176,15 @@ export class PerformanceMonitor {
       if (cached) {
         this.cacheMetrics.hitCount++;
         this.cacheMetrics.averageHitTime = this.updateAverage(
-          this.cacheMetrics.averageHitTime, 
-          this.cacheMetrics.hitCount, 
+          this.cacheMetrics.averageHitTime,
+          this.cacheMetrics.hitCount,
           processingTime
         );
       } else {
         this.cacheMetrics.missCount++;
         this.cacheMetrics.averageMissTime = this.updateAverage(
-          this.cacheMetrics.averageMissTime, 
-          this.cacheMetrics.missCount, 
+          this.cacheMetrics.averageMissTime,
+          this.cacheMetrics.missCount,
           processingTime
         );
       }
@@ -212,9 +214,9 @@ export class PerformanceMonitor {
    * Record processing error
    */
   recordProcessingError(
-    processingId: string, 
-    query: string, 
-    error: any, 
+    processingId: string,
+    query: string,
+    error: any,
     processingTime: number
   ): void {
     const snapshot: PerformanceSnapshot = {
@@ -226,13 +228,15 @@ export class PerformanceMonitor {
     };
 
     this.performanceSnapshots.push(snapshot);
-    
+
     // Update error metrics
     this.metrics.totalQueries++;
 
     // Create error alert
     if (this.config.enableRealTimeAlerts) {
-      this.createAlert('error_rate', 'medium', 
+      this.createAlert(
+        'error_rate',
+        'medium',
         `Query processing error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { processingTime, errorCount: 1 }
       );
@@ -257,21 +261,25 @@ export class PerformanceMonitor {
   /**
    * Cache query processing result
    */
-  async cacheResult(query: string, context: QueryContext | undefined, result: ProcessedQuery): Promise<void> {
+  async cacheResult(
+    query: string,
+    context: QueryContext | undefined,
+    result: ProcessedQuery
+  ): Promise<void> {
     if (!this.config.enableCaching) return;
 
     try {
       const cacheKey = this.generateCacheKey(query, context);
       const timestamp = Date.now();
-      
+
       this.cacheStorage.set(cacheKey, { result, timestamp });
-      
+
       // Cleanup old cache entries (simple LRU-style)
       if (this.cacheStorage.size > 1000) {
         const entries = Array.from(this.cacheStorage.entries());
         const sorted = entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
         const toDelete = sorted.slice(0, 100); // Remove oldest 100 entries
-        
+
         for (const [key] of toDelete) {
           this.cacheStorage.delete(key);
         }
@@ -290,7 +298,7 @@ export class PerformanceMonitor {
     try {
       const cacheKey = this.generateCacheKey(query, context);
       const cached = this.cacheStorage.get(cacheKey);
-      
+
       if (cached) {
         // Check if cache entry is still valid (1 hour TTL)
         const maxAge = 60 * 60 * 1000; // 1 hour
@@ -300,7 +308,7 @@ export class PerformanceMonitor {
           this.cacheStorage.delete(cacheKey);
         }
       }
-      
+
       return null;
     } catch (error) {
       logger.warn('Failed to get cached result', { error });
@@ -327,9 +335,7 @@ export class PerformanceMonitor {
    * Get recent performance alerts
    */
   getPerformanceAlerts(limit: number = 50): PerformanceAlert[] {
-    return this.performanceAlerts
-      .slice(-limit)
-      .sort((a, b) => b.timestamp - a.timestamp);
+    return this.performanceAlerts.slice(-limit).sort((a, b) => b.timestamp - a.timestamp);
   }
 
   /**
@@ -338,7 +344,7 @@ export class PerformanceMonitor {
   getPerformanceTrends(timeWindowMs: number = 3600000): any {
     const cutoff = Date.now() - timeWindowMs;
     const recentSnapshots = this.performanceSnapshots.filter(s => s.timestamp > cutoff);
-    
+
     if (recentSnapshots.length === 0) {
       return { trend: 'insufficient_data', dataPoints: 0 };
     }
@@ -346,15 +352,19 @@ export class PerformanceMonitor {
     // Calculate trends
     const times = recentSnapshots.map(s => s.processingTime);
     const averageTime = times.reduce((sum, time) => sum + time, 0) / times.length;
-    
+
     const firstHalf = times.slice(0, Math.floor(times.length / 2));
     const secondHalf = times.slice(Math.floor(times.length / 2));
-    
+
     const firstAvg = firstHalf.reduce((sum, time) => sum + time, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((sum, time) => sum + time, 0) / secondHalf.length;
-    
-    const trend = secondAvg > firstAvg * 1.1 ? 'degrading' : 
-                  secondAvg < firstAvg * 0.9 ? 'improving' : 'stable';
+
+    const trend =
+      secondAvg > firstAvg * 1.1
+        ? 'degrading'
+        : secondAvg < firstAvg * 0.9
+          ? 'improving'
+          : 'stable';
 
     return {
       trend,
@@ -408,7 +418,7 @@ export class PerformanceMonitor {
       },
       performanceTargets: {
         targetProcessingTime: this.config.targetProcessingTime,
-        targetAccuracy: 0.90,
+        targetAccuracy: 0.9,
         achievedProcessingTime: 0,
         achievedAccuracy: 0.95,
       },
@@ -443,7 +453,7 @@ export class PerformanceMonitor {
 
   private updateProcessingMetrics(snapshot: PerformanceSnapshot): void {
     this.metrics.totalQueries++;
-    
+
     // Update average processing time
     this.metrics.averageProcessingTime = this.updateAverage(
       this.metrics.averageProcessingTime,
@@ -475,29 +485,41 @@ export class PerformanceMonitor {
   }
 
   private updateAverage(currentAverage: number, count: number, newValue: number): number {
-    return ((currentAverage * (count - 1)) + newValue) / count;
+    return (currentAverage * (count - 1) + newValue) / count;
   }
 
   private checkPerformanceAlerts(snapshot: PerformanceSnapshot): void {
     // Processing time alert
     if (snapshot.processingTime > this.config.alertThresholds.processingTime) {
-      this.createAlert('processing_time', 'medium',
+      this.createAlert(
+        'processing_time',
+        'medium',
         `Query processing time exceeded threshold: ${snapshot.processingTime.toFixed(2)}ms`,
-        { processingTime: snapshot.processingTime, threshold: this.config.alertThresholds.processingTime }
+        {
+          processingTime: snapshot.processingTime,
+          threshold: this.config.alertThresholds.processingTime,
+        }
       );
     }
 
     // Critical processing time alert
     if (snapshot.processingTime > this.config.alertThresholds.processingTime * 2) {
-      this.createAlert('processing_time', 'high',
+      this.createAlert(
+        'processing_time',
+        'high',
         `Query processing time critically high: ${snapshot.processingTime.toFixed(2)}ms`,
-        { processingTime: snapshot.processingTime, threshold: this.config.alertThresholds.processingTime * 2 }
+        {
+          processingTime: snapshot.processingTime,
+          threshold: this.config.alertThresholds.processingTime * 2,
+        }
       );
     }
 
     // Accuracy degradation alert (if accuracy data available)
     if (snapshot.intentAccuracy && snapshot.intentAccuracy < 0.8) {
-      this.createAlert('accuracy_degradation', 'high',
+      this.createAlert(
+        'accuracy_degradation',
+        'high',
         `Intent classification accuracy dropped: ${(snapshot.intentAccuracy * 100).toFixed(1)}%`,
         { accuracy: snapshot.intentAccuracy }
       );

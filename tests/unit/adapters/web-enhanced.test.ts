@@ -1,11 +1,11 @@
 /**
  * WebAdapter Enhanced Test Suite
- * 
+ *
  * Authored by: Barry Young (Integration Specialist)
  * Date: 2025-08-14
- * 
+ *
  * Comprehensive test suite for the WebAdapter implementation covering
- * HTTP client functionality, content processing, authentication, 
+ * HTTP client functionality, content processing, authentication,
  * rate limiting, and runbook search capabilities.
  */
 
@@ -23,7 +23,7 @@ const createTestWebConfig = (): WebConfig => ({
   name: 'test-web',
   type: 'web',
   enabled: true,
-  
+
   endpoints: [
     {
       name: 'api-docs',
@@ -33,11 +33,11 @@ const createTestWebConfig = (): WebConfig => ({
       selectors: {
         title: 'h1, .page-title',
         content: '.content, .documentation',
-        exclude: ['.sidebar', '.navigation', '.footer']
+        exclude: ['.sidebar', '.navigation', '.footer'],
       },
       rate_limit: 30,
       timeout_ms: 15000,
-      cache_ttl: '1h'
+      cache_ttl: '1h',
     },
     {
       name: 'runbooks-api',
@@ -47,31 +47,31 @@ const createTestWebConfig = (): WebConfig => ({
       json_paths: ['$.runbooks[*]', '$.procedures[*]'],
       rate_limit: 10,
       timeout_ms: 10000,
-      cache_ttl: '30m'
-    }
+      cache_ttl: '30m',
+    },
   ],
-  
+
   auth: {
-    type: 'none'
+    type: 'none',
   },
-  
+
   performance: {
     default_timeout_ms: 15000,
     max_concurrent_requests: 3,
     default_retry_attempts: 2,
     default_cache_ttl: '1h',
-    user_agent: 'PersonalPipeline/1.0 WebAdapter'
+    user_agent: 'PersonalPipeline/1.0 WebAdapter',
   },
-  
+
   content_processing: {
     max_content_size_mb: 10,
     follow_redirects: true,
     validate_ssl: true,
-    extract_links: false
+    extract_links: false,
   },
-  
+
   refresh_interval: '2h',
-  priority: 1
+  priority: 1,
 });
 
 // Mock cache service for testing
@@ -83,7 +83,7 @@ const createMockCache = () => ({
   keys: async (_pattern?: string) => [], // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   ttl: async (_key: string) => 0, // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
   healthCheck: async () => ({ healthy: true, latency_ms: 1 }),
-  getStats: () => ({ hits: 0, misses: 0, sets: 0, deletes: 0, size: 0 })
+  getStats: () => ({ hits: 0, misses: 0, sets: 0, deletes: 0, size: 0 }),
 });
 
 // ============================
@@ -93,21 +93,21 @@ const createMockCache = () => ({
 describe('WebAdapter - HTTP Client Operations', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
 
   it('should initialize HTTP client with proper defaults', async () => {
     const metadata = await adapter.getMetadata();
-    
+
     assert.strictEqual(metadata.source_name, 'test-web');
     assert.strictEqual(metadata.source_type, 'http');
     assert.strictEqual(metadata.status, 'ready');
@@ -119,19 +119,19 @@ describe('WebAdapter - HTTP Client Operations', () => {
     authConfig.auth = {
       type: 'api_key',
       api_key_header: 'X-API-Key',
-      api_key_env: 'TEST_API_KEY'
+      api_key_env: 'TEST_API_KEY',
     };
-    
+
     // Set mock environment variable
     process.env.TEST_API_KEY = 'test-key-12345';
-    
+
     const authAdapter = new WebAdapter(authConfig, mockCache);
     await authAdapter.initialize();
-    
+
     const metadata = await authAdapter.getMetadata();
     assert.strictEqual(metadata.status, 'ready');
     assert.ok(metadata.auth_configured);
-    
+
     await authAdapter.cleanup();
     delete process.env.TEST_API_KEY;
   });
@@ -140,19 +140,19 @@ describe('WebAdapter - HTTP Client Operations', () => {
     const authConfig = createTestWebConfig();
     authConfig.auth = {
       type: 'bearer_token',
-      bearer_token_env: 'TEST_BEARER_TOKEN'
+      bearer_token_env: 'TEST_BEARER_TOKEN',
     };
-    
+
     // Set mock environment variable
     process.env.TEST_BEARER_TOKEN = 'bearer-token-67890';
-    
+
     const authAdapter = new WebAdapter(authConfig, mockCache);
     await authAdapter.initialize();
-    
+
     const metadata = await authAdapter.getMetadata();
     assert.strictEqual(metadata.status, 'ready');
     assert.ok(metadata.auth_configured);
-    
+
     await authAdapter.cleanup();
     delete process.env.TEST_BEARER_TOKEN;
   });
@@ -162,20 +162,20 @@ describe('WebAdapter - HTTP Client Operations', () => {
     authConfig.auth = {
       type: 'basic_auth',
       username_env: 'TEST_USERNAME',
-      password_env: 'TEST_PASSWORD'
+      password_env: 'TEST_PASSWORD',
     };
-    
+
     // Set mock environment variables
     process.env.TEST_USERNAME = 'testuser';
     process.env.TEST_PASSWORD = 'testpass';
-    
+
     const authAdapter = new WebAdapter(authConfig, mockCache);
     await authAdapter.initialize();
-    
+
     const metadata = await authAdapter.getMetadata();
     assert.strictEqual(metadata.status, 'ready');
     assert.ok(metadata.auth_configured);
-    
+
     await authAdapter.cleanup();
     delete process.env.TEST_USERNAME;
     delete process.env.TEST_PASSWORD;
@@ -189,14 +189,14 @@ describe('WebAdapter - HTTP Client Operations', () => {
 describe('WebAdapter - Content Processing', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
@@ -217,14 +217,14 @@ describe('WebAdapter - Content Processing', () => {
         </body>
       </html>
     `;
-    
+
     // Test HTML content extraction (this would normally be done internally)
     const processedContent = (adapter as any).extractFromHTML(mockHtmlContent, {
       title: 'h1, .page-title',
       content: '.content',
-      exclude: ['.sidebar', '.footer']
+      exclude: ['.sidebar', '.footer'],
     });
-    
+
     assert.ok(processedContent.title.includes('API Documentation'));
     assert.ok(processedContent.content.includes('Getting Started'));
     assert.ok(processedContent.content.includes('API endpoints'));
@@ -241,19 +241,19 @@ describe('WebAdapter - Content Processing', () => {
           description: 'Handle disk space alerts',
           procedures: [
             { step: 1, action: 'Check disk usage' },
-            { step: 2, action: 'Clear temporary files' }
-          ]
-        }
+            { step: 2, action: 'Clear temporary files' },
+          ],
+        },
       ],
       metadata: {
         total: 1,
-        version: '1.0'
-      }
+        version: '1.0',
+      },
     };
-    
+
     // Test JSON content extraction
     const processedContent = (adapter as any).extractFromJSON(mockJsonContent, ['$.runbooks[*]']);
-    
+
     assert.ok(processedContent.title.includes('Disk Space Alert'));
     assert.ok(processedContent.content.includes('disk space alerts'));
     assert.ok(processedContent.content.includes('Check disk usage'));
@@ -271,10 +271,10 @@ describe('WebAdapter - Content Processing', () => {
       </ul>
       <pre><code>df -h</code></pre>
     `;
-    
+
     // Test HTML to Markdown conversion
     const markdownContent = (adapter as any).convertToMarkdown(mockHtml);
-    
+
     assert.ok(markdownContent.includes('# Runbook Documentation'));
     assert.ok(markdownContent.includes('## Overview'));
     assert.ok(markdownContent.includes('**critical**'));
@@ -284,13 +284,13 @@ describe('WebAdapter - Content Processing', () => {
 
   it('should handle malformed content gracefully', async () => {
     const malformedHtml = '<html><body><h1>Title</h1><p>Content</p><unclosed-tag>Bad content';
-    
+
     // Test malformed content handling
     const processedContent = (adapter as any).extractFromHTML(malformedHtml, {
       title: 'h1',
-      content: 'p'
+      content: 'p',
     });
-    
+
     // Should still extract valid parts
     assert.ok(processedContent.title.includes('Title'));
     assert.ok(processedContent.content.includes('Content'));
@@ -304,14 +304,14 @@ describe('WebAdapter - Content Processing', () => {
 describe('WebAdapter - Rate Limiting & Performance', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
@@ -322,9 +322,9 @@ describe('WebAdapter - Rate Limiting & Performance', () => {
     const rateLimitInfo = {
       requests_per_minute: 10,
       current_count: 8,
-      window_start: Date.now() - 30000 // 30 seconds ago
+      window_start: Date.now() - 30000, // 30 seconds ago
     };
-    
+
     // Test rate limit checking (internal method)
     const canProceed = (adapter as any).checkRateLimit(endpoint, rateLimitInfo);
     assert.strictEqual(typeof canProceed, 'boolean');
@@ -335,14 +335,14 @@ describe('WebAdapter - Rate Limiting & Performance', () => {
     const retryConfig = {
       max_attempts: 3,
       base_delay_ms: 1000,
-      max_delay_ms: 10000
+      max_delay_ms: 10000,
     };
-    
+
     // Test backoff calculation
     const delay1 = (adapter as any).calculateBackoffDelay(1, retryConfig);
     const delay2 = (adapter as any).calculateBackoffDelay(2, retryConfig);
     const delay3 = (adapter as any).calculateBackoffDelay(3, retryConfig);
-    
+
     assert.ok(delay1 >= 1000);
     assert.ok(delay2 > delay1);
     assert.ok(delay3 > delay2);
@@ -351,21 +351,21 @@ describe('WebAdapter - Rate Limiting & Performance', () => {
 
   it('should handle concurrent requests efficiently', async () => {
     const startTime = Date.now();
-    
+
     // Test concurrent search operations (with mocked responses)
     const searchPromises = [
       adapter.search('test query 1'),
       adapter.search('test query 2'),
-      adapter.search('test query 3')
+      adapter.search('test query 3'),
     ];
-    
+
     const results = await Promise.all(searchPromises);
     const duration = Date.now() - startTime;
-    
+
     // All searches should complete
     assert.strictEqual(results.length, 3);
     results.forEach(result => assert.ok(Array.isArray(result)));
-    
+
     // Should complete within reasonable time (5 seconds for concurrent operations)
     assert.ok(duration < 5000, `Concurrent searches took ${duration}ms, expected <5000ms`);
   });
@@ -373,18 +373,18 @@ describe('WebAdapter - Rate Limiting & Performance', () => {
   it('should timeout requests appropriately', async () => {
     const timeoutConfig = createTestWebConfig();
     timeoutConfig.performance.default_timeout_ms = 100; // Very short timeout
-    
+
     const timeoutAdapter = new WebAdapter(timeoutConfig, mockCache);
     await timeoutAdapter.initialize();
-    
+
     // Test timeout handling (this will likely timeout quickly due to short timeout)
     const startTime = Date.now();
     const results = await timeoutAdapter.search('test query');
     const _duration = Date.now() - startTime; // eslint-disable-line @typescript-eslint/no-unused-vars, no-unused-vars
-    
+
     // Should return empty results for timeout scenarios
     assert.ok(Array.isArray(results));
-    
+
     await timeoutAdapter.cleanup();
   });
 });
@@ -396,26 +396,26 @@ describe('WebAdapter - Rate Limiting & Performance', () => {
 describe('WebAdapter - Search Operations', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
 
   it('should search across multiple endpoints simultaneously', async () => {
     const results = await adapter.search('documentation', {
-      confidence_threshold: 0.3
+      confidence_threshold: 0.3,
     });
-    
+
     // Should return an array (even if empty due to no real endpoints)
     assert.ok(Array.isArray(results));
-    
+
     // Each result should have the required structure
     results.forEach(result => {
       assert.ok(typeof result.id === 'string');
@@ -432,7 +432,7 @@ describe('WebAdapter - Search Operations', () => {
 
   it('should handle empty search queries gracefully', async () => {
     const results = await adapter.search('', {});
-    
+
     // Should return empty array for empty query
     assert.ok(Array.isArray(results));
     assert.strictEqual(results.length, 0);
@@ -441,24 +441,24 @@ describe('WebAdapter - Search Operations', () => {
   it('should handle search with no configured endpoints', async () => {
     const emptyConfig = createTestWebConfig();
     emptyConfig.endpoints = [];
-    
+
     const emptyAdapter = new WebAdapter(emptyConfig, mockCache);
     await emptyAdapter.initialize();
-    
+
     const results = await emptyAdapter.search('test query');
-    
+
     // Should return empty array when no endpoints configured
     assert.ok(Array.isArray(results));
     assert.strictEqual(results.length, 0);
-    
+
     await emptyAdapter.cleanup();
   });
 
   it('should respect confidence threshold filtering', async () => {
     const results = await adapter.search('test query', {
-      confidence_threshold: 0.8  // High threshold
+      confidence_threshold: 0.8, // High threshold
     });
-    
+
     // All results should meet the confidence threshold
     results.forEach(result => {
       assert.ok(result.confidence_score >= 0.8);
@@ -473,24 +473,24 @@ describe('WebAdapter - Search Operations', () => {
 describe('WebAdapter - Runbook Operations', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
 
   it('should search for runbooks with alert-specific queries', async () => {
     const runbooks = await adapter.searchRunbooks('disk_space_alert', 'critical', ['web-server']);
-    
+
     // Should return an array of runbooks
     assert.ok(Array.isArray(runbooks));
-    
+
     // Each runbook should have the required structure
     runbooks.forEach(runbook => {
       assert.ok(typeof runbook.id === 'string');
@@ -510,10 +510,14 @@ describe('WebAdapter - Runbook Operations', () => {
     const runbookContent = {
       title: 'Disk Space Alert Runbook',
       content: 'Steps to resolve disk space alerts: 1. Check usage 2. Clean files',
-      url: 'https://ops.company.com/runbooks/disk-space.html'
+      url: 'https://ops.company.com/runbooks/disk-space.html',
     };
-    
-    const isRunbook = (adapter as any).isLikelyRunbook(runbookContent, 'disk_space_alert', 'critical');
+
+    const isRunbook = (adapter as any).isLikelyRunbook(
+      runbookContent,
+      'disk_space_alert',
+      'critical'
+    );
     assert.strictEqual(typeof isRunbook, 'boolean');
   });
 
@@ -533,7 +537,7 @@ describe('WebAdapter - Runbook Operations', () => {
       ## Expected Outcome
       Disk usage should drop below 85% threshold.
     `;
-    
+
     // Test synthetic runbook creation
     const syntheticRunbook = (adapter as any).createSyntheticRunbook(
       { id: 'test-1', title: 'Disk Space Recovery', content, url: 'https://test.com' },
@@ -541,7 +545,7 @@ describe('WebAdapter - Runbook Operations', () => {
       'critical',
       ['web-server']
     );
-    
+
     assert.ok(typeof syntheticRunbook === 'object');
     assert.ok(typeof syntheticRunbook.id === 'string');
     assert.ok(typeof syntheticRunbook.title === 'string');
@@ -553,7 +557,7 @@ describe('WebAdapter - Runbook Operations', () => {
   it('should handle edge case alert types gracefully', async () => {
     // Test with empty alert type
     const runbooks = await adapter.searchRunbooks('', 'critical', []);
-    
+
     // Should return empty array for invalid input
     assert.ok(Array.isArray(runbooks));
     assert.strictEqual(runbooks.length, 0);
@@ -567,14 +571,14 @@ describe('WebAdapter - Runbook Operations', () => {
 describe('WebAdapter - Error Handling', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
@@ -582,30 +586,32 @@ describe('WebAdapter - Error Handling', () => {
   it('should handle network failures gracefully', async () => {
     // Test with unreachable endpoint
     const unreachableConfig = createTestWebConfig();
-    unreachableConfig.endpoints = [{
-      name: 'unreachable',
-      url: 'https://unreachable-endpoint-12345.invalid',
-      method: 'GET',
-      content_type: 'html',
-      rate_limit: 10,
-      timeout_ms: 1000
-    }];
-    
+    unreachableConfig.endpoints = [
+      {
+        name: 'unreachable',
+        url: 'https://unreachable-endpoint-12345.invalid',
+        method: 'GET',
+        content_type: 'html',
+        rate_limit: 10,
+        timeout_ms: 1000,
+      },
+    ];
+
     const unreachableAdapter = new WebAdapter(unreachableConfig, mockCache);
     await unreachableAdapter.initialize();
-    
+
     const results = await unreachableAdapter.search('test query');
-    
+
     // Should handle gracefully and return empty results
     assert.ok(Array.isArray(results));
-    
+
     await unreachableAdapter.cleanup();
   });
 
   it('should handle invalid JSON responses gracefully', async () => {
     // Test JSON parsing error handling
     const invalidJson = '{ "invalid": json, content }';
-    
+
     try {
       const parsed = (adapter as any).extractFromJSON(invalidJson, ['$.data']);
       // Should either return empty content or handle gracefully
@@ -621,11 +627,11 @@ describe('WebAdapter - Error Handling', () => {
     authConfig.auth = {
       type: 'api_key',
       api_key_header: 'X-API-Key',
-      api_key_env: 'NONEXISTENT_API_KEY'  // No env var set
+      api_key_env: 'NONEXISTENT_API_KEY', // No env var set
     };
-    
+
     const authAdapter = new WebAdapter(authConfig, mockCache);
-    
+
     // Should handle missing credentials gracefully
     try {
       await authAdapter.initialize();
@@ -635,7 +641,7 @@ describe('WebAdapter - Error Handling', () => {
       // Should catch authentication errors appropriately
       assert.ok(error instanceof Error);
     }
-    
+
     await authAdapter.cleanup();
   });
 
@@ -643,13 +649,13 @@ describe('WebAdapter - Error Handling', () => {
     // Test rate limit exceeded handling
     const rateLimitState = {
       requests_per_minute: 10,
-      current_count: 10,  // At limit
-      window_start: Date.now() - 30000
+      current_count: 10, // At limit
+      window_start: Date.now() - 30000,
     };
-    
+
     const endpoint = 'https://api.test.com';
     const canProceed = (adapter as any).checkRateLimit(endpoint, rateLimitState);
-    
+
     // Should respect rate limits
     assert.strictEqual(typeof canProceed, 'boolean');
   });
@@ -659,7 +665,7 @@ describe('WebAdapter - Error Handling', () => {
     const invalidConfig = createTestWebConfig();
     invalidConfig.endpoints = []; // No endpoints
     invalidConfig.auth = { type: 'invalid_auth_type' as any };
-    
+
     try {
       const invalidAdapter = new WebAdapter(invalidConfig, mockCache);
       await invalidAdapter.initialize();
@@ -678,25 +684,25 @@ describe('WebAdapter - Error Handling', () => {
 describe('WebAdapter - Health & Metadata', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
 
   it('should perform health checks correctly', async () => {
     const health = await adapter.healthCheck();
-    
+
     assert.strictEqual(typeof health.healthy, 'boolean');
     assert.strictEqual(typeof health.latency_ms, 'number');
     assert.ok(health.latency_ms >= 0);
-    
+
     if (health.details) {
       assert.strictEqual(typeof health.details, 'object');
     }
@@ -704,7 +710,7 @@ describe('WebAdapter - Health & Metadata', () => {
 
   it('should provide accurate metadata', async () => {
     const metadata = await adapter.getMetadata();
-    
+
     assert.strictEqual(metadata.source_name, 'test-web');
     assert.strictEqual(metadata.source_type, 'http');
     assert.strictEqual(typeof metadata.status, 'string');
@@ -717,13 +723,13 @@ describe('WebAdapter - Health & Metadata', () => {
 
   it('should handle refresh index operations', async () => {
     const refreshResult = await adapter.refreshIndex();
-    
+
     assert.strictEqual(typeof refreshResult, 'boolean');
   });
 
   it('should handle force refresh correctly', async () => {
     const forceRefreshResult = await adapter.refreshIndex(true);
-    
+
     assert.strictEqual(typeof forceRefreshResult, 'boolean');
   });
 });
@@ -735,14 +741,14 @@ describe('WebAdapter - Health & Metadata', () => {
 describe('WebAdapter - Performance Validation', () => {
   let adapter: WebAdapter;
   let mockCache: CacheService;
-  
+
   beforeEach(async () => {
     const config = createTestWebConfig();
     mockCache = createMockCache() as any;
     adapter = new WebAdapter(config, mockCache);
     await adapter.initialize();
   });
-  
+
   afterEach(async () => {
     await adapter.cleanup();
   });
@@ -751,7 +757,7 @@ describe('WebAdapter - Performance Validation', () => {
     const startTime = Date.now();
     const results = await adapter.search('test query', { confidence_threshold: 0.5 });
     const duration = Date.now() - startTime;
-    
+
     // Should complete within 2 seconds for web adapter
     assert.ok(duration < 2000, `Search took ${duration}ms, expected <2000ms`);
     assert.ok(Array.isArray(results));
@@ -761,7 +767,7 @@ describe('WebAdapter - Performance Validation', () => {
     const startTime = Date.now();
     const runbooks = await adapter.searchRunbooks('disk_space_alert', 'critical', ['web-server']);
     const duration = Date.now() - startTime;
-    
+
     // Should complete within 3 seconds for runbook search
     assert.ok(duration < 3000, `Runbook search took ${duration}ms, expected <3000ms`);
     assert.ok(Array.isArray(runbooks));
@@ -778,14 +784,14 @@ describe('WebAdapter - Performance Validation', () => {
         </body>
       </html>
     `;
-    
+
     const startTime = Date.now();
     const processedContent = (adapter as any).extractFromHTML(htmlContent, {
       title: 'h1',
-      content: '.content'
+      content: '.content',
     });
     const duration = Date.now() - startTime;
-    
+
     // Content processing should be very fast (<100ms)
     assert.ok(duration < 100, `Content processing took ${duration}ms, expected <100ms`);
     assert.ok(typeof processedContent === 'object');
