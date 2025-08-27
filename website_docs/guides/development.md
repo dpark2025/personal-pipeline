@@ -6,10 +6,10 @@ Complete guide for contributing to Personal Pipeline, including development setu
 
 ### Prerequisites
 
-- **Node.js**: 18.0+ (LTS recommended)
-- **npm**: 8.0+ 
+- **Node.js**: 20.0+ (LTS recommended) 
+- **npm**: 8.0+
 - **Git**: For version control
-- **Redis**: 6.0+ (optional, for caching)
+- **Redis**: 6.0+ (completely optional, for enhanced caching)
 
 ### Development Setup
 
@@ -21,9 +21,9 @@ cd personal-pipeline
 # 2. Install dependencies
 npm install
 
-# 3. Set up environment
-cp .env.example .env
-# Edit .env with your configuration
+# 3. Set up configuration
+cp config/config.sample.yaml config/config.yaml
+# Edit config.yaml with your sources
 
 # 4. Start development server
 npm run dev

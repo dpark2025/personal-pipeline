@@ -14,39 +14,33 @@ Personal Pipeline uses YAML configuration files with environment variable suppor
 # config/config.yaml
 server:
   port: 3000
-  host: localhost
-  log_level: info
-  cache_ttl_seconds: 3600
-  max_concurrent_requests: 100
-  request_timeout_ms: 30000
-  health_check_interval_ms: 60000
+  host: '0.0.0.0'
 
 sources:
   - name: "local-docs"
     type: "file"
     base_url: "./docs"
-    refresh_interval: "5m"
-    priority: 1
-    enabled: true
+    recursive: true
+    max_depth: 5
+    watch_changes: true
+    supported_extensions:
+      - '.md'
+      - '.txt'
+      - '.json'
+      - '.yml'
 
 cache:
+  strategy: "memory"  # or "hybrid" with Redis
+  ttl: 300
+  max_size: "100mb"
   redis:
+    enabled: false  # set to true and provide url to enable
     url: "redis://localhost:6379"
     ttl: 3600
-    max_memory: "100mb"
-  memory:
-    ttl: 300
-    max_size: "50mb"
 
 logging:
   level: "info"
   format: "json"
-  file: "./logs/app.log"
-  
-performance:
-  metrics_enabled: true
-  response_time_threshold_ms: 150
-  cache_hit_rate_threshold: 0.75
 ```
 
 ## Source Adapter Configuration
@@ -91,61 +85,55 @@ sources:
         - '**/tmp/**'
 ```
 
-### Confluence Adapter (Phase 2)
+### Web Adapter ✅ (Implemented)
+
+For REST APIs and web content sources:
 
 ```yaml
 sources:
-  - name: "confluence-ops"
-    type: "confluence"
-    base_url: "https://company.atlassian.net/wiki"
+  - name: "api-docs"
+    type: "web"
+    base_url: "https://api.example.com"
     auth:
       type: "bearer_token"
-      token_env: "CONFLUENCE_TOKEN"
-    refresh_interval: "1h"
-    priority: 1
-    enabled: true
-    timeout_ms: 30000
-    max_retries: 3
-    
-    # Confluence-specific options
-    spaces:
-      - "OPS"
-      - "DEVOPS"
-      - "INCIDENTS"
-    content_types:
-      - "page"
-      - "blogpost"
-    include_attachments: true
-    extract_labels: true
+      token_env: "API_TOKEN"
+    endpoints:
+      - path: "/docs"
+        method: "GET"
+        content_type: "json"
+      - path: "/knowledge"
+        method: "GET" 
+        content_type: "html"
+    performance:
+      timeout_ms: 10000
+      max_retries: 3
+      rate_limit_per_minute: 60
 ```
 
-### GitHub Adapter (Phase 2)
+### GitHub Adapter 🚧 (Planned - Phase 2)
 
 ```yaml
+# NOT YET IMPLEMENTED - Planned for Phase 2
 sources:
   - name: "github-docs"
-    type: "github"
+    type: "github"  # This adapter has compilation issues
     base_url: "https://api.github.com/repos/company/docs"
     auth:
       type: "bearer_token"
       token_env: "GITHUB_TOKEN"
-    refresh_interval: "30m"
-    priority: 2
-    enabled: true
-    timeout_ms: 15000
-    max_retries: 2
-    
-    # GitHub-specific options
-    repositories:
-      - "company/runbooks"
-      - "company/procedures"
-    branches:
-      - "main"
-      - "docs"
-    file_patterns:
-      - "**/*.md"
-      - "**/*.json"
-    include_wiki: true
+```
+
+### Confluence Adapter 🚧 (Planned - Phase 2)
+
+```yaml
+# NOT YET IMPLEMENTED - Planned for Phase 2
+sources:
+  - name: "confluence-ops"
+    type: "confluence"  # Only stub implementation exists
+    base_url: "https://company.atlassian.net/wiki"
+    auth:
+      type: "bearer_token"
+      token_env: "CONFLUENCE_TOKEN"
 ```
 
 ## Server Configuration

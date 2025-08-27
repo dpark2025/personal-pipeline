@@ -21,7 +21,7 @@ npm run dev
 
 ### System Requirements
 
-- **Node.js**: 18.0+ (LTS recommended)
+- **Node.js**: 20.0+ (LTS recommended)
 - **npm**: 8.0+ or yarn 1.22+
 - **Memory**: 512MB minimum, 2GB recommended
 - **Disk**: 1GB free space for installation
@@ -29,8 +29,8 @@ npm run dev
 
 ### Optional Dependencies
 
-- **Docker**: 20.10+ for container deployment
-- **Redis**: 6.0+ for enhanced caching (optional)
+- **Redis**: 6.0+ for enhanced caching (completely optional)
+- **Docker**: 20.10+ for Redis container (optional)
 - **Git**: For source code installation
 
 ## Installation Methods
@@ -92,13 +92,20 @@ server:
 
 sources:
   - name: "local-docs"
-    type: "filesystem"
-    path: "./docs"
-    refresh_interval: "5m"
+    type: "file"
+    base_url: "./docs"
+    recursive: true
+    max_depth: 5
+    supported_extensions:
+      - '.md'
+      - '.txt'
+      - '.json'
+      - '.yml'
 
 cache:
-  type: "memory"
+  strategy: "memory"
   ttl: 300
+  max_size: "100mb"
 
 logging:
   level: "info"
@@ -129,14 +136,18 @@ export REDIS_URL=redis://localhost:6379
 ### Health Check
 
 ```bash
-# Check server health
-curl http://localhost:3000/health
+# Check server health via npm script
+npm run health
+
+# Or use REST API directly
+curl http://localhost:3000/api/health
 
 # Expected response:
 {
+  "success": true,
   "status": "healthy",
-  "version": "0.1.0",
-  "uptime": 123.45,
+  "version": "1.4.0",
+  "uptime_seconds": 123.45,
   "timestamp": "2025-08-16T10:30:00.000Z"
 }
 ```
@@ -144,70 +155,74 @@ curl http://localhost:3000/health
 ### MCP Tools Test
 
 ```bash
-# Test MCP tools
+# Test MCP tools interactively
 npm run test-mcp
 
-# Or manually test search
+# Enhanced MCP explorer
+npm run mcp-explorer
+
+# Or manually test search via REST API
 curl -X POST http://localhost:3000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "runbook", "limit": 5}'
+  -d '{"query": "runbook", "max_results": 5}'
 ```
 
 ## Post-Installation Setup
 
 ### 1. Configure Sources
 
-Add your documentation sources to `config/config.yaml`:
+Add your documentation sources to `config/config.yaml`. Currently supported adapters:
 
+**FileSystem Adapter (Local files):**
 ```yaml
 sources:
-  - name: "confluence"
-    type: "confluence"
-    base_url: "https://company.atlassian.net/wiki"
-    auth:
-      type: "bearer_token"
-      token_env: "CONFLUENCE_TOKEN"
-    
-  - name: "github-docs"
-    type: "github"
-    repository: "company/docs"
-    auth:
-      type: "token"
-      token_env: "GITHUB_TOKEN"
+  - name: "local-docs"
+    type: "file"
+    base_url: "./docs"
+    recursive: true
+    max_depth: 5
+    supported_extensions:
+      - '.md'
+      - '.txt'
+      - '.json'
+      - '.yml'
 ```
 
-### 2. Set Up Authentication
-
-```bash
-# Set environment variables
-export CONFLUENCE_TOKEN=your_confluence_token
-export GITHUB_TOKEN=your_github_token
-
-# Or create .env file
-echo "CONFLUENCE_TOKEN=your_confluence_token" > .env
-echo "GITHUB_TOKEN=your_github_token" >> .env
+**Web Adapter (REST APIs):**
+```yaml
+sources:
+  - name: "api-docs"
+    type: "web"
+    base_url: "https://api.example.com"
+    endpoints:
+      - path: "/docs"
+        method: "GET"
+        content_type: "json"
+    performance:
+      timeout_ms: 10000
+      max_retries: 3
 ```
 
-### 3. Initialize Cache
+### 2. Set Up Redis Caching (Optional)
 
 ```bash
-# Start with Redis for better performance
+# Start Redis container (optional for better caching)
 docker run -d -p 6379:6379 redis:alpine
 
-# Update configuration for Redis
+# Enable Redis caching via environment variable
 export REDIS_URL=redis://localhost:6379
 
 # Restart Personal Pipeline
-npm restart
+npm start
 ```
 
-### 4. Load Documentation
+### 3. Verify Configuration
 
 ```bash
-# Index existing documentation
-npm run index-docs
+# Validate your configuration
+npm run validate-config
 
-# Verify indexing
+# Check configured sources
 curl http://localhost:3000/api/sources
 ```
 
@@ -233,48 +248,60 @@ ls -la config/config.yaml
 export CONFIG_FILE=/full/path/to/config.yaml
 ```
 
-**Permission errors:**
+**Redis connection issues:**
 ```bash
-# Fix file permissions
-chmod 644 config/config.yaml
-chmod 755 $(which personal-pipeline)
+# Redis is completely optional - disable if having issues
+unset REDIS_URL
 
-# Or run with specific user
-sudo -u nodejs personal-pipeline
+# Or start Redis if you want caching
+docker run -d -p 6379:6379 redis:alpine
+export REDIS_URL=redis://localhost:6379
 ```
 
 **Memory issues:**
 ```bash
 # Increase Node.js memory limit
 export NODE_OPTIONS="--max-old-space-size=2048"
-
-# Or use Docker with memory limit
-docker run --memory=1g localhost:5000/personal-pipeline/mcp-server:latest
+npm start
 ```
 
 ### Getting Help
 
 ```bash
-# View help
-personal-pipeline --help
+# Check system health
+npm run health
 
-# Check logs
-tail -f logs/app.log
+# View detailed performance metrics
+npm run health:dashboard
 
 # Enable debug logging
-export DEBUG=personal-pipeline:*
 export LOG_LEVEL=debug
+npm start
 ```
 
 ## Production Deployment
 
-### Docker Compose
+### Build and Run
+
+```bash
+# Build for production
+npm run build
+
+# Create production configuration
+cp config/config.sample.yaml config/config.yaml
+# Edit config.yaml for your sources
+
+# Start production server
+NODE_ENV=production npm start
+```
+
+### Docker Compose (with Redis)
 
 ```yaml
 version: '3.8'
 services:
   personal-pipeline:
-    image: localhost:5000/personal-pipeline/mcp-server:latest
+    build: .  # Build from source
     ports:
       - "3000:3000"
     environment:
@@ -402,14 +429,13 @@ export NODE_OPTIONS="--max-old-space-size=4096 --optimize-for-size --gc-interval
 ### Caching Configuration
 
 ```yaml
-# config/config.yaml
+# config/config.yaml - Hybrid caching with Redis + memory fallback
 cache:
-  type: "redis"
-  url: "redis://localhost:6379"
-  ttl: 3600
-  max_size: "100mb"
-  
-  # Memory fallback
+  strategy: "hybrid"
+  redis:
+    enabled: true
+    url: "redis://localhost:6379"
+    ttl: 3600
   memory:
     max_size: "50mb"
     ttl: 300
@@ -419,5 +445,5 @@ cache:
 
 - [Configuration Guide](./configuration.md) - Detailed configuration options
 - [Architecture Overview](./architecture.md) - Understanding the system design
-- [API Reference](../api/mcp-tools.md) - Using the MCP tools and REST API
-- [Registry Setup](../registry/setup.md) - Setting up local registries
+- [API Reference](../api/) - REST API and MCP tools documentation
+- [Source Adapters](../api/adapters.md) - Available adapters (FileSystem, Web)

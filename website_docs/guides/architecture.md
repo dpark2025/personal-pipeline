@@ -50,25 +50,25 @@ ADAPTER FRAMEWORK:
   │                          Source Adapters                                    │
   │                                                                             │
   │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐ │
-  │  │ FileSystem   │ │ Confluence   │ │   GitHub     │ │     Database        │ │
+  │  │ FileSystem   │ │   Web API    │ │   GitHub     │ │     Confluence      │ │
   │  │   Adapter    │ │   Adapter    │ │   Adapter    │ │     Adapter         │ │
-  │  │              │ │              │ │              │ │                     │ │
-  │  │ • Local MD   │ │ • Spaces     │ │ • Repos      │ │ • PostgreSQL        │ │
-  │  │ • JSON Data  │ │ • Pages      │ │ • Issues     │ │ • MongoDB           │ │
-  │  │ • Search     │ │ • Search     │ │ • Wiki       │ │ • Search Queries    │ │
-  │  │ • Indexing   │ │ • Auth       │ │ • API        │ │ • Connections       │ │
+  │  │      ✅       │ │      ✅       │ │  🚧(Planned) │ │   🚧(Planned)       │ │
+  │  │ • Local MD   │ │ • REST APIs  │ │ • Repos      │ │ • Spaces            │ │
+  │  │ • JSON Data  │ │ • Websites   │ │ • Issues     │ │ • Pages             │ │
+  │  │ • Search     │ │ • Content    │ │ • Wiki       │ │ • Search            │ │
+  │  │ • Indexing   │ │ • Auth       │ │ • API        │ │ • Auth              │ │
   │  └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────────┘ │
-  │        ▲               ▲(Planned)      ▲(Planned)         ▲(Planned)        │
+  │        ▲               ▲               ▲(Planned)         ▲(Planned)        │
   └────────┼───────────────┼───────────────┼────────────────────┼─────────────────┘
            │               │               │                    │
            ▼               ▼               ▼                    ▼
 EXTERNAL SOURCES:
   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐
-  │ Local Files  │ │  Confluence  │ │ GitHub Repos │ │     Databases       │
-  │              │ │   Spaces     │ │              │ │                     │
-  │ • Markdown   │ │ • Knowledge  │ │ • Code Docs  │ │ • Operational Data  │
-  │ • JSON       │ │ • Runbooks   │ │ • Runbooks   │ │ • Historical Logs   │
-  │ • Config     │ │ • Procedures │ │ • Issues     │ │ • Metrics           │
+  │ Local Files  │ │   Web APIs   │ │ GitHub Repos │ │     Confluence      │
+  │              │ │              │ │              │ │     Spaces          │
+  │ • Markdown   │ │ • REST APIs  │ │ • Code Docs  │ │ • Knowledge Base    │
+  │ • JSON       │ │ • Websites   │ │ • Runbooks   │ │ • Runbooks          │
+  │ • Config     │ │ • Content    │ │ • Issues     │ │ • Procedures        │
   └──────────────┘ └──────────────┘ └──────────────┘ └─────────────────────┘
 ```
 
@@ -80,7 +80,7 @@ EXTERNAL SOURCES:
 - Native integration with LangGraph agents
 - 7 specialized MCP tools for documentation retrieval
 - Optimized for AI agent workflows
-- Sub-150ms response times
+- <200ms response times for most operations
 
 **REST API Access**  
 - 11 HTTP endpoints for external integrations
@@ -119,8 +119,9 @@ interface SourceAdapter {
 ```
 
 **Current Adapters**
-- **FileSystemAdapter**: Local files and directories
-- **Planned**: ConfluenceAdapter, GitHubAdapter, DatabaseAdapter
+- **FileSystemAdapter**: ✅ Local files and directories (fully implemented)
+- **WebAdapter**: ✅ REST APIs and web content (implemented, testing phase)
+- **Planned**: GitHubAdapter, ConfluenceAdapter, DatabaseAdapter
 
 ### 4. Caching Architecture
 
@@ -131,10 +132,10 @@ interface SourceAdapter {
 - **Cache Warming**: Proactive content loading
 
 **Performance Metrics**
-- 75% cache hit rate achieved
-- Sub-2ms cached response times
-- 60-80% MTTR reduction
-- Automatic cache invalidation
+- 60-80% cache hit rate typical
+- <50ms cached response times
+- Significant MTTR reduction with hybrid caching
+- Automatic cache invalidation and warming
 
 ### 5. Performance Monitoring
 
@@ -216,10 +217,10 @@ REQUEST FLOW SEQUENCE:
    └─────────┘
 
 PERFORMANCE CHARACTERISTICS:
-• Cache Hit:  ~2ms response time
-• Cache Miss: ~150ms response time  
+• Cache Hit:  ~50ms response time
+• Cache Miss: ~200ms response time  
 • Cache TTL:  5-60 minutes (configurable)
-• Hit Rate:   60-80% in production workloads
+• Hit Rate:   60-80% in typical workloads
 ```
 
 ### Configuration Management
@@ -232,14 +233,20 @@ server:
 
 sources:
   - name: "local-docs"
-    type: "filesystem"
-    path: "./docs"
-    refresh_interval: "5m"
-    priority: 1
+    type: "file"
+    base_url: "./docs"
+    recursive: true
+    max_depth: 5
+    supported_extensions:
+      - '.md'
+      - '.txt'
+      - '.json'
 
 cache:
+  strategy: "hybrid"
   redis:
-    url: "redis://localhost:6379"
+    enabled: true
+    url: "redis://localhost:6379" 
     ttl: 3600
   memory:
     max_size: "50mb"
@@ -253,10 +260,10 @@ logging:
 ## Performance Characteristics
 
 ### Response Time Targets
-- **Critical runbooks**: < 150ms
-- **Standard procedures**: < 200ms  
-- **Health checks**: < 10ms
-- **Cached responses**: < 2ms
+- **Critical runbooks**: < 200ms
+- **Standard procedures**: < 300ms  
+- **Health checks**: < 50ms
+- **Cached responses**: < 50ms
 
 ### Scalability
 - **Concurrent operations**: 50+ simultaneous
