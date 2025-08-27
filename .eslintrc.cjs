@@ -23,6 +23,8 @@ module.exports = {
       'ignoreDeclarationMerge': true
     }],
     
+    // Disable base rule in favor of TypeScript equivalent
+    'no-unused-vars': 'off',
     // TypeScript specific rules
     '@typescript-eslint/no-unused-vars': ['error', { 
       argsIgnorePattern: '^_',
